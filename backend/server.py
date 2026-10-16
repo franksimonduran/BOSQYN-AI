@@ -16,6 +16,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from .storage import EvidenceStore
+from .vision_model import prepare_vision_model
 
 ROOT = Path(__file__).resolve().parents[1]
 MAX_BODY_BYTES = 4_000_000
@@ -66,10 +67,12 @@ class BosqynHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         target = urlsplit(self.path)
         route = target.path
+        if route == "/api/model-info":
+            return self.json_response(200, self.server.vision_model)
         if route == "/api/health":
             return self.json_response(200, {
                 "status": "ok", "service": "BOSQYN AI", "python_backend": True,
-                "model_integrated": False, "mode": "prototipo_local",
+                "model_integrated": self.server.vision_model["available"], "model_assets_ready": self.server.vision_model["available"], "mode": "prototipo_local",
             })
         if route == "/api/alerts":
             try:
@@ -169,6 +172,8 @@ def make_server(frontend_dir: Path, data_dir: Path, port: int = 5500, host: str 
         raise FileNotFoundError(f"Frontend no encontrado en {frontend_dir}")
     server = ThreadingHTTPServer((host, port), partial(BosqynHandler, directory=str(frontend_dir)))
     server.store = EvidenceStore(data_dir)
+    server.vision_model = prepare_vision_model(frontend_dir)
+    print('Modelo de visión:', json.dumps(server.vision_model, ensure_ascii=False))
     return server
 
 
