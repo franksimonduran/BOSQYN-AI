@@ -8,7 +8,7 @@ Bosqyn.categories=(()=>{
     'INCENDIO':{label:'Incendio',icon:'Fuego.png'},
     'FUEGO':{label:'Incendio',icon:'Fuego.png'},
     'NORMAL':{label:'Normal',icon:'Bosque.png'},
-    'IR AL BOSQUE':{label:'Ir al bosque',icon:'Bosque.png'},
+    'IR AL BOSQUE':{label:'Ir al bosque',icon:'Ir%20al%20bosque.png'},
     'TALA':{label:'Tala',icon:'Tala.png'},
     'INDICIOS TALA':{label:'Tala',icon:'Tala.png'},
     'INDICIOS DE TALA':{label:'Tala',icon:'Tala.png'},

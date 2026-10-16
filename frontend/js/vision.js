@@ -11,7 +11,7 @@ Bosqyn.vision = (function () {
   const NORMALIZE = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
   const toCanonical = NORMALIZE;
-const ICONS = { HUMO: 'Humo.png', INCENDIO: 'Fuego.png', NORMAL: 'Bosque.png', TALA: 'Tala.png', IR_AL_BOSQUE: 'Bosque.png' };
+const ICONS = { HUMO: 'Humo.png', INCENDIO: 'Fuego.png', NORMAL: 'Bosque.png', TALA: 'Tala.png', IR_AL_BOSQUE: 'Ir%20al%20bosque.png' };
   function iconFor(label) {
     return ICONS[toCanonical(label)] || 'Bosque.png';
   }

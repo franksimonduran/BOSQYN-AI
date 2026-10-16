@@ -61,7 +61,7 @@ Esta actualización se prepara en `preparacion/camara-y-audio-unificados` y no s
 ## Presentación de detecciones y estadísticas (actualización en preparación)
 
 - En Monitoreo se muestra **solo una clase visual principal con su porcentaje** (la salida de mayor probabilidad de las cinco clases), además de **una clase acústica principal con su porcentaje** (Tala o Normal). No se eliminan ni reentrenan clases del modelo.
-- Cada clase lleva su logo desde `frontend/img/deteccion/`. El logo Bosque se reutiliza para Normal e Ir al bosque.
+- Cada clase lleva su logo desde `frontend/img/deteccion/`. El logo Bosque se utiliza para Normal. La clase Ir al bosque utiliza su PNG específico `Ir al bosque.png` aportado en `main/assets/logos/`.
 - Inicio y Alertas usan iconografía coherente con las categorías; las tarjetas antiguas del inicio están señaladas como **ilustrativas**.
 - La página Estadísticas ya no utiliza el SVG con conteos de ejemplo: consulta `GET /api/statistics` y `GET /api/statistics/chart.png`. El servidor produce un **PNG Matplotlib** de los últimos siete días con registros reales de SQLite, clasificados como pendientes, confirmados o descartados.
 - El gráfico registra únicamente las capturas manuales disponibles; **no atribuye detecciones al modelo** ni representa exactitud, F1, sensibilidad ni rendimiento automático. Con cero capturas muestra un gráfico vacío.

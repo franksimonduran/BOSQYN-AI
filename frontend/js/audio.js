@@ -222,7 +222,7 @@ Bosqyn.audio = (() => {
           if (!inflight) analyze(whole, context.sampleRate);
         };
         stop.disabled = false;
-        signal.classList.add("on");
+        if (signal) signal.classList.add("on");
         setState(sharing
           ? "Imagen y sonido activados desde el monitoreo conjunto. El video no se envía al servidor."
           : "Micrófono encendido. Analizando fragmentos de tres segundos.", "ready");
