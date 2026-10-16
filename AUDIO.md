@@ -27,3 +27,20 @@ El modelo Teachable Machine de webcam sigue funcionando independientemente y con
 
 ## Limitaciones
 Una probabilidad no es una medición de precisión. BOSQYN AI es un prototipo de apoyo para verificación humana y no certifica incendios o tala ilegal.
+
+## Clasificación binaria acústica (Tala y Normal)
+
+El modelo Keras original **no se modifica ni se vuelve a entrenar**. La respuesta de la API agrupa sus siete probabilidades en dos:
+
+| Salida en BOSQYN AI | Clases del Keras original |
+| --- | --- |
+| **Tala** | `MOTOSIERRA`, `MAQUINARIA_DEFORESTACION` |
+| **Normal** | `AMBIENTE_SELVA`, `ANIMALES_SELVA`, `CARRO`, `MOTOCICLETA`, `RUIDO_DRON` |
+
+La puntuación binaria se calcula **sumando las probabilidades del modelo original**. La API `POST /api/audio/predict` devuelve `predictions` solo con `Tala` y `Normal`, y conserva `original_predictions` y `original_top_class` para diagnóstico. `GET /api/audio/model-info` describe `display_classes` y `class_groups`.
+
+**Nota:** Normal significa «otros sonidos entre las clases que reconoce el modelo», no que el bosque esté libre de amenazas. La agrupación no mejora automáticamente el rendimiento. El umbral acústico y los datos de validación deberían revisarse de nuevo porque las probabilidades de las clases ahora se suman. Dos lecturas consecutivas de `Tala` con confianza igual o superior a 0,80 generan un **indicio para verificar**, no una conclusión legal.
+
+El detector visual funciona independientemente con las cinco clases del modelo de imágenes. La webcam y el micrófono pueden usarse a la vez desde la pantalla Monitoreo.
+
+**Despliegue:** estos cambios se preparan en `preparacion/monitoreo-visual-audio-clases`; no modifican automáticamente la rama que Railway utiliza en producción.

@@ -9,6 +9,7 @@ from __future__ import annotations
 import importlib.util
 import io
 import json
+import math
 import os
 import tempfile
 import threading
@@ -20,6 +21,63 @@ ARCHIVE = ROOT / "audio" / "BOSQYN_IA_MODELO_KERAS.zip"
 MAX_ZIP_BYTES = 80_000_000
 MAX_MODEL_BYTES = 60_000_000
 
+# Dos categorías ambientales para el dashboard, sin modificar los pesos del
+# clasificador Keras de siete salidas.
+TALA_SOUNDS = frozenset({"MOTOSIERRA", "MAQUINARIA_DEFORESTACION"})
+DISPLAY_CLASSES = ["Tala", "Normal"]
+
+
+def aggregate_audio_predictions(original_predictions: list[dict]) -> dict:
+    """Combina probabilidades softmax de Keras de 7 clases en Tala/Normal.
+
+    Conserva la distinción original en original_predictions (diagnóstico).
+    Agrupar clases no constituye un nuevo entrenamiento ni validación.
+    """
+    if not original_predictions:
+        raise ValueError("El modelo acústico no devolvió predicciones")
+    classes_seen = set()
+    scores = []
+    for item in original_predictions:
+        if not isinstance(item, dict):
+            raise ValueError("Predicción de audio inválida")
+        name = item.get("className")
+        if not isinstance(name, str) or not name:
+            raise ValueError("Nombre de clase de audio inválido")
+        if name in classes_seen:
+            raise ValueError("Clase de audio duplicada")
+        classes_seen.add(name)
+        try:
+            probability = float(item["probability"])
+        except (KeyError, TypeError, ValueError):
+            raise ValueError("Probabilidad de audio inválida") from None
+        if not math.isfinite(probability) or not 0 <= probability <= 1:
+            raise ValueError("Probabilidad de audio fuera de rango")
+        scores.append((name, probability))
+    if not TALA_SOUNDS.issubset(classes_seen):
+        raise ValueError("El modelo no contiene ambas clases acústicas de tala")
+    total = sum(p for _, p in scores)
+    if total <= 0 or abs(total - 1.0) > 0.02:
+        raise ValueError("Las probabilidades acústicas deben sumar aproximadamente 1")
+    tala = sum(p for name, p in scores if name in TALA_SOUNDS) / total
+    normal = 1.0 - tala
+    predictions = [
+        {"className": "Tala", "probability": tala},
+        {"className": "Normal", "probability": normal},
+    ]
+    top = max(predictions, key=lambda item: item["probability"])
+    original_top = max(scores, key=lambda item: item[1])
+    return {
+        "predictions": predictions,
+        "top_class": top["className"],
+        "confidence": top["probability"],
+        "original_predictions": original_predictions,
+        "original_top_class": original_top[0],
+        "original_confidence": original_top[1],
+        "verification_required": True,
+        "note": "Agrupación de probabilidades acústicas. Normal significa otras categorías del modelo; no confirma ausencia de riesgos.",
+    }
+
+
 
 def inspect_archive(path: Path = ARCHIVE) -> dict:
     result = {
@@ -27,6 +85,8 @@ def inspect_archive(path: Path = ARCHIVE) -> dict:
         "asset_present": path.is_file(),
         "enabled": os.environ.get("BOSQYN_AUDIO_ENABLED", "0") == "1",
         "classes": [],
+        "display_classes": DISPLAY_CLASSES,
+        "class_groups": {"Tala": sorted(TALA_SOUNDS), "Normal": []},
         "reason": "",
         "sample_rate": 16000,
         "duration_seconds": 3,
@@ -65,6 +125,10 @@ def inspect_archive(path: Path = ARCHIVE) -> dict:
             classes = cfg.get("classes")
             if not 2 <= len(classes) <= 40 or not all(isinstance(c, str) and c.strip() for c in classes):
                 raise ValueError("Etiquetas acústicas no válidas")
+            if len(set(classes)) != len(classes):
+                raise ValueError("La configuración contiene etiquetas acústicas duplicadas")
+            if not TALA_SOUNDS.issubset(set(classes)):
+                raise ValueError("El modelo requiere clases MOTOSIERRA y MAQUINARIA_DEFORESTACION para generar Tala")
             required = ["sample_rate", "clip_seconds", "n_mels", "n_fft", "hop_length", "fmax", "mean", "std"]
             missing = [k for k in required if k not in cfg]
             if missing:
@@ -78,6 +142,7 @@ def inspect_archive(path: Path = ARCHIVE) -> dict:
             if float(cfg["std"]) <= 0:
                 raise ValueError("Normalización acústica inválida")
             result["classes"] = classes
+            result["class_groups"]["Normal"] = [name for name in classes if name not in TALA_SOUNDS]
             result["model_file"] = PurePosixPath(models[0].filename).name
             result["sample_rate"] = 16000
             result["duration_seconds"] = 3
@@ -176,11 +241,4 @@ class AudioModel:
                 {"className": str(name), "probability": float(max(0, min(1, prob)))}
                 for name, prob in zip(cfg["classes"], scores)
             ]
-            top = max(probabilities, key=lambda p: p["probability"])
-            return {
-                "predictions": probabilities,
-                "top_class": top["className"],
-                "confidence": top["probability"],
-                "verification_required": True,
-                "note": "Predicción acústica; no confirma tala ni ilegalidad.",
-            }
+            return aggregate_audio_predictions(probabilities)

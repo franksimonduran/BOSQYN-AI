@@ -4,7 +4,7 @@ Bosqyn.audio = (() => {
   "use strict";
   const iconByLabel = value => {
     const s = String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (/motosierra|tala|logging|chainsaw|maquinaria[_\s-]*(?:forestal|deforestacion)/.test(s)) return "Tala.png";
+    if (s === "tala" || /motosierra|chainsaw|maquinaria[_\s-]*(?:forestal|deforestacion)/.test(s)) return "Tala.png";
     return "Bosque.png";
   };
   const potentiallyLogging = value => {
@@ -92,18 +92,19 @@ Bosqyn.audio = (() => {
       }
       if (!ordered.length) return;
       const best = ordered[0];
-      dominant.textContent = "Clase acústica: " + best.className + " · " + (best.probability * 100).toFixed(1) + "%";
+      dominant.textContent = "Resultado acústico: " + best.className + " · " + (best.probability * 100).toFixed(1) + "%";
       observed.textContent = String(++sentCount);
-      if (potentiallyLogging(best.className) && best.probability >= .8) {
+      // El backend entrega únicamente Tala/Normal, agregando las 7 salidas originales.
+      if (best.className === "Tala" && best.probability >= .8) {
         streak++;
         if (streak >= 2 && Date.now() - lastWarning > 12000) {
           lastWarning = Date.now();
-          notice.textContent = "Posible sonido de maquinaria forestal: verifica el evento. La IA no determina legalidad.";
+          notice.textContent = "Indicio acústico de Tala: posibles sonidos de motosierra o maquinaria de deforestación. Requiere verificación humana.";
           notice.classList.add("risk");
         }
       } else {
         streak = 0;
-        notice.textContent = "Sin indicios acústicos persistentes de tala mecanizada.";
+        notice.textContent = "Sin detección persistente de sonidos asociados a Tala. Normal agrupa otras clases y no garantiza ausencia de riesgos.";
         notice.classList.remove("risk");
       }
     }
@@ -128,7 +129,9 @@ Bosqyn.audio = (() => {
         const payload = await result.json();
         if (!result.ok) throw new Error(payload.error || "Servicio de audio no disponible");
         if (!running || !root.isConnected) return;
-        if (!Array.isArray(payload.predictions)) throw new Error("Respuesta acústica inválida");
+        if (!Array.isArray(payload.predictions) || payload.predictions.length !== 2 ||
+            !["Tala", "Normal"].every(label => payload.predictions.some(p => p.className === label)))
+          throw new Error("El servidor no devuelve las clases acústicas Tala y Normal");
         render(payload.predictions);
         setState("Micrófono activo: análisis acústico local + inferencia en Python. No se guardan grabaciones.", "ready");
       } catch (error) {
@@ -225,11 +228,11 @@ Bosqyn.audio = (() => {
         availability.textContent = available ? "Modelo acústico listo" :
           info.asset_present ? "Modelo detectado · configuración pendiente" : "Modelo acústico no encontrado";
         availability.className = "bosqyn-audio-badge" + (available ? " ready" : "");
-        privacy.textContent = info.reason || "Las predicciones requieren comprobación con grabaciones independientes.";
+        privacy.textContent = (info.reason || "Modelo acústico configurado.") + " Tala agrupa MOTOSIERRA y MAQUINARIA_DEFORESTACION. Normal agrupa las otras cinco clases; se trata de una reclasificación, no un entrenamiento nuevo.";
         start.disabled = !available;
-        if (Array.isArray(info.classes) && info.classes.length) {
+        if (Array.isArray(info.display_classes) && info.display_classes.length === 2) {
           bars.replaceChildren();
-          for (const name of info.classes) {
+          for (const name of info.display_classes) {
             const row = document.createElement("div");
             row.className = "bosqyn-audio-row";
             const img = document.createElement("img");

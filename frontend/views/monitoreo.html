@@ -13,14 +13,14 @@
       <div class="bosqyn-audio-controls"><button type="button" id="audio-start" disabled>Iniciar micrófono</button><button type="button" id="audio-stop" disabled>Detener micrófono</button></div>
       <p id="audio-state" class="bosqyn-audio-status" role="status">Verificando disponibilidad del modelo de audio…</p>
       <div class="bosqyn-audio-caption"><span>Fragmentos analizados</span><strong id="audio-frames">0</strong></div>
-      <div class="bosqyn-audio-warning" id="audio-warning" role="status">Las alertas requieren dos predicciones consecutivas de una categoría acústica asociada a posible tala.</div>
+      <div class="bosqyn-audio-warning" id="audio-warning" role="status">La alerta de Tala requiere al menos dos predicciones consecutivas de Tala con confianza suficiente.</div>
       <p id="audio-privacy" class="bosqyn-audio-privacy">No se almacenan ni comparten grabaciones. Los fragmentos se procesan mediante la API de esta misma aplicación.</p>
     </div>
     <div class="bosqyn-audio-panel">
-      <h2>Predicciones del modelo acústico</h2>
+      <h2>Clasificación acústica: Tala / Normal</h2>
       <p id="audio-top" class="bosqyn-audio-top">Sin predicciones todavía.</p>
-      <div id="audio-bars" class="bosqyn-audio-bars"><p class="bosqyn-audio-placeholder">Las categorías aparecerán al identificar el modelo entrenado.</p></div>
-      <div class="bosqyn-audio-disclaimer">La puntuación del modelo es una probabilidad de clasificación, no su exactitud científica. La detección de maquinaria debe verificarse con información adicional.</div>
+      <div id="audio-bars" class="bosqyn-audio-bars"><p class="bosqyn-audio-placeholder">Se mostrarán únicamente las dos categorías finales: Tala y Normal.</p></div>
+      <div class="bosqyn-audio-disclaimer">El modelo Keras conserva sus siete clases. Tala suma MOTOSIERRA y MAQUINARIA_DEFORESTACION; Normal suma las otras cinco. Estas probabilidades no son una medición de precisión ni prueban tala ilegal.</div>
     </div>
   </div>
   <div class="bosqyn-category-showcase">
