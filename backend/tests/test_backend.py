@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 import tempfile
 import threading
 import unittest
@@ -91,6 +92,24 @@ class APITests(unittest.TestCase):
         status, removed = self.call(f"/api/alerts/{alert_id}", "DELETE")
         self.assertTrue(removed["deleted"])
         self.assertEqual(self.call(row["evidence_url"])[0], 404)
+
+    def test_read_only_blocks_writes(self):
+        prior = os.environ.get('BOSQYN_READ_ONLY')
+        try:
+            os.environ['BOSQYN_READ_ONLY'] = '1'
+            status, result = self.call('/api/alerts', 'POST', {'category': 'REVISION_MANUAL', 'image_data': 'data:image/png;base64,YQ=='})
+            self.assertEqual(status, 403)
+            status, result = self.call('/api/alerts/1', 'PATCH', {'status': 'CONFIRMADA'})
+            self.assertEqual(status, 403)
+            status, result = self.call('/api/alerts/1', 'DELETE')
+            self.assertEqual(status, 403)
+            status, result = self.call('/api/health')
+            self.assertEqual(status, 200)
+        finally:
+            if prior is None:
+                os.environ.pop('BOSQYN_READ_ONLY', None)
+            else:
+                os.environ['BOSQYN_READ_ONLY'] = prior
 
     def test_rejects_false_ai_claims_and_invalid_images(self):
         status, result = self.call("/api/alerts", "POST", {"category": "HUMO", "image_data": "data:image/png;base64,YQ=="})

@@ -9,6 +9,7 @@ import argparse
 import base64
 import binascii
 import json
+import os
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -97,7 +98,15 @@ class BosqynHandler(SimpleHTTPRequestHandler):
             return self.json_response(404, {"error": "Endpoint desconocido"})
         return super().do_GET()
 
+    def writes_forbidden(self):
+        if os.environ.get('BOSQYN_READ_ONLY', '0') == '1':
+            self.json_response(403, {'error': 'Este despliegue público es de solo lectura. Las operaciones de escritura están deshabilitadas.'})
+            return True
+        return False
+
     def do_POST(self):
+        if self.writes_forbidden():
+            return
         if urlsplit(self.path).path != "/api/alerts":
             return self.json_response(404, {"error": "Endpoint desconocido"})
         try:
@@ -126,6 +135,8 @@ class BosqynHandler(SimpleHTTPRequestHandler):
             return self.json_response(400, {"error": str(error)})
 
     def do_PATCH(self):
+        if self.writes_forbidden():
+            return
         alert_id = self.alert_id(urlsplit(self.path).path)
         if alert_id is None:
             return self.json_response(404, {"error": "Endpoint desconocido"})
@@ -142,6 +153,8 @@ class BosqynHandler(SimpleHTTPRequestHandler):
         return self.json_response(200, item)
 
     def do_DELETE(self):
+        if self.writes_forbidden():
+            return
         alert_id = self.alert_id(urlsplit(self.path).path)
         if alert_id is None:
             return self.json_response(404, {"error": "Endpoint desconocido"})
@@ -150,22 +163,23 @@ class BosqynHandler(SimpleHTTPRequestHandler):
         return self.json_response(200, {"deleted": True, "id": alert_id})
 
 
-def make_server(frontend_dir: Path, data_dir: Path, port: int = 5500):
+def make_server(frontend_dir: Path, data_dir: Path, port: int = 5500, host: str = "127.0.0.1"):
     frontend_dir = Path(frontend_dir).resolve()
     if not (frontend_dir / "index.html").is_file():
         raise FileNotFoundError(f"Frontend no encontrado en {frontend_dir}")
-    server = ThreadingHTTPServer(("127.0.0.1", port), partial(BosqynHandler, directory=str(frontend_dir)))
+    server = ThreadingHTTPServer((host, port), partial(BosqynHandler, directory=str(frontend_dir)))
     server.store = EvidenceStore(data_dir)
     return server
 
 
 def main():
     parser = argparse.ArgumentParser(description="Servidor local BOSQYN AI (Python + SQLite)")
-    parser.add_argument("--port", type=int, default=5500)
+    parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", "5500")))
+    parser.add_argument("--host", default=os.environ.get("HOST", "127.0.0.1"))
     parser.add_argument("--frontend-dir", type=Path, default=ROOT / "frontend")
     parser.add_argument("--data-dir", type=Path, default=ROOT / "backend" / "data")
     args = parser.parse_args()
-    with make_server(args.frontend_dir, args.data_dir, args.port) as server:
+    with make_server(args.frontend_dir, args.data_dir, args.port, host=args.host) as server:
         print(f"BOSQYN AI disponible en http://127.0.0.1:{server.server_address[1]}")
         print("Servidor local; IA sin conectar. Ctrl+C para detener.")
         try:
