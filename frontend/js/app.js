@@ -3,7 +3,10 @@ window.Bosqyn=window.Bosqyn||{};Bosqyn.pages=Bosqyn.pages||{};
 const routes=['inicio','incendios','tala','audio','monitoreo','alertas','estadisticas'],app=document.getElementById('app'),view=document.getElementById('view'),hero=document.getElementById('hero'),header=document.getElementById('header'),nav=[...document.querySelectorAll('[data-nav]')];
 const ON=['border-[#1fb457]/60','bg-gradient-to-r','from-[#0b7f3f]','to-[#12a653]','text-white','shadow-[0_0_14px_rgba(34,197,94,0.25)]'],OFF=['border-transparent','text-[#c5d3cc]','hover:bg-white/5'];
 const cache=new Map();let current='',cleanup=null,request=0;
-function resize(){const w=innerWidth,h=innerHeight;if(w<768){app.style.zoom=1;app.style.width='100%';app.style.height='100dvh';return}let z=Math.max(1,Math.min(w/768,h/512,1.75));app.style.zoom=z;app.style.width=w/z+'px';app.style.height=h/z+'px'}
+// Evita ampliar excesivamente el dashboard en pantallas de escritorio: el zoom
+// anterior (1.75) ocultaba en la primera vista los accesos rápidos inferiores.
+// Un máximo de 1.15 reproduce la composición compacta aprobada para BOSQYN AI.
+function resize(){const w=innerWidth,h=innerHeight;if(w<768){app.style.zoom=1;app.style.width='100%';app.style.height='100dvh';return}let z=Math.max(1,Math.min(w/768,h/512,1.15));app.style.zoom=z;app.style.width=w/z+'px';app.style.height=h/z+'px'}
 function selected(){let name=location.hash.slice(1);return routes.includes(name)?name:'inicio'}
 async function show(name){if(!routes.includes(name))name='inicio';if(name===current)return;const req=++request;
 try{let body=cache.get(name);if(!body){let response=await fetch('views/'+name+'.html');if(!response.ok)throw Error('HTTP '+response.status);body=await response.text();cache.set(name,body)}if(req!==request)return;
