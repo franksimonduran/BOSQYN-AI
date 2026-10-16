@@ -30,7 +30,7 @@ def inspect_archive(path: Path = ARCHIVE) -> dict:
         "reason": "",
         "sample_rate": 16000,
         "duration_seconds": 3,
-        "backend": "TensorFlow/Keras (Python)",
+        "backend": "Keras 3 / NumPy (Python)",
     }
     if not path.is_file():
         result["reason"] = "No se ha subido BOSQYN_IA_MODELO_KERAS.zip."
@@ -65,12 +65,16 @@ def inspect_archive(path: Path = ARCHIVE) -> dict:
             classes = cfg.get("classes")
             if not 2 <= len(classes) <= 40 or not all(isinstance(c, str) and c.strip() for c in classes):
                 raise ValueError("Etiquetas acústicas no válidas")
-            required = ["sample_rate", "clip_seconds", "n_mels", "n_fft", "hop_length", "frames", "fmax", "mean", "std"]
+            required = ["sample_rate", "clip_seconds", "n_mels", "n_fft", "hop_length", "fmax", "mean", "std"]
             missing = [k for k in required if k not in cfg]
             if missing:
                 raise ValueError("Configuración incompleta: " + ", ".join(missing))
             if int(cfg["sample_rate"]) != 16000 or float(cfg["clip_seconds"]) != 3:
                 raise ValueError("El modelo requiere frecuencia de 16 kHz y ventanas de 3 segundos.")
+            if "frames" not in cfg:
+                cfg["frames"] = 1 + int(float(cfg["sample_rate"]) * float(cfg["clip_seconds"])) // int(cfg["hop_length"])
+            if not 10 <= int(cfg["frames"]) <= 3000:
+                raise ValueError("Número de fotogramas acústicos no válido")
             if float(cfg["std"]) <= 0:
                 raise ValueError("Normalización acústica inválida")
             result["classes"] = classes
@@ -83,7 +87,7 @@ def inspect_archive(path: Path = ARCHIVE) -> dict:
     if not result["enabled"]:
         result["reason"] = "El modelo está detectado. La inferencia de audio aún no está habilitada en este servidor (BOSQYN_AUDIO_ENABLED=1)."
         return result
-    missing_deps = [name for name in ("tensorflow", "numpy", "librosa") if importlib.util.find_spec(name) is None]
+    missing_deps = [name for name in ("keras", "numpy", "librosa") if importlib.util.find_spec(name) is None]
     if missing_deps:
         result["reason"] = "Faltan dependencias de inferencia: " + ", ".join(missing_deps)
         return result
@@ -110,7 +114,8 @@ class AudioModel:
             raise RuntimeError(self._info["reason"])
         if self._model is not None:
             return
-        import tensorflow as tf
+        os.environ.setdefault("KERAS_BACKEND", "numpy")
+        import keras
         with zipfile.ZipFile(self.path) as bundle:
             model_entry = next(x for x in bundle.infolist() if x.filename.lower().endswith((".keras", ".h5")))
             cfg = next(
@@ -120,11 +125,13 @@ class AudioModel:
                 and x.file_size < 100_000
                 and self._is_training_config(bundle, x)
             )
+            if "frames" not in cfg:
+                cfg["frames"] = 1 + int(float(cfg["sample_rate"]) * float(cfg["clip_seconds"])) // int(cfg["hop_length"])
             suffix = ".keras" if model_entry.filename.lower().endswith(".keras") else ".h5"
             with tempfile.TemporaryDirectory(prefix="bosqyn_audio_") as folder:
                 filename = Path(folder) / ("classifier" + suffix)
                 filename.write_bytes(bundle.read(model_entry))
-                loaded = tf.keras.models.load_model(str(filename), compile=False, safe_mode=True)
+                loaded = keras.models.load_model(str(filename), compile=False, safe_mode=True)
         if int(loaded.output_shape[-1]) != len(cfg["classes"]):
             raise RuntimeError("Número de clases incompatible entre configuración y modelo Keras")
         self._model = loaded
