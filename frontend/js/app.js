@@ -13,7 +13,7 @@ hero.style.display=name==='inicio'?'':'none';header.classList.toggle('border-b',
 nav.forEach(btn=>{let on=btn.dataset.nav===name;btn.classList.remove(...(on?OFF:ON));btn.classList.add(...(on?ON:OFF));btn.setAttribute('aria-current',on?'page':'false')});
 if(typeof Bosqyn.pages[name]==='function')cleanup=Bosqyn.pages[name](view)||null;
 if(typeof Bosqyn.tickClock==='function')Bosqyn.tickClock();
-}catch(error){if(req!==request)return;view.innerHTML='<div role="alert" class="bosqyn-info">No se pudo cargar la vista. Usa un servidor local: python -m http.server 5500.</div>';console.error(error)}}
+}catch(error){if(req!==request)return;view.innerHTML='<div role="alert" class="bosqyn-info">No se pudo cargar la vista. Usa un servidor local: python -m backend.server.</div>';console.error(error)}}
 nav.forEach(btn=>btn.addEventListener('click',()=>{if(location.hash!=='#'+btn.dataset.nav)location.hash=btn.dataset.nav;else show(btn.dataset.nav)}));
 addEventListener('hashchange',()=>show(selected()));addEventListener('resize',resize);addEventListener('beforeunload',()=>{if(typeof cleanup==='function')cleanup()});resize();show(selected());
 })();
