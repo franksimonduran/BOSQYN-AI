@@ -1,0 +1,2 @@
+# BOSQYN AI runs on the Python standard library.
+# This root manifest lets Railway Railpack detect the Python runtime.
