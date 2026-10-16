@@ -18,19 +18,35 @@ Bosqyn.pages.alertas=function(root){
   }
   async function change(id,method,payload){
     try{
+      if(!await Bosqyn.auth.ensure('Inicia sesión para modificar o eliminar una evidencia.'))return;
       const response=await fetch('/api/alerts/'+id,{
-        method,headers:payload?{'Content-Type':'application/json'}:{},
+        method,
+        headers:payload?{'Content-Type':'application/json','X-Bosqyn-Action':'1'}:{'X-Bosqyn-Action':'1'},
+        credentials:'same-origin',
         body:payload?JSON.stringify(payload):undefined
       });
-      if(!response.ok)throw Error('No se pudo modificar el registro');
+      if(!response.ok){
+        const data=await response.json();
+        throw Error(data.error||'No se pudo modificar el registro');
+      }
       await load();
     }catch(error){status.textContent='Error: '+error.message}
   }
   async function load(){
     status.textContent='Consultando Python...';
     try{
-      const response=await fetch('/api/alerts?limit=100',{cache:'no-store'});
-      if(!response.ok)throw Error('API no disponible');
+      const response=await fetch('/api/alerts?limit=100',{cache:'no-store',credentials:'same-origin'});
+      if(response.status===401){
+        list.replaceChildren();
+        status.textContent='Accede como administrador para consultar las evidencias guardadas.';
+        const login=button('Iniciar sesión',async()=>{if(await Bosqyn.auth.ensure())await load();});
+        list.append(login);
+        return;
+      }
+      if(!response.ok){
+        const data=await response.json().catch(()=>({}));
+        throw Error(data.error||'API no disponible');
+      }
       const data=await response.json();
       if(!panel.isConnected)return;
       list.replaceChildren();
@@ -57,10 +73,13 @@ Bosqyn.pages.alertas=function(root){
         content.append(title,info,actions);card.append(img,content);list.append(card);
       }
     }catch(error){
-      if(panel.isConnected)status.textContent='Inicia el servidor con python -m backend.server. La tabla de abajo es ilustrativa.';
+      if(panel.isConnected)status.textContent='No se pudieron consultar los registros: '+error.message;
     }
   }
-  refresh.addEventListener('click',load);load();
+  refresh.addEventListener('click',load);
+  const onAuthChanged=()=>{if(panel.isConnected)load();};
+  window.addEventListener('bosqyn:auth-changed',onAuthChanged);
+  load();
 
 const FBASE='h-[27px] rounded-[7px] border px-[12px] text-[9.5px] font-medium ',FON='border-[#22c55e] bg-[#16a34a] text-white',FOFF='border-white/10 bg-white/[0.05] text-[#dbe6e0]',PBASE='flex h-[28px] w-[28px] items-center justify-center rounded-[6px] border text-[10px] ',PON='border-[#22c55e] bg-[#16a34a] font-bold text-white',POFF='border-white/10 bg-white/[0.05] text-[#dbe6e0]';
 let rows=[...root.querySelectorAll('[data-row]')],filters=[...root.querySelectorAll('[data-filter]')],pages=[...root.querySelectorAll('[data-pg]')],counter=root.querySelector('#count'),filter='todas',page=1;
@@ -69,4 +88,5 @@ function render(){let match=rows.filter(r=>filter==='todas'||category(r)===filte
 filters.forEach(b=>b.addEventListener('click',()=>{filter=b.dataset.filter;page=1;render()}));
 pages.forEach(b=>b.addEventListener('click',()=>{let key=b.dataset.pg,max=Math.max(1,Math.ceil(rows.filter(r=>filter==='todas'||category(r)===filter).length/5));page=key==='prev'?Math.max(1,page-1):key==='next'?Math.min(max,page+1):Math.min(max,Number(key));render()}));
 rows.forEach(row=>{let acts=row.querySelectorAll('[data-act]');if(acts[0])acts[0].addEventListener('click',()=>{let img=row.querySelector('img');if(img)window.open(img.src,'_blank','noopener')});if(acts[1])acts[1].addEventListener('click',()=>{let st=row.querySelector('[data-estado]');if(st){st.className='inline-flex h-[20px] items-center rounded-[5px] border px-[9px] text-[9px] not-italic border-[#15803d]/60 bg-[#14532d]/50 text-[#4ade80]';st.textContent='Confirmada'}});if(acts[2])acts[2].addEventListener('click',()=>{row.remove();rows=rows.filter(x=>x!==row);render()})});render();
+return function(){window.removeEventListener('bosqyn:auth-changed',onAuthChanged);};
 };

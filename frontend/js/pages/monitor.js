@@ -72,6 +72,10 @@ if(badge)badge.style.display='none';
 
 if(captureButton)captureButton.addEventListener('click',async()=>{
   if(!stream||!video||!video.videoWidth){status.textContent='Inicia la webcam para registrar una captura.';status.classList.add('bosqyn-camera-error');return}
+  if(!await Bosqyn.auth.ensure('Inicia sesión como administrador para guardar la captura en BOSQYN AI.')){
+    status.textContent='Captura cancelada: solo los administradores pueden guardar evidencias.';
+    return;
+  }
   const ratio=Math.min(1,1280/Math.max(video.videoWidth,video.videoHeight));
   const canvas=document.createElement('canvas');
   canvas.width=Math.max(1,Math.round(video.videoWidth*ratio));
@@ -81,12 +85,12 @@ if(captureButton)captureButton.addEventListener('click',async()=>{
   captureButton.disabled=true;
   status.classList.remove('bosqyn-camera-error');status.textContent='Guardando captura manual en Python...';
   try{
-    const response=await fetch('/api/alerts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category:'REVISION_MANUAL',image_data})});
+    const response=await fetch('/api/alerts',{method:'POST',headers:{'Content-Type':'application/json','X-Bosqyn-Action':'1'},credentials:'same-origin',body:JSON.stringify({category:'REVISION_MANUAL',image_data})});
     const result=await response.json();
     if(!response.ok)throw Error(result.error||'Error de almacenamiento');
     status.textContent='Captura #'+result.id+' guardada en SQLite como REVISIÓN MANUAL. Consúltala en Alertas.';
   }catch(error){
-    status.textContent='No se pudo guardar: '+error.message+'. El sitio público de Railway no permite escritura.';status.classList.add('bosqyn-camera-error');
+    status.textContent='No se pudo guardar: '+error.message+'. Revisa la sesión de administrador y el almacenamiento.';status.classList.add('bosqyn-camera-error');
     console.error('BOSQYN AI',error);
   }finally{captureButton.disabled=false}
 });

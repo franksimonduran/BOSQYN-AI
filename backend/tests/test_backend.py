@@ -40,6 +40,11 @@ class StoreTests(unittest.TestCase):
 class APITests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # Legacy local API tests intentionally use loopback without an admin password.
+        # Production tests exercise password protection in test_security.py.
+        from unittest.mock import patch
+        cls.env_patch = patch.dict(os.environ, {"BOSQYN_ADMIN_PASSWORD": "", "BOSQYN_READ_ONLY": "0", "BOSQYN_AUDIO_ENABLED": "0"})
+        cls.env_patch.start()
         cls.temp = tempfile.TemporaryDirectory()
         base = Path(cls.temp.name)
         front = base / "frontend"
@@ -56,6 +61,7 @@ class APITests(unittest.TestCase):
         cls.server.server_close()
         cls.thread.join(timeout=5)
         cls.temp.cleanup()
+        cls.env_patch.stop()
 
     def call(self, path, method="GET", payload=None):
         body = json.dumps(payload).encode("utf-8") if payload is not None else None

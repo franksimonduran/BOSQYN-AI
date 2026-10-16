@@ -122,3 +122,17 @@
 .bosqyn-stats-class-chip img{height:22px;width:22px;object-fit:contain}
 @media(max-width:800px){.bosqyn-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.bosqyn-stats-chart img{min-height:170px}}
 @media(max-width:450px){.bosqyn-stats-grid{gap:8px}.bosqyn-stats-card{padding:12px}.bosqyn-stats-card strong{font-size:22px}.bosqyn-stats-chart-header{flex-wrap:wrap}}
+
+/* Administrator login to authorize changes to evidence on Railway. */
+.bosqyn-auth-overlay{position:fixed;inset:0;z-index:9999;display:flex;justify-content:center;align-items:center;padding:20px;background:#031109e8;backdrop-filter:blur(6px)}
+.bosqyn-auth-overlay[hidden]{display:none!important}
+.bosqyn-auth-dialog{background:linear-gradient(145deg,#103426,#061d14);color:#effff4;border:1px solid #368459;border-radius:16px;box-shadow:0 24px 70px #0009;padding:28px;max-width:450px;width:100%}
+.bosqyn-auth-dialog h2{font-size:22px;font-weight:800;margin:0 0 12px}
+.bosqyn-auth-dialog p{color:#b4d5c0;font-size:13px;margin:0 0 20px;line-height:1.55}
+.bosqyn-auth-dialog label{display:grid;gap:8px;font-size:12px;color:#dfefe6;font-weight:700}
+.bosqyn-auth-dialog input{background:#071910;color:#fff;border:1px solid #467453;border-radius:8px;padding:12px 13px;width:100%;outline-color:#36bc78}
+.bosqyn-auth-dialog .bosqyn-auth-message{color:#ffb6a7;font-size:12px;margin:10px 0;min-height:20px}
+.bosqyn-auth-controls{display:flex;justify-content:flex-end;gap:11px;margin-top:16px}
+.bosqyn-auth-controls button{background:#183d2c;color:#eafff1;border:1px solid #487558;border-radius:8px;padding:10px 18px;cursor:pointer}
+.bosqyn-auth-controls button.bosqyn-auth-primary{background:#129858;border-color:#26c777;font-weight:800}
+.bosqyn-auth-controls button:disabled{opacity:.45;cursor:not-allowed}

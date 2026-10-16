@@ -1,17 +1,34 @@
-# BOSQYN AI Railway deployment
+# BOSQYN AI — Railway: guardado seguro de evidencias
 
-Este despliegue utiliza el frontend corporativo original y backend Python.
+## Producción
 
-## Variables para producción
+La aplicación utiliza la rama `frontend/organizacion-2026-10-16`.
 
-- `HOST=0.0.0.0`: imprescindible para recibir tráfico de Railway.
-- `BOSQYN_READ_ONLY=1`: bloquea `POST /api/alerts`, `PATCH /api/alerts/{id}` y `DELETE /api/alerts/{id}` (403). **Debe permanecer activado mientras la web sea pública y no exista autenticación.**
-- `PORT`: Railway lo establece automáticamente; Python lo lee del entorno.
+- `HOST=0.0.0.0`: servidor accesible desde Railway.
+- `BOSQYN_READ_ONLY=0`: activa la escritura solo después de configurar la autenticación.
+- `BOSQYN_ADMIN_PASSWORD`: contraseña de administrador fuerte (mínimo 16 caracteres). Debe existir únicamente en Railway Variables, nunca en GitHub.
+- `BOSQYN_DATA_DIR=/data/bosqyn`: SQLite y evidencias dentro del volumen persistente.
+- `PORT`: Railway lo establece automáticamente.
 
-Con `BOSQYN_READ_ONLY=1` se puede mostrar el frontend y consultar GET sin permitir modificaciones anónimas. Las capturas manuales de la webcam no se guardan en Railway; en desarrollo local con `BOSQYN_READ_ONLY=0` siguen disponibles.
+Adjunta un volumen persistente al servicio en la ruta `/data`. Los archivos efímeros de despliegues anteriores no se migran automáticamente.
 
-## Pendiente antes de habilitar escritura pública
+## Inicio de sesión
 
-Implementar autenticación segura, protección CSRF, gestión de usuarios, rate limiting, tratamiento de datos personales y un volumen persistente para SQLite y evidencias.
+Pulsa **Acceder** en la barra superior e introduce la contraseña del administrador. Después puedes utilizar Monitoreo → Capturar imagen y ver, confirmar, descartar o eliminar evidencias en Alertas. El botón **Actualizar registros** permanece disponible.
 
-El modelo TensorFlow.js de visión **sí está conectado a Monitoreo**: la inferencia se efectúa en el navegador tras conceder acceso a la webcam, con librerías descargadas desde jsDelivr. El ZIP se extrae al iniciar Python. **La exactitud del modelo todavía no ha sido validada con pruebas independientes.** Los gráficos de precisión, historiales y estadísticas de demostración siguen siendo ilustrativos. Las predicciones no generan escrituras en la API.
+`POST /api/auth/login` crea una cookie con `HttpOnly`, `Secure`, `SameSite=Strict` y duración de 8 horas en HTTPS. `POST /api/auth/logout` revoca la sesión. Las operaciones de escritura requieren mismo origen y cabecera `X-Bosqyn-Action: 1`; las contraseñas no se guardan en el navegador.
+
+Las operaciones de lectura de evidencias (`GET /api/alerts` y `GET /api/evidence/{id}`) también necesitan autenticación. Estadísticas continúa mostrando únicamente números agregados. El modelo visual y el acústico no requieren inicio de sesión, ya que no escriben archivos.
+
+## Seguridad y privacidad
+
+- El backend bloquea automáticamente escrituras públicas si la contraseña no está configurada.
+- No desactives `BOSQYN_READ_ONLY` sin un volumen y una contraseña de administrador segura.
+- Las capturas permanecen etiquetadas como `REVISION_MANUAL`; no son detecciones automáticas verificadas.
+- El almacenamiento persistente no reemplaza un backup externo.
+- Rota la contraseña si se comparte o queda expuesta; el reinicio del servicio invalidará las sesiones en memoria.
+- En localhost (`127.0.0.1`) puede probarse sin contraseña si no existe variable configurada.
+
+## Pruebas
+
+Ejecuta `python -m unittest discover -s backend/tests -v`. Comprueba `/api/health`=200, `/api/alerts` sin sesión=401 y que las capturas persistan tras reiniciar Railway.

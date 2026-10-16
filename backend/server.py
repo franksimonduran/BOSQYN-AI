@@ -18,6 +18,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from .storage import EvidenceStore
+from .auth import AdminAuth
 from .audio_model import AudioModel
 from .vision_model import prepare_vision_model
 
@@ -28,6 +29,43 @@ MAX_IMAGE_BYTES = 2_500_000
 
 class BosqynHandler(SimpleHTTPRequestHandler):
     """Same-origin static frontend plus a small JSON API for local use only."""
+
+    def end_headers(self):
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Permissions-Policy", "camera=(self), microphone=(self)")
+        super().end_headers()
+
+    def secure_cookie(self) -> bool:
+        host = self.headers.get("Host", "").split(":")[0].lower()
+        return host not in ("localhost", "127.0.0.1", "[::1]")
+
+    def authorized(self) -> bool:
+        return self.server.auth.session(self.headers, self.secure_cookie()) is not None
+
+    def require_admin(self) -> bool:
+        if not self.server.auth.configured():
+            self.json_response(503, {"error": "Acceso administrativo sin configurar."})
+            return False
+        if not self.authorized():
+            self.json_response(401, {"error": "Inicia sesión como administrador para acceder a las evidencias.", "login_required": True})
+            return False
+        return True
+
+    def same_origin(self) -> bool:
+        # POST/PATCH/DELETE requests are only accepted from this site's own origin.
+        # A non-simple header additionally prevents cross-origin form CSRF.
+        if self.server.auth.local_mode:
+            return True
+        origin = self.headers.get("Origin", "")
+        host = self.headers.get("Host", "")
+        try:
+            parsed = urlsplit(origin)
+            return (parsed.scheme == "https" and parsed.netloc.lower() == host.lower()
+                    and self.headers.get("X-Bosqyn-Action") == "1")
+        except ValueError:
+            return False
 
     def json_response(self, status: int, payload: dict):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -70,6 +108,14 @@ class BosqynHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         target = urlsplit(self.path)
         route = target.path
+        if route == "/api/auth/status":
+            auth = self.server.auth
+            return self.json_response(200, {
+                "authenticated": self.authorized(),
+                "login_required": auth.login_required,
+                "configured": auth.configured(),
+                "persistent_storage": self.server.persistent_storage,
+            })
         if route == "/api/audio/model-info":
             return self.json_response(200, self.server.audio_model.info())
         if route == "/api/model-info":
@@ -81,6 +127,8 @@ class BosqynHandler(SimpleHTTPRequestHandler):
                 "audio_model_ready": self.server.audio_model.info()["available"],
             })
         if route == "/api/alerts":
+            if not self.require_admin():
+                return
             try:
                 limit = min(200, max(1, int(parse_qs(target.query).get("limit", ["100"])[0])))
             except ValueError:
@@ -114,6 +162,8 @@ class BosqynHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             return self.wfile.write(png)
         if route.startswith("/api/evidence/"):
+            if not self.require_admin():
+                return
             parts = route.split("/")
             if len(parts) != 4 or not parts[3].isdigit():
                 return self.json_response(404, {"error": "Evidencia no encontrada"})
@@ -133,10 +183,52 @@ class BosqynHandler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def writes_forbidden(self):
-        if os.environ.get('BOSQYN_READ_ONLY', '0') == '1':
-            self.json_response(403, {'error': 'Este despliegue público es de solo lectura. Las operaciones de escritura están deshabilitadas.'})
+        if os.environ.get("BOSQYN_READ_ONLY", "0" if self.server.auth.local_mode else "1") == "1":
+            self.json_response(403, {"error": "El guardado todavía está deshabilitado en la configuración del servidor."})
+            return True
+        if not self.require_admin():
+            return True
+        if not self.same_origin():
+            self.json_response(403, {"error": "Origen de solicitud no autorizado."})
             return True
         return False
+
+    def authenticate(self):
+        if not self.same_origin():
+            return self.json_response(403, {"error": "Solicitud no autorizada."})
+        try:
+            data = self.read_json()
+        except ValueError as error:
+            return self.json_response(400, {"error": str(error)})
+        password = data.get("password")
+        if not isinstance(password, str) or len(password) > 256:
+            return self.json_response(400, {"error": "Contraseña inválida."})
+        ok, token = self.server.auth.check_login(password, self.client_address[0])
+        if not ok:
+            return self.json_response(429 if token == "Demasiados intentos; espera 15 minutos." else 401, {
+                "error": token or "Acceso rechazado."
+            })
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Set-Cookie", self.server.auth.cookie_header(token, self.secure_cookie()))
+        body = b'{"authenticated":true}'
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def logout(self):
+        if not self.same_origin():
+            return self.json_response(403, {"error": "Solicitud no autorizada."})
+        self.server.auth.revoke(self.server.auth.session(self.headers, self.secure_cookie()))
+        body = b'{"authenticated":false}'
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Set-Cookie", self.server.auth.clear_cookie_header(self.secure_cookie()))
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def predict_audio(self):
         """Stateless microphone classification; never writes evidence or audio to disk."""
@@ -192,7 +284,12 @@ class BosqynHandler(SimpleHTTPRequestHandler):
             self.server.audio_semaphore.release()
 
     def do_POST(self):
-        if urlsplit(self.path).path == "/api/audio/predict":
+        route = urlsplit(self.path).path
+        if route == "/api/auth/login":
+            return self.authenticate()
+        if route == "/api/auth/logout":
+            return self.logout()
+        if route == "/api/audio/predict":
             return self.predict_audio()
         if self.writes_forbidden():
             return
@@ -218,6 +315,13 @@ class BosqynHandler(SimpleHTTPRequestHandler):
             ext = signatures[prefix]
             if (ext == "jpg" and not image.startswith(b"\xff\xd8\xff")) or (ext == "png" and not image.startswith(b"\x89PNG\r\n\x1a\n")):
                 raise ValueError("El contenido de la imagen no coincide con su formato")
+            # A short per-session cooldown limits accidental repeated captures.
+            identity = self.server.auth.session(self.headers, self.secure_cookie())
+            with self.server.capture_lock:
+                now = time.monotonic()
+                if now - self.server.capture_last.get(identity, 0) < 2:
+                    return self.json_response(429, {"error": "Espera dos segundos antes de otra captura."})
+                self.server.capture_last[identity] = now
             record = self.store.add_manual_capture(image, ext)
             return self.json_response(201, record)
         except ValueError as error:
@@ -258,6 +362,12 @@ def make_server(frontend_dir: Path, data_dir: Path, port: int = 5500, host: str 
         raise FileNotFoundError(f"Frontend no encontrado en {frontend_dir}")
     server = ThreadingHTTPServer((host, port), partial(BosqynHandler, directory=str(frontend_dir)))
     server.store = EvidenceStore(data_dir)
+    server.auth = AdminAuth(host)
+    server.persistent_storage = os.environ.get("BOSQYN_DATA_DIR", "").startswith("/data/")
+    server.capture_lock = threading.Lock()
+    server.capture_last = {}
+    if not server.auth.configured():
+        print("ADMIN: sin contraseña de al menos 16 caracteres; los registros quedan protegidos.", flush=True)
     server.vision_model = prepare_vision_model(frontend_dir)
     server.audio_model = AudioModel()
     print('Modelo acústico:', json.dumps(server.audio_model.info(), ensure_ascii=False), flush=True)
@@ -293,7 +403,7 @@ def main():
     parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", "5500")))
     parser.add_argument("--host", default=os.environ.get("HOST", "127.0.0.1"))
     parser.add_argument("--frontend-dir", type=Path, default=ROOT / "frontend")
-    parser.add_argument("--data-dir", type=Path, default=ROOT / "backend" / "data")
+    parser.add_argument("--data-dir", type=Path, default=Path(os.environ.get("BOSQYN_DATA_DIR", str(ROOT / "backend" / "data"))))
     args = parser.parse_args()
     with make_server(args.frontend_dir, args.data_dir, args.port, host=args.host) as server:
         print(f"BOSQYN AI disponible en http://127.0.0.1:{server.server_address[1]}")
