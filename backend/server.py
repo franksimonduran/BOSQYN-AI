@@ -235,6 +235,7 @@ def make_server(frontend_dir: Path, data_dir: Path, port: int = 5500, host: str 
     server.store = EvidenceStore(data_dir)
     server.vision_model = prepare_vision_model(frontend_dir)
     server.audio_model = AudioModel()
+    print('Modelo acústico:', json.dumps(server.audio_model.info(), ensure_ascii=False), flush=True)
     server.audio_semaphore = threading.BoundedSemaphore(1)
     server.audio_rate_lock = threading.Lock()
     server.audio_last_request = {}
