@@ -44,3 +44,16 @@ La puntuación binaria se calcula **sumando las probabilidades del modelo origin
 El detector visual funciona independientemente con las cinco clases del modelo de imágenes. La webcam y el micrófono pueden usarse a la vez desde la pantalla Monitoreo.
 
 **Despliegue:** estos cambios se preparan en `preparacion/monitoreo-visual-audio-clases`; no modifican automáticamente la rama que Railway utiliza en producción.
+
+## Monitoreo unificado: una webcam y dos resultados
+
+La pantalla `#monitoreo` integra los dos detectores en un mismo panel. **Iniciar cámara y audio** solicita permiso de captura mediante `getUserMedia` para imagen y micrófono, con video y audio en un mismo `MediaStream`. Si la webcam dispone de un micrófono del mismo grupo físico, se prioriza esa entrada con `MediaDeviceInfo.groupId`. Si no se identifica, se utiliza el micrófono predeterminado del navegador; no se afirma que pertenezca a la webcam. Si no hay micrófono o se deniega permiso, la webcam puede seguir funcionando sola y el botón acústico permite reintentar manualmente.
+
+- **Resultados de cámara:** Humo, Incendio, Normal, Tala, Ir al bosque; TensorFlow.js en el navegador.
+- **Resultados de audio:** Tala y Normal; Keras ejecutado por el servidor a partir de audio PCM16 del micrófono.
+- Los porcentajes de cada detector son independientes y no deben sumarse entre modalidades.
+- Coincidencia de indicios visuales y acústicos de Tala con probabilidad ≥80% y dentro de 10 segundos: aviso de priorización para revisión humana, **no prueba de tala ilegal**.
+- Al detener el monitoreo se cierran pistas de video y audio y se interrumpe la inferencia. La webcam puede seguir sin audio cuando no existe permiso o dispositivo compatible.
+- El audio se envía en fragmentos al propio backend de BOSQYN AI para clasificarlo; no se guarda. El video no se envía al backend.
+
+Esta actualización se prepara en `preparacion/camara-y-audio-unificados` y no se despliega automáticamente en Railway. Se deben probar permisos, selección de dispositivos, sonido real y navegador antes de declararla validada.

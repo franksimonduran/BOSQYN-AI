@@ -172,6 +172,9 @@ const ICONS = { HUMO: 'Humo.png', INCENDIO: 'Fuego.png', NORMAL: 'Bosque.png', T
             repeats = key === lastClass && best.probability >= .8 ? repeats + 1 : best.probability >= .8 ? 1 : 0;
             lastClass = key;
             render(root, predictions, repeats);
+            root.dispatchEvent(new CustomEvent('bosqyn:visual-detection', {
+              detail: {className:best.className, probability:best.probability, timestamp:Date.now()}
+            }));
             status.classList.remove('bosqyn-camera-error');
             status.textContent = 'IA activa en el navegador. Los porcentajes son probabilidades, NO precisión validada. No se guardan alertas automáticas.' + warning;
             errors = 0;

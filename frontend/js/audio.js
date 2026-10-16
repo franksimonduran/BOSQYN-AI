@@ -41,6 +41,7 @@ Bosqyn.audio = (() => {
     let running = false;
     let startPending = false;
     let stream = null;
+    let sharedWithCamera = false;
     let context = null;
     let source = null;
     let processor = null;
@@ -92,6 +93,9 @@ Bosqyn.audio = (() => {
       }
       if (!ordered.length) return;
       const best = ordered[0];
+      root.dispatchEvent(new CustomEvent("bosqyn:audio-detection", {
+        detail: {className:best.className, probability:best.probability, timestamp:Date.now()}
+      }));
       dominant.textContent = "Resultado acústico: " + best.className + " · " + (best.probability * 100).toFixed(1) + "%";
       observed.textContent = String(++sentCount);
       // El backend entrega únicamente Tala/Normal, agregando las 7 salidas originales.
@@ -145,6 +149,7 @@ Bosqyn.audio = (() => {
 
     function stopMic() {
       running = false;
+      root.dispatchEvent(new CustomEvent("bosqyn:audio-stopped"));
       chunks = [];
       gathered = 0;
       streak = 0;
@@ -152,10 +157,13 @@ Bosqyn.audio = (() => {
       if (processor) {processor.onaudioprocess = null; processor.disconnect();}
       if (source) source.disconnect();
       if (silence) silence.disconnect();
-      stream?.getTracks().forEach(track => track.stop());
+      // En modo compartido NO detenemos la pista de video. El audio sí se
+      // detiene por privacidad al pulsar Detener o salir de Monitoreo.
+      stream?.getAudioTracks().forEach(track => track.stop());
       const oldContext = context;
       if (oldContext && oldContext.state !== "closed") oldContext.close().catch(() => {});
       stream = null;
+      sharedWithCamera = false;
       context = null;
       source = null;
       processor = null;
@@ -165,19 +173,24 @@ Bosqyn.audio = (() => {
       if (signal) signal.classList.remove("on");
     }
 
-    async function startMic() {
-      if (startPending || running || !available) return;
+    async function startMic(providedStream = null) {
+      if (startPending || running || !available) return false;
       startPending = true;
       start.disabled = true;
       setState("Solicitando permiso al micrófono…");
       try {
-        if (!navigator.mediaDevices?.getUserMedia) throw new Error("Se requiere HTTPS o localhost para utilizar el micrófono.");
-        const opened = await navigator.mediaDevices.getUserMedia({
+        if (!navigator.mediaDevices?.getUserMedia)
+          throw new Error("Se requiere HTTPS o localhost para utilizar el micrófono.");
+        const sharing = !!(providedStream && typeof providedStream.getAudioTracks === "function");
+        const opened = sharing ? providedStream : await navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
           video: false
         });
+        if (!opened.getAudioTracks().some(track => track.readyState === "live"))
+          throw new Error("La cámara no proporcionó audio. Activa un micrófono disponible.");
         if (!root.isConnected) {opened.getTracks().forEach(t => t.stop()); return;}
         stream = opened;
+        sharedWithCamera = sharing;
         const Context = window.AudioContext || window.webkitAudioContext;
         if (!Context) throw new Error("AudioContext no está disponible.");
         context = new Context();
@@ -209,10 +222,14 @@ Bosqyn.audio = (() => {
         };
         stop.disabled = false;
         signal.classList.add("on");
-        setState("Micrófono encendido. Analizando fragmentos de tres segundos.", "ready");
+        setState(sharing
+          ? "Imagen y sonido activados desde el monitoreo conjunto. El video no se envía al servidor."
+          : "Micrófono encendido. Analizando fragmentos de tres segundos.", "ready");
+        return true;
       } catch (error) {
         stopMic();
         setState("No se pudo abrir el micrófono: " + error.message, "error");
+        return false;
       } finally {
         startPending = false;
         if (!running && start) start.disabled = !available;
@@ -252,11 +269,20 @@ Bosqyn.audio = (() => {
         setState(error.message, "error");
       }
     }
-    start?.addEventListener("click", startMic);
+    start?.addEventListener("click", () => startMic());
     stop?.addEventListener("click", () => {stopMic();setState("Micrófono detenido.");});
+    const ready = checkModel();
     const cleanup = () => {stopMic();if(activeCleanup === cleanup) activeCleanup = null;};
+    // Monitoreo usa UNA sola solicitud a getUserMedia para cámara + micrófono.
+    // La sección Audio forestal puede seguir usándose por sí sola.
+    cleanup.startWithStream = async mediaStream => {
+      await ready;
+      if (!root.isConnected || !mediaStream?.getAudioTracks()?.some(track => track.readyState === "live")) return false;
+      return startMic(mediaStream);
+    };
+    cleanup.stopAudio = stopMic;
+    cleanup.isRunning = () => running;
     activeCleanup = cleanup;
-    checkModel();
     return cleanup;
   }
 
