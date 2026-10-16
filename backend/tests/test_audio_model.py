@@ -49,15 +49,16 @@ class AudioAssetsTests(unittest.TestCase):
             self.assertEqual(len(info["class_groups"]["Normal"]), 5)
             self.assertFalse(info["available"])
             self.assertIn("BOSQYN_AUDIO_ENABLED", info["reason"])
-            with self.assertRaises(RuntimeError):
-                AudioModel(path).predict_pcm16(b"\x00" * 96000)
+            with patch.dict(os.environ, {"BOSQYN_AUDIO_ENABLED": "0"}):
+                with self.assertRaises(RuntimeError):
+                    AudioModel(path).predict_pcm16(b"\x00" * 96000)
 
     def test_invalid_config_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             path = self.create(directory, {"classes": ["Motosierra"]})
             info = inspect_archive(path)
             self.assertFalse(info["available"])
-            self.assertIn("MAQUINARIA_DEFORESTACION", info["reason"])
+            self.assertIn("Etiquetas acústicas no válidas", info["reason"])
 
     def test_valid_labels_with_missing_audio_preprocessing_config(self):
         with tempfile.TemporaryDirectory() as directory:
