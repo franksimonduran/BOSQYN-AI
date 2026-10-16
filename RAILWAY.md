@@ -14,4 +14,4 @@ Con `BOSQYN_READ_ONLY=1` se puede mostrar el frontend y consultar GET sin permit
 
 Implementar autenticación segura, protección CSRF, gestión de usuarios, rate limiting, tratamiento de datos personales y un volumen persistente para SQLite y evidencias.
 
-El contenido del dashboard con valores de precisión y alertas precargadas es demostrativo. El modelo IA aún no está integrado.
+El modelo TensorFlow.js de visión **sí está conectado a Monitoreo**: la inferencia se efectúa en el navegador tras conceder acceso a la webcam, con librerías descargadas desde jsDelivr. El ZIP se extrae al iniciar Python. **La exactitud del modelo todavía no ha sido validada con pruebas independientes.** Los gráficos de precisión, historiales y estadísticas de demostración siguen siendo ilustrativos. Las predicciones no generan escrituras en la API.

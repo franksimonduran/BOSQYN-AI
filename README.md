@@ -27,9 +27,13 @@ Abre **http://127.0.0.1:5500** en tu navegador. Para probarlo, ve a **Monitoreo*
 
 **Funcionan:** seis secciones del frontend, webcam básica, capturas **manuales** almacenadas con Python, consulta de incidencias, cambio de estado y contadores persistentes.
 
-**Pendiente:** Teachable Machine/TensorFlow.js, predicciones automáticas, alertas generadas por el modelo y evaluación real de sus cinco clases: `NORMAL`, `HUMO`, `FUEGO`, `NEBLINA_NUBES` e `INDICIOS_TALA`.
+**Integrado:** modelo de imágenes de Teachable Machine en formato TensorFlow.js para producir predicciones en vivo desde la webcam dentro del navegador. La carga y extracción del ZIP se realizan mediante Python.
 
-**Importante:** las gráficas y porcentajes de detección precargados en el diseño continúan siendo **datos de ejemplo**. Las capturas del backend se identifican claramente como manuales. Una imagen con indicios de tala no demuestra ilegalidad.
+**Clases exportadas realmente:** `Humo`, `Incendio`, `Normal`, `Tala` e `Ir al bosque`. Es necesario corregir la quinta clase para cumplir el diseño previsto de `NEBLINA_NUBES`.
+
+**Pendiente:** evaluar el desempeño real con imágenes de prueba independientes, corregir el conjunto de clases e implementar alertas automáticas verificables.
+
+**Importante:** los valores de Monitoreo se actualizan mediante inferencia real **cuando se inicia la webcam y se carga el modelo**. Las gráficas y métricas de precisión de Estadísticas y los historiales precargados continúan siendo **datos de ejemplo**. Las capturas del backend se identifican claramente como manuales. Una imagen con indicios de tala no demuestra ilegalidad.
 
 ## Pruebas
 
@@ -40,4 +44,4 @@ python -m unittest discover -s backend/tests -v
 Consulta [documentación de frontend](frontend/README.md) y [backend Python](backend/README.md).
 
 ### Privacidad
-El servidor solo escucha en `127.0.0.1`. Las imágenes se guardan en `backend/data/` y no deben publicarse en GitHub.
+La ejecución local por defecto escucha en `127.0.0.1`. Railway usa `HOST=0.0.0.0` y `BOSQYN_READ_ONLY=1` para bloquear escrituras anónimas. En modo local, las capturas manuales se guardan en `backend/data/` y no deben publicarse en GitHub.
