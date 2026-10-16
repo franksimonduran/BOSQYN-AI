@@ -1,61 +1,113 @@
 window.Bosqyn=window.Bosqyn||{};Bosqyn.pages=Bosqyn.pages||{};
 Bosqyn.pages.monitoreo=function(root){
-/* Monitoreo único con pestañas internas. La vista en vivo original se conserva. */
-const livePanel=document.createElement('div');
+/* Integración nativa: un menú Monitoreo, dos modos, un solo backend. */
+const livePanel=document.createElement('section');
 livePanel.id='bosqyn-live-panel';
+livePanel.hidden=true;
 while(root.firstChild)livePanel.appendChild(root.firstChild);
-const satellitePanel=document.createElement('section');
-satellitePanel.id='bosqyn-satellite-panel';
-satellitePanel.hidden=true;
-satellitePanel.style.minHeight='65vh';
-const tabs=document.createElement('div');
-tabs.setAttribute('role','tablist');
-tabs.setAttribute('aria-label','Tipo de monitoreo');
-tabs.style.cssText='display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap';
-function tabButton(label,id,selected){
-  const b=document.createElement('button');
-  b.type='button'; b.textContent=label; b.id=id;
-  b.setAttribute('role','tab');b.setAttribute('aria-selected',String(selected));
-  b.className='rounded-lg border px-4 py-2 text-xs font-semibold '+(selected?'border-green-500 bg-green-700 text-white':'border-emerald-900 bg-[#0a241a] text-[#badbc5]');
-  return b;
+const dashboard=document.createElement('div');
+dashboard.className='bosqyn-satellite-dashboard';
+dashboard.innerHTML=`
+<style>
+.bosqyn-satellite-dashboard{color:#e5f7ec}
+.bosqyn-satellite-cards{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+.bosqyn-satellite-choice{background:#11382b;border:1px solid #255641;border-radius:9px;padding:12px;text-align:left;color:#e8f8ed;cursor:pointer;transition:background .2s}
+.bosqyn-satellite-choice[aria-selected="true"]{background:#194635;border-color:#36a773}
+.bosqyn-satellite-choice:focus-visible{outline:2px solid #64e6aa}
+.bosqyn-satellite-choice .choice-title{display:block;font-size:12px;font-weight:600;margin-bottom:9px}
+.bosqyn-satellite-choice .choice-art{display:flex;align-items:center;justify-content:center;background:#061e16;border-radius:7px;height:75px;font-size:25px;color:#4ae4a0}
+.bosqyn-satellite-choice .choice-desc{display:block;color:#a5c8b6;font-size:10px;margin-top:8px}
+.bosqyn-satellite-center{background:#0c2b21;border:1px solid #173e30;border-radius:10px;padding:13px}
+.bosqyn-satellite-center h2{font-size:14px;font-weight:700}
+.bosqyn-satellite-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.bosqyn-satellite-map{min-height:300px;height:48vh;border-radius:8px;background:#164333;overflow:hidden}
+.bosqyn-feed-status{display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap;font-size:11px;color:#cce6d6;margin-top:12px}
+.bosqyn-source-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.bosqyn-footnote{font-size:10px;color:#92bca6;margin-top:10px}
+@media(max-width:640px){.bosqyn-satellite-cards{grid-template-columns:1fr}.bosqyn-satellite-map{height:40vh}}
+</style>
+<div class="bosqyn-satellite-cards" role="tablist" aria-label="Fuente de monitoreo">
+ <button type="button" class="bosqyn-satellite-choice" id="bosqyn-mode-live" role="tab" aria-selected="false" aria-controls="bosqyn-live-panel">
+  <span class="choice-title">▣ &nbsp; Monitoreo en vivo</span><span class="choice-art" aria-hidden="true">▣</span><span class="choice-desc">Cámaras / Drones</span>
+ </button>
+ <button type="button" class="bosqyn-satellite-choice" id="bosqyn-mode-satellite" role="tab" aria-selected="true" aria-controls="bosqyn-satellite-center">
+  <span class="choice-title">◈ &nbsp; Monitoreo satelital</span><span class="choice-art" aria-hidden="true">◎</span><span class="choice-desc">NASA FIRMS / NOAA</span>
+ </button>
+</div>
+<section class="bosqyn-satellite-center" id="bosqyn-satellite-center" role="tabpanel">
+ <div class="bosqyn-satellite-heading"><h2>Centro de vigilancia satelital</h2><span style="background:#07492c;color:#46e58b;border-radius:15px;padding:4px 10px;font-size:10px">Nuevo módulo</span></div>
+ <div id="bosqyn-satellite-map" class="bosqyn-satellite-map" aria-label="Mapa de observaciones térmicas"><div style="padding:55px 10px;text-align:center;color:#a6d8be;font-size:12px">Cargando mapa de focos de calor y observaciones…</div></div>
+ <div class="bosqyn-feed-status">
+  <span><i class="bosqyn-source-dot" style="background:#fb6749"></i> NASA FIRMS: <b id="bosqyn-nasa-status">consultando</b></span>
+  <span><i class="bosqyn-source-dot" style="background:#efbe56"></i> NOAA GOES-19: <b id="bosqyn-noaa-status">consultando</b></span>
+  <span><b id="bosqyn-events-count">0</b> observaciones</span>
+ </div>
+ <p class="bosqyn-footnote">Observaciones periódicas, no detecciones confirmadas ni video en tiempo real. La ausencia de puntos no descarta incendios.</p>
+</section>`;
+root.append(dashboard,livePanel);
+const modeLive=dashboard.querySelector('#bosqyn-mode-live');
+const modeSat=dashboard.querySelector('#bosqyn-mode-satellite');
+const satCenter=dashboard.querySelector('#bosqyn-satellite-center');
+let satelliteMap=null,satelliteLayer=null,satelliteTimer=null,activeSatellite=true,disposed=false;
+function selectMode(live){
+  activeSatellite=!live;livePanel.hidden=!live;satCenter.hidden=live;
+  modeLive.setAttribute('aria-selected',String(live));modeSat.setAttribute('aria-selected',String(!live));
+  if(live&&typeof stop==='function'){} 
+  if(!live&&satelliteMap)setTimeout(()=>satelliteMap.invalidateSize(),50);
 }
-const liveTab=tabButton('Monitoreo en vivo','bosqyn-tab-live',true);
-const satelliteTab=tabButton('Monitoreo satelital','bosqyn-tab-satellite',false);
-liveTab.setAttribute('aria-controls','bosqyn-live-panel');
-satelliteTab.setAttribute('aria-controls','bosqyn-satellite-panel');
-tabs.append(liveTab,satelliteTab);
-root.append(tabs,livePanel,satellitePanel);
-let satelliteIframe=null;
-function activateTab(which){
- const live=which==='live';
- livePanel.hidden=!live;
- satellitePanel.hidden=live;
- liveTab.setAttribute('aria-selected',String(live));
- satelliteTab.setAttribute('aria-selected',String(!live));
- liveTab.classList.toggle('bg-green-700',live);
- satelliteTab.classList.toggle('bg-green-700',!live);
- liveTab.classList.toggle('text-white',live);
- satelliteTab.classList.toggle('text-white',!live);
- if(!live&&!satelliteIframe){
-   const intro=document.createElement('p');
-   intro.className='text-xs text-[#b5d4c2] mb-3';
-   intro.textContent='Observaciones satelitales periódicas de NASA FIRMS y NOAA GOES-19. No son video en tiempo real.';
-   const link=document.createElement('a');
-   link.href='https://bosqyn-ai-satelital-production.up.railway.app';
-   link.target='_blank';link.rel='noopener noreferrer';
-   link.textContent='Abrir monitoreo satelital en una pestaña nueva ↗';
-   link.className='inline-block text-xs text-emerald-300 underline mb-3';
-   satelliteIframe=document.createElement('iframe');
-   satelliteIframe.title='BOSQYN IA · Monitoreo satelital';
-   satelliteIframe.src='https://bosqyn-ai-satelital-production.up.railway.app';
-   satelliteIframe.loading='lazy';
-   satelliteIframe.referrerPolicy='no-referrer';
-   satelliteIframe.style.cssText='width:100%;min-height:68vh;border:1px solid #28513d;border-radius:12px;background:#061c16';
-   satellitePanel.append(intro,link,satelliteIframe);
+modeLive.addEventListener('click',()=>selectMode(true));
+modeSat.addEventListener('click',()=>{if(typeof stop==='function')stop();selectMode(false)});
+function loadLeaflet(){
+ return new Promise((resolve,reject)=>{
+  if(window.L)return resolve();
+  if(!document.querySelector('#bosqyn-leaflet-css')){
+    const css=document.createElement('link');css.id='bosqyn-leaflet-css';css.rel='stylesheet';css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.append(css);
+  }
+  const present=document.querySelector('#bosqyn-leaflet-js');
+  if(present){present.addEventListener('load',resolve,{once:true});present.addEventListener('error',reject,{once:true});return;}
+  const script=document.createElement('script');script.id='bosqyn-leaflet-js';script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';script.onload=resolve;script.onerror=reject;document.head.append(script);
+ });
+}
+async function refreshSatellite(){
+ if(disposed)return;
+ try{
+  const [statusResponse,eventResponse]=await Promise.all([fetch('/api/satellite/status'),fetch('/api/satellite/events')]);
+  if(!statusResponse.ok||!eventResponse.ok)throw Error('Servicio satelital no disponible');
+  const state=await statusResponse.json(),data=await eventResponse.json();
+  if(disposed)return;
+  dashboard.querySelector('#bosqyn-nasa-status').textContent=state.feeds?.NASA?.status||'sin datos';
+  dashboard.querySelector('#bosqyn-noaa-status').textContent=state.feeds?.NOAA?.status||'sin datos';
+  dashboard.querySelector('#bosqyn-events-count').textContent=String(data.events?.length||0);
+  if(!satelliteMap)return;
+  satelliteLayer.clearLayers();
+  for(const e of (data.events||[])){
+   if(!Number.isFinite(Number(e.lat))||!Number.isFinite(Number(e.lon)))continue;
+   const nasa=e.source==='NASA FIRMS';
+   const point=window.L.circleMarker([+e.lat,+e.lon],{radius:6,weight:2,color:nasa?'#fc7b49':'#f6d16b',fillOpacity:.7}).addTo(satelliteLayer);
+   const detail=document.createElement('div');
+   const strong=document.createElement('b');strong.textContent=e.source;detail.append(strong,document.createElement('br'),document.createTextNode(e.time||''));
+   point.bindPopup(detail);
+  }
+ }catch(err){
+  if(disposed)return;
+  dashboard.querySelector('#bosqyn-nasa-status').textContent='sin conexión';
+  dashboard.querySelector('#bosqyn-noaa-status').textContent='sin conexión';
  }
 }
-liveTab.addEventListener('click',()=>activateTab('live'));
-satelliteTab.addEventListener('click',()=>{if(typeof stop==='function')stop();activateTab('satellite')});
+loadLeaflet().then(()=>{
+ if(disposed)return;
+ const mapNode=dashboard.querySelector('#bosqyn-satellite-map');
+ mapNode.textContent='';
+ satelliteMap=window.L.map(mapNode).setView([-9.5,-76.1],8);
+ window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:17,attribution:'© OpenStreetMap'}).addTo(satelliteMap);
+ satelliteLayer=window.L.layerGroup().addTo(satelliteMap);
+ refreshSatellite();
+}).catch(()=>{
+ const target=dashboard.querySelector('#bosqyn-satellite-map');
+ if(!disposed)target.textContent='No se pudo cargar el mapa. Revisa la conexión de internet.';
+});
+refreshSatellite();
+satelliteTimer=setInterval(refreshSatellite,60000);
 
 const button=root.querySelector('#btn-live'),image=root.querySelector('#live-img'),badge=root.querySelector('#live-badge'),soundButton=root.querySelector('#btn-sound');
 const captureButton=[...root.querySelectorAll('button')].find(el=>el.textContent.includes('Capturar imagen'));
@@ -153,5 +205,5 @@ if(captureButton)captureButton.addEventListener('click',async()=>{
 });
 if(soundButton)soundButton.addEventListener('click',()=>{sound=!sound;let knob=soundButton.firstElementChild;soundButton.classList.toggle('bg-[#22c55e]',sound);soundButton.classList.toggle('bg-white/15',!sound);if(knob){knob.classList.toggle('left-[14px]',sound);knob.classList.toggle('left-[2px]',!sound)}status.textContent='Sonido '+(sound?'activado':'desactivado')+'. Las alertas automáticas están pendientes.'});
 // Se limpian las pistas de video y audio al abandonar Monitoreo.
-return function(){stop();if(typeof audioController==='function')audioController();};
+return function(){disposed=true;if(satelliteTimer)clearInterval(satelliteTimer);if(satelliteMap)satelliteMap.remove();stop();if(typeof audioController==='function')audioController();};
 };
