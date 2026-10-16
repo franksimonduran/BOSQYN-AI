@@ -124,7 +124,7 @@ def inspect_archive(path: Path = ARCHIVE) -> dict:
             cfg = candidates[0]
             classes = cfg.get("classes")
             if not 2 <= len(classes) <= 40 or not all(isinstance(c, str) and c.strip() for c in classes):
-                raise ValueError("Etiquetas acústicas no válidas")
+                raise ValueError("Etiquetas acústicas no válidas: se requieren MOTOSIERRA y MAQUINARIA_DEFORESTACION")
             if len(set(classes)) != len(classes):
                 raise ValueError("La configuración contiene etiquetas acústicas duplicadas")
             if not TALA_SOUNDS.issubset(set(classes)):
@@ -196,7 +196,10 @@ class AudioModel:
             with tempfile.TemporaryDirectory(prefix="bosqyn_audio_") as folder:
                 filename = Path(folder) / ("classifier" + suffix)
                 filename.write_bytes(bundle.read(model_entry))
-                loaded = keras.models.load_model(str(filename), compile=False, safe_mode=True)
+                try:
+                    loaded = keras.models.load_model(str(filename), compile=False, safe_mode=True)
+                except (OSError, ValueError, TypeError, zipfile.BadZipFile) as exc:
+                    raise RuntimeError("El archivo del modelo acústico es inválido o incompatible") from exc
         if int(loaded.output_shape[-1]) != len(cfg["classes"]):
             raise RuntimeError("Número de clases incompatible entre configuración y modelo Keras")
         self._model = loaded
