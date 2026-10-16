@@ -125,6 +125,7 @@ Bosqyn.vision = (function () {
     stop();
     const run = activeRun;
     reset(root);
+    status.classList.remove('bosqyn-camera-error');
     status.textContent = 'Cargando Teachable Machine y TensorFlow.js…';
     (async () => {
       try {
@@ -151,12 +152,14 @@ Bosqyn.vision = (function () {
             repeats = key === lastClass && best.probability >= .8 ? repeats + 1 : best.probability >= .8 ? 1 : 0;
             lastClass = key;
             render(root, predictions, repeats);
+            status.classList.remove('bosqyn-camera-error');
             status.textContent = 'IA activa en el navegador. Los porcentajes son probabilidades, NO precisión validada. No se guardan alertas automáticas.' + warning;
             errors = 0;
           } catch (error) {
             errors++;
             console.error('Error de inferencia BOSQYN AI:', error);
             status.textContent = 'Error de inferencia: ' + error.message;
+            status.classList.add('bosqyn-camera-error');
             if (errors >= 3) return;
           }
           if (run === activeRun) timer = setTimeout(nextFrame, 450);
@@ -166,6 +169,7 @@ Bosqyn.vision = (function () {
         if (run !== activeRun || !root.isConnected) return;
         console.error('No se pudo iniciar BOSQYN AI:', error);
         status.textContent = 'No se pudo cargar el modelo: ' + error.message;
+        status.classList.add('bosqyn-camera-error');
       }
     })();
   }

@@ -8,7 +8,7 @@ function selected(){let name=location.hash.slice(1);return routes.includes(name)
 async function show(name){if(!routes.includes(name))name='inicio';if(name===current)return;const req=++request;
 try{let body=cache.get(name);if(!body){let response=await fetch('views/'+name+'.html');if(!response.ok)throw Error('HTTP '+response.status);body=await response.text();cache.set(name,body)}if(req!==request)return;
 if(typeof cleanup==='function')cleanup();cleanup=null;current=name;
-view.innerHTML='<div class="bosqyn-demo-banner" role="status">MODO DEMOSTRACIÓN · Los porcentajes, estadísticas y alertas precargadas son ejemplos. El modelo de IA todavía no está conectado.</div>'+body;
+view.innerHTML=body;
 hero.style.display=name==='inicio'?'':'none';header.classList.toggle('border-b',name!=='inicio');header.classList.toggle('border-white/[0.06]',name!=='inicio');
 nav.forEach(btn=>{let on=btn.dataset.nav===name;btn.classList.remove(...(on?OFF:ON));btn.classList.add(...(on?ON:OFF));btn.setAttribute('aria-current',on?'page':'false')});
 if(typeof Bosqyn.pages[name]==='function')cleanup=Bosqyn.pages[name](view)||null;
