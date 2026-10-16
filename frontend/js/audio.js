@@ -73,7 +73,8 @@ Bosqyn.audio = (() => {
     function render(predictions) {
       const ordered = [...predictions].sort((a, b) => b.probability - a.probability);
       bars.replaceChildren();
-      for (const item of ordered) {
+      // Mostrar solo la categoría con mayor probabilidad, sin cambiar el modelo.
+      for (const item of ordered.slice(0, 1)) {
         const row = document.createElement("div");
         row.className = "bosqyn-audio-row";
         const icon = document.createElement("img");
@@ -96,7 +97,7 @@ Bosqyn.audio = (() => {
       root.dispatchEvent(new CustomEvent("bosqyn:audio-detection", {
         detail: {className:best.className, probability:best.probability, timestamp:Date.now()}
       }));
-      dominant.textContent = "Resultado acústico: " + best.className + " · " + (best.probability * 100).toFixed(1) + "%";
+      dominant.textContent = "Clase acústica predominante";
       observed.textContent = String(++sentCount);
       // El backend entrega únicamente Tala/Normal, agregando las 7 salidas originales.
       if (best.className === "Tala" && best.probability >= .8) {
@@ -247,19 +248,12 @@ Bosqyn.audio = (() => {
         availability.className = "bosqyn-audio-badge" + (available ? " ready" : "");
         privacy.textContent = (info.reason || "Modelo acústico configurado.") + " Tala agrupa MOTOSIERRA y MAQUINARIA_DEFORESTACION. Normal agrupa las otras cinco clases; se trata de una reclasificación, no un entrenamiento nuevo.";
         start.disabled = !available;
-        if (Array.isArray(info.display_classes) && info.display_classes.length === 2) {
+        if (bars) {
           bars.replaceChildren();
-          for (const name of info.display_classes) {
-            const row = document.createElement("div");
-            row.className = "bosqyn-audio-row";
-            const img = document.createElement("img");
-            img.src = "img/deteccion/" + iconByLabel(name);
-            img.alt = "";
-            const label = document.createElement("span");label.textContent = name;
-            const track = document.createElement("div");track.className = "bosqyn-audio-progress";
-            const number = document.createElement("strong");number.textContent = "--";
-            row.append(img,label,track,number);bars.append(row);
-          }
+          const waiting = document.createElement("p");
+          waiting.className = "bosqyn-audio-placeholder";
+          waiting.textContent = "Esperando sonido para mostrar la detección principal…";
+          bars.append(waiting);
         }
         setState(available ? "Preparado. Pulsa «Iniciar micrófono»." : "Reconocimiento acústico no disponible: " + (info.reason || "Configuración pendiente"), available ? "ready" : "");
       } catch (error) {

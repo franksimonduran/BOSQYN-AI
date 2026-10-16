@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
 
@@ -109,6 +109,35 @@ class EvidenceStore:
             conn.execute("DELETE FROM alerts WHERE id = ?", (alert_id,))
         (self.image_dir / row[0]).unlink(missing_ok=True)
         return True
+
+    def activity_by_day(self, days: int = 7):
+        """Read-only last-N-UTC-days breakdown of stored manual captures."""
+        if not 1 <= days <= 31:
+            raise ValueError("El periodo debe tener entre 1 y 31 días")
+        today = datetime.now(timezone.utc).date()
+        start = today - timedelta(days=days - 1)
+        data = {
+            (start + timedelta(days=i)).isoformat(): {
+                "date": (start + timedelta(days=i)).isoformat(),
+                "PENDIENTE": 0,
+                "CONFIRMADA": 0,
+                "DESCARTADA": 0,
+            }
+            for i in range(days)
+        }
+        with self.connect() as conn:
+            rows = conn.execute(
+                "SELECT substr(occurred_at, 1, 10) AS day, status, COUNT(*) AS total "
+                "FROM alerts WHERE occurred_at >= ? "
+                "GROUP BY day, status",
+                (start.isoformat(),),
+            ).fetchall()
+        for row in rows:
+            day = row["day"]
+            status = row["status"]
+            if day in data and status in ("PENDIENTE", "CONFIRMADA", "DESCARTADA"):
+                data[day][status] = int(row["total"])
+        return list(data.values())
 
     def statistics(self):
         with self.connect() as conn:

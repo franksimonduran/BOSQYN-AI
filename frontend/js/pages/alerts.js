@@ -44,7 +44,11 @@ Bosqyn.pages.alertas=function(root){
         const card=document.createElement('article');card.className='bosqyn-real-card';
         const img=document.createElement('img');img.src=item.evidence_url;img.alt='Captura manual '+item.id;img.loading='lazy';
         const content=document.createElement('div');
-        const title=document.createElement('strong');title.textContent='#'+item.id+' · '+item.category;
+        const title=document.createElement('strong');
+        const categoryIcon=Bosqyn.categories?.icon(item.category,'bosqyn-category-inline-icon');
+        if(categoryIcon)title.append(categoryIcon);
+        title.append(document.createTextNode('#'+item.id+' · '+item.category));
+        title.classList.add('bosqyn-category-tag');
         const info=document.createElement('p');info.textContent=item.occurred_at+' · '+item.status;
         const actions=document.createElement('div');actions.className='bosqyn-real-actions';
         actions.append(button('Confirmar',()=>change(item.id,'PATCH',{status:'CONFIRMADA'})),

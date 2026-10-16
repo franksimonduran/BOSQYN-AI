@@ -87,7 +87,32 @@ class BosqynHandler(SimpleHTTPRequestHandler):
                 return self.json_response(400, {"error": "limit no válido"})
             return self.json_response(200, self.store.list_alerts(limit))
         if route == "/api/statistics":
-            return self.json_response(200, self.store.statistics())
+            result = self.store.statistics()
+            result["activity_by_day"] = self.store.activity_by_day(7)
+            return self.json_response(200, result)
+        if route == "/api/statistics/chart.png":
+            # Matplotlib genera el gráfico únicamente desde SQLite; nunca usa cifras de ejemplo.
+            try:
+                from .charts import render_activity_png
+                daily = self.store.activity_by_day(7)
+                key = tuple((x["date"], x["PENDIENTE"], x["CONFIRMADA"], x["DESCARTADA"]) for x in daily)
+                with self.server.stats_chart_lock:
+                    cached = self.server.stats_chart_cache
+                    if cached and cached[0] == key:
+                        png = cached[1]
+                    else:
+                        png = render_activity_png(daily)
+                        self.server.stats_chart_cache = (key, png)
+            except Exception as error:
+                print("BOSQYN statistics chart error:", type(error).__name__, str(error), flush=True)
+                return self.json_response(503, {"error": "Gráfico Matplotlib temporalmente no disponible"})
+            self.send_response(200)
+            self.send_header("Content-Type", "image/png")
+            self.send_header("Content-Length", str(len(png)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.end_headers()
+            return self.wfile.write(png)
         if route.startswith("/api/evidence/"):
             parts = route.split("/")
             if len(parts) != 4 or not parts[3].isdigit():
@@ -239,6 +264,8 @@ def make_server(frontend_dir: Path, data_dir: Path, port: int = 5500, host: str 
     server.audio_semaphore = threading.BoundedSemaphore(1)
     server.audio_rate_lock = threading.Lock()
     server.audio_last_request = {}
+    server.stats_chart_lock = threading.Lock()
+    server.stats_chart_cache = None
 
     # Self-check is asynchronous so a broken audio model cannot prevent the
     # visual monitoring service from starting or passing its healthcheck.

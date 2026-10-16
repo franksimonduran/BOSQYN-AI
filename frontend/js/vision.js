@@ -72,51 +72,26 @@ const ICONS = { HUMO: 'Humo.png', INCENDIO: 'Fuego.png', NORMAL: 'Bosque.png', T
     if (label) label.textContent = 'ESPERANDO IA';
     if (detail) detail.textContent = 'Conecta la webcam para iniciar la clasificación';
     if (warning) warning.textContent = 'SIN ANÁLISIS';
-    for (const row of root.querySelectorAll('[data-vision-row]')) {
-      if (row.children[2]) row.children[2].textContent = '--';
-      if (row.children[1]?.firstElementChild) row.children[1].firstElementChild.style.width = '4px';
-    }
+    const icon = root.querySelector('[data-vision-logo]');
+    if (icon) { icon.src='img/deteccion/Bosque.png'; icon.alt='Esperando clasificación visual'; }
+    const progress = root.querySelector('[data-vision-progress]');
+    if (progress) progress.style.width='0%';
   }
 
   function render(root, predictions, count) {
-    // Mantener el orden exportado por Teachable Machine, no la predicción ordenada por confianza.
     const ordered = [...predictions];
-    const rows = [...root.querySelectorAll('[data-vision-row]')];
     const score = item => Number.isFinite(item.probability) ? Math.min(1, Math.max(0, item.probability)) : 0;
-    for (let index = 0; index < rows.length; index++) {
-      const row = rows[index];
-      const item = ordered[index];
-      if (!item) {
-        row.style.display = 'none';
-        continue;
-      }
-      row.style.display = '';
-      if (row.children[0]) {
-        const title = row.children[0];
-        const icon = document.createElement('img');
-        icon.src = 'img/deteccion/' + iconFor(item.className);
-        icon.alt = '';
-        icon.className = 'bosqyn-logo-inline';
-        const label = document.createElement('span');
-        label.textContent = item.className;
-        title.classList.add('bosqyn-detect-header');
-        title.style.gap = '3px';
-        title.style.width = '126px';
-        title.style.minWidth = '126px';
-        title.style.flexShrink = '0';
-        icon.style.flexShrink = '0';
-        label.style.fontSize = '9px';
-        title.replaceChildren(icon, label);
-      }
-      if (row.children[2]) row.children[2].textContent = Math.round(score(item) * 100) + '%';
-      if (row.children[1]?.firstElementChild)
-        row.children[1].firstElementChild.style.width = Math.max(4, Math.round(score(item) * 100)) + '%';
-    }
     const best = ordered.reduce((a, b) => score(a) >= score(b) ? a : b);
     const probability = Math.round(score(best) * 100);
     const normalized = toCanonical(best.className);
-    root.querySelector('[data-vision-confidence]').textContent = 'Probabilidad: ' + probability + '%';
-    root.querySelector('[data-vision-class]').textContent = best.className.toUpperCase();
+    const confidence=root.querySelector('[data-vision-confidence]');
+    if (confidence) confidence.textContent = probability + '%';
+    const category=root.querySelector('[data-vision-class]');
+    if (category) category.textContent=best.className.toUpperCase();
+    const image=root.querySelector('[data-vision-logo]');
+    if (image) {image.src='img/deteccion/'+iconFor(best.className);image.alt='Icono de '+best.className;}
+    const progress=root.querySelector('[data-vision-progress]');
+    if (progress) progress.style.width=probability+'%';
     const detail = root.querySelector('[data-vision-detail]');
     const warning = root.querySelector('[data-vision-warning]');
     if (!EXPECTED.has(normalized)) {

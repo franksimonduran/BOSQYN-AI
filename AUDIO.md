@@ -57,3 +57,14 @@ La pantalla `#monitoreo` integra los dos detectores en un mismo panel. **Iniciar
 - El audio se envía en fragmentos al propio backend de BOSQYN AI para clasificarlo; no se guarda. El video no se envía al backend.
 
 Esta actualización se prepara en `preparacion/camara-y-audio-unificados` y no se despliega automáticamente en Railway. Se deben probar permisos, selección de dispositivos, sonido real y navegador antes de declararla validada.
+
+## Presentación de detecciones y estadísticas (actualización en preparación)
+
+- En Monitoreo se muestra **solo una clase visual principal con su porcentaje** (la salida de mayor probabilidad de las cinco clases), además de **una clase acústica principal con su porcentaje** (Tala o Normal). No se eliminan ni reentrenan clases del modelo.
+- Cada clase lleva su logo desde `frontend/img/deteccion/`. El logo Bosque se reutiliza para Normal e Ir al bosque.
+- Inicio y Alertas usan iconografía coherente con las categorías; las tarjetas antiguas del inicio están señaladas como **ilustrativas**.
+- La página Estadísticas ya no utiliza el SVG con conteos de ejemplo: consulta `GET /api/statistics` y `GET /api/statistics/chart.png`. El servidor produce un **PNG Matplotlib** de los últimos siete días con registros reales de SQLite, clasificados como pendientes, confirmados o descartados.
+- El gráfico registra únicamente las capturas manuales disponibles; **no atribuye detecciones al modelo** ni representa exactitud, F1, sensibilidad ni rendimiento automático. Con cero capturas muestra un gráfico vacío.
+- `matplotlib` es un requisito nuevo de Python; instalar `requirements.txt` antes de ejecutar el servidor.
+- Los endpoints de lectura del gráfico respetan la configuración de solo lectura del servicio público. El gráfico se genera en memoria y se almacena en caché según los conteos para evitar recalcularlo en cada consulta.
+- Esta rama de preparación requiere revisión visual en navegador y validación de la nueva ruta antes de desplegarse en Railway.
