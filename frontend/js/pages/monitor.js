@@ -1,5 +1,62 @@
 window.Bosqyn=window.Bosqyn||{};Bosqyn.pages=Bosqyn.pages||{};
 Bosqyn.pages.monitoreo=function(root){
+/* Monitoreo único con pestañas internas. La vista en vivo original se conserva. */
+const livePanel=document.createElement('div');
+livePanel.id='bosqyn-live-panel';
+while(root.firstChild)livePanel.appendChild(root.firstChild);
+const satellitePanel=document.createElement('section');
+satellitePanel.id='bosqyn-satellite-panel';
+satellitePanel.hidden=true;
+satellitePanel.style.minHeight='65vh';
+const tabs=document.createElement('div');
+tabs.setAttribute('role','tablist');
+tabs.setAttribute('aria-label','Tipo de monitoreo');
+tabs.style.cssText='display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap';
+function tabButton(label,id,selected){
+  const b=document.createElement('button');
+  b.type='button'; b.textContent=label; b.id=id;
+  b.setAttribute('role','tab');b.setAttribute('aria-selected',String(selected));
+  b.className='rounded-lg border px-4 py-2 text-xs font-semibold '+(selected?'border-green-500 bg-green-700 text-white':'border-emerald-900 bg-[#0a241a] text-[#badbc5]');
+  return b;
+}
+const liveTab=tabButton('Monitoreo en vivo','bosqyn-tab-live',true);
+const satelliteTab=tabButton('Monitoreo satelital','bosqyn-tab-satellite',false);
+liveTab.setAttribute('aria-controls','bosqyn-live-panel');
+satelliteTab.setAttribute('aria-controls','bosqyn-satellite-panel');
+tabs.append(liveTab,satelliteTab);
+root.append(tabs,livePanel,satellitePanel);
+let satelliteIframe=null;
+function activateTab(which){
+ const live=which==='live';
+ livePanel.hidden=!live;
+ satellitePanel.hidden=live;
+ liveTab.setAttribute('aria-selected',String(live));
+ satelliteTab.setAttribute('aria-selected',String(!live));
+ liveTab.classList.toggle('bg-green-700',live);
+ satelliteTab.classList.toggle('bg-green-700',!live);
+ liveTab.classList.toggle('text-white',live);
+ satelliteTab.classList.toggle('text-white',!live);
+ if(!live&&!satelliteIframe){
+   const intro=document.createElement('p');
+   intro.className='text-xs text-[#b5d4c2] mb-3';
+   intro.textContent='Observaciones satelitales periódicas de NASA FIRMS y NOAA GOES-19. No son video en tiempo real.';
+   const link=document.createElement('a');
+   link.href='https://bosqyn-ai-satelital-production.up.railway.app';
+   link.target='_blank';link.rel='noopener noreferrer';
+   link.textContent='Abrir monitoreo satelital en una pestaña nueva ↗';
+   link.className='inline-block text-xs text-emerald-300 underline mb-3';
+   satelliteIframe=document.createElement('iframe');
+   satelliteIframe.title='BOSQYN IA · Monitoreo satelital';
+   satelliteIframe.src='https://bosqyn-ai-satelital-production.up.railway.app';
+   satelliteIframe.loading='lazy';
+   satelliteIframe.referrerPolicy='no-referrer';
+   satelliteIframe.style.cssText='width:100%;min-height:68vh;border:1px solid #28513d;border-radius:12px;background:#061c16';
+   satellitePanel.append(intro,link,satelliteIframe);
+ }
+}
+liveTab.addEventListener('click',()=>activateTab('live'));
+satelliteTab.addEventListener('click',()=>{if(typeof stop==='function')stop();activateTab('satellite')});
+
 const button=root.querySelector('#btn-live'),image=root.querySelector('#live-img'),badge=root.querySelector('#live-badge'),soundButton=root.querySelector('#btn-sound');
 const captureButton=[...root.querySelectorAll('button')].find(el=>el.textContent.includes('Capturar imagen'));
 const status=document.createElement('div');status.className='bosqyn-camera-status';status.setAttribute('role','status');status.textContent='Un solo botón inicia la webcam y su micrófono disponible. Las detecciones requieren verificación.';root.prepend(status);
