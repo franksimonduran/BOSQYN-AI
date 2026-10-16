@@ -7,12 +7,11 @@ Bosqyn.vision = (function () {
     ['tf', 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js'],
     ['tmImage', 'https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.5/dist/teachablemachine-image.min.js'],
   ];
-  const EXPECTED = new Set(['NORMAL', 'HUMO', 'FUEGO', 'NEBLINA_NUBES', 'INDICIOS_TALA']);
+  const EXPECTED = new Set(['HUMO', 'INCENDIO', 'NORMAL', 'TALA', 'IR_AL_BOSQUE']);
   const NORMALIZE = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
-  const ALIASES = { INCENDIO: 'FUEGO', TALA: 'INDICIOS_TALA' };
-  const toCanonical = value => ALIASES[NORMALIZE(value)] || NORMALIZE(value);
-const ICONS = { HUMO: 'Humo.png', FUEGO: 'Fuego.png', INCENDIO: 'Fuego.png', NORMAL: 'Bosque.png', TALA: 'Tala.png', INDICIOS_TALA: 'Tala.png', IR_AL_BOSQUE: 'Bosque.png', NEBLINA_NUBES: 'Bosque.png' };
+  const toCanonical = NORMALIZE;
+const ICONS = { HUMO: 'Humo.png', INCENDIO: 'Fuego.png', NORMAL: 'Bosque.png', TALA: 'Tala.png', IR_AL_BOSQUE: 'Bosque.png' };
   function iconFor(label) {
     return ICONS[toCanonical(label)] || 'Bosque.png';
   }
@@ -80,6 +79,7 @@ const ICONS = { HUMO: 'Humo.png', FUEGO: 'Fuego.png', INCENDIO: 'Fuego.png', NOR
   }
 
   function render(root, predictions, count) {
+    // Mantener el orden exportado por Teachable Machine, no la predicción ordenada por confianza.
     const ordered = [...predictions];
     const rows = [...root.querySelectorAll('[data-vision-row]')];
     const score = item => Number.isFinite(item.probability) ? Math.min(1, Math.max(0, item.probability)) : 0;
@@ -122,14 +122,14 @@ const ICONS = { HUMO: 'Humo.png', FUEGO: 'Fuego.png', INCENDIO: 'Fuego.png', NOR
     if (!EXPECTED.has(normalized)) {
       detail.textContent = 'Etiqueta exportada sin correspondencia ambiental validada';
       warning.textContent = 'CLASE POR REVISAR';
-    } else if (['HUMO', 'FUEGO', 'INDICIOS_TALA'].includes(normalized) && probability >= 80 && count >= 3) {
+    } else if (['HUMO', 'INCENDIO', 'TALA'].includes(normalized) && probability >= 80 && count >= 3) {
       detail.textContent = 'Predicción repetida; requiere confirmación humana';
       warning.textContent = 'INDICIO · VERIFICAR';
-    } else if (['HUMO', 'FUEGO', 'INDICIOS_TALA'].includes(normalized)) {
+    } else if (['HUMO', 'INCENDIO', 'TALA'].includes(normalized)) {
       detail.textContent = 'Indicio visual sin confirmación';
       warning.textContent = 'MONITOREANDO';
     } else {
-      detail.textContent = normalized === 'NEBLINA_NUBES' ? 'Neblina o nubes' : 'Sin indicio visual de amenaza';
+      detail.textContent = normalized === 'IR_AL_BOSQUE' ? 'Clase de presencia en el bosque; sin alerta automática' : 'Sin indicio visual de amenaza';
       warning.textContent = 'SIN ALERTA';
     }
     return best;
@@ -155,7 +155,7 @@ const ICONS = { HUMO: 'Humo.png', FUEGO: 'Fuego.png', INCENDIO: 'Fuego.png', NOR
         const expectedMissing = [...EXPECTED].filter(name => !labels.includes(name));
         const unmapped = (info.classes || []).filter(name => !EXPECTED.has(toCanonical(name)));
         const warning = expectedMissing.length || unmapped.length
-          ? ' Atención: etiquetas por revisar (' + unmapped.join(', ') + '); falta ' + expectedMissing.join(', ') + '.'
+          ? ' Etiquetas por revisar: ' + (unmapped.length ? unmapped.join(', ') : 'ninguna') + '; ausentes: ' + (expectedMissing.length ? expectedMissing.join(', ') : 'ninguna') + '.'
           : '';
         let lastClass = '';
         let repeats = 0;

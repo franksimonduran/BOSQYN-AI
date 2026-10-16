@@ -54,3 +54,14 @@
 .bosqyn-category-showcase p{font-size:10px;margin:3px 0}
 @media(max-width:680px){.bosqyn-audio-layout,.bosqyn-category-showcase{grid-template-columns:1fr}.bosqyn-detection-options{grid-template-columns:repeat(2,minmax(0,1fr))}.bosqyn-audio-topline{flex-wrap:wrap}}
 @media(max-width:450px){.bosqyn-detection-options{grid-template-columns:1fr}.bosqyn-audio-row{grid-template-columns:25px minmax(80px,1fr) 80px 37px;gap:5px}}
+
+/* Panel visual + acústico en la misma ruta, sin paneles informativos redundantes. */
+.bosqyn-monitor-audio{margin-top:22px;padding-top:17px;border-top:1px solid #26503b}
+.bosqyn-monitor-audio .bosqyn-feature-header h2{font-weight:800;font-size:15px;color:#e8fff1}
+.bosqyn-monitor-audio .bosqyn-feature-header p{font-size:10px}
+.bosqyn-inline-records{display:block;margin:10px 0 18px;padding:0;color:#ccebdc}
+.bosqyn-inline-records>h2{font-size:13px;font-weight:700;margin:4px 0 9px}
+.bosqyn-inline-records>.bosqyn-real-status{display:inline-block;margin:8px 0 12px 10px;color:#afd8c4;font-size:11px}
+.bosqyn-inline-records>.bosqyn-action{background:#0e613e;border:1px solid #28915f;border-radius:7px;color:#f3fff7;padding:8px 13px}
+.bosqyn-stats-compact{margin:8px 0 14px;color:#9ccbb3;font-size:10px;background:transparent;border:0}
+.bosqyn-stats-compact p{margin:2px 0}

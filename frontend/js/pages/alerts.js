@@ -2,13 +2,13 @@ window.Bosqyn=window.Bosqyn||{};Bosqyn.pages=Bosqyn.pages||{};
 Bosqyn.pages.alertas=function(root){
 
   const panel=document.createElement('section');
-  panel.className='bosqyn-real-panel';
-  const heading=document.createElement('h2');heading.textContent='Capturas reales guardadas en Python';
+  panel.className='bosqyn-inline-records';
+  const heading=document.createElement('h2');heading.textContent='Historial de capturas manuales';
   const explanation=document.createElement('p');explanation.textContent='Registros de webcam almacenados en SQLite. Una captura manual no significa detección automática.';
   const status=document.createElement('p');status.className='bosqyn-real-status';status.setAttribute('role','status');
   const list=document.createElement('div');list.className='bosqyn-real-list';
   const refresh=document.createElement('button');refresh.type='button';refresh.className='bosqyn-action';refresh.textContent='Actualizar registros';
-  panel.append(heading,explanation,refresh,status,list);
+  panel.append(heading,refresh,status,list);
   root.prepend(panel);
   const demo=document.createElement('div');demo.className='bosqyn-demo-label';
   demo.textContent='TABLA DE EJEMPLO · ESTAS FILAS NO PROCEDEN DEL MODELO DE IA';

@@ -2,7 +2,7 @@ window.Bosqyn=window.Bosqyn||{};Bosqyn.pages=Bosqyn.pages||{};
 Bosqyn.pages.monitoreo=function(root){
 const button=root.querySelector('#btn-live'),image=root.querySelector('#live-img'),badge=root.querySelector('#live-badge'),soundButton=root.querySelector('#btn-sound');
 const captureButton=[...root.querySelectorAll('button')].find(el=>el.textContent.includes('Capturar imagen'));
-const status=document.createElement('div');status.className='bosqyn-camera-status';status.setAttribute('role','status');status.textContent='Inicia la webcam y guarda capturas manuales con Python. El modelo de IA aún está pendiente.';root.prepend(status);
+const status=document.createElement('div');status.className='bosqyn-camera-status';status.setAttribute('role','status');status.textContent='Puedes activar la webcam y el micrófono por separado o al mismo tiempo. Las detecciones requieren verificación.';root.prepend(status);
 let stream=null,video=null,starting=false,sound=true;
 function stop(){if(Bosqyn.vision)Bosqyn.vision.stop();if(stream)stream.getTracks().forEach(track=>track.stop());stream=null;if(video){video.pause();video.srcObject=null;video.remove();video=null}if(image)image.style.display='';if(badge)badge.style.display='none';if(button)button.innerHTML=Bosqyn.icons.play+' Iniciar cámara'}
 async function start(){if(starting||stream)return;if(!navigator.mediaDevices?.getUserMedia){status.textContent='La webcam requiere HTTPS o localhost.';status.classList.add('bosqyn-camera-error');return}
@@ -34,5 +34,8 @@ if(captureButton)captureButton.addEventListener('click',async()=>{
   }finally{captureButton.disabled=false}
 });
 if(soundButton)soundButton.addEventListener('click',()=>{sound=!sound;let knob=soundButton.firstElementChild;soundButton.classList.toggle('bg-[#22c55e]',sound);soundButton.classList.toggle('bg-white/15',!sound);if(knob){knob.classList.toggle('left-[14px]',sound);knob.classList.toggle('left-[2px]',!sound)}status.textContent='Sonido '+(sound?'activado':'desactivado')+'. Las alertas automáticas están pendientes.'});
-return stop;
+// La vista integrada permite iniciar cámara y micrófono en paralelo.
+// Ambos recursos se cierran al abandonar Monitoreo.
+const stopAudio = Bosqyn.audio && typeof Bosqyn.audio.mount === 'function' ? Bosqyn.audio.mount(root) : null;
+return function(){ if(typeof stopAudio === 'function') stopAudio(); stop(); };
 };
