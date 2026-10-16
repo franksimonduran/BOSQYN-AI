@@ -17,6 +17,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+from . import satellite
 from .storage import EvidenceStore
 from .auth import AdminAuth
 from .audio_model import AudioModel
@@ -108,6 +109,10 @@ class BosqynHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         target = urlsplit(self.path)
         route = target.path
+        if route == "/api/satellite/status":
+            return self.json_response(200, satellite.status())
+        if route == "/api/satellite/events":
+            return self.json_response(200, satellite.events())
         if route == "/api/auth/status":
             auth = self.server.auth
             return self.json_response(200, {
@@ -361,6 +366,7 @@ def make_server(frontend_dir: Path, data_dir: Path, port: int = 5500, host: str 
     if not (frontend_dir / "index.html").is_file():
         raise FileNotFoundError(f"Frontend no encontrado en {frontend_dir}")
     server = ThreadingHTTPServer((host, port), partial(BosqynHandler, directory=str(frontend_dir)))
+    satellite.start()
     server.store = EvidenceStore(data_dir)
     server.auth = AdminAuth(host)
     server.persistent_storage = os.environ.get("BOSQYN_DATA_DIR", "").startswith("/data/")
