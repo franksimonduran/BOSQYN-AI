@@ -99,7 +99,7 @@ loadLeaflet().then(()=>{
  const mapNode=dashboard.querySelector('#bosqyn-satellite-map');
  mapNode.textContent='';
  satelliteMap=window.L.map(mapNode).setView([-9.5,-76.1],8);
- window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:17,attribution:'© OpenStreetMap'}).addTo(satelliteMap);
+ window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19,attribution:'&copy; OpenStreetMap contributors &copy; CARTO'}).addTo(satelliteMap);
  satelliteLayer=window.L.layerGroup().addTo(satelliteMap);
  refreshSatellite();
 }).catch(()=>{
