@@ -27,3 +27,16 @@ Conecta la rama main del repositorio y utiliza python server.py como comando de 
 - La webcam requiere HTTPS o localhost y permisos del navegador.
 
 El archivo original bosqyn-ai-vanilla.zip se conserva sin modificar.
+
+## Entrenamiento del modelo acústico (TensorFlow / Google Colab)
+
+El cuaderno [BOSQYN_IA_Entrenar_TensorFlow.ipynb](notebooks/BOSQYN_IA_Entrenar_TensorFlow.ipynb) permite entrenar un clasificador de **sonidos** independiente del clasificador visual de webcam.
+
+1. Abre el cuaderno en Google Colab (requiere una cuenta de Google).
+2. Ejecuta las celdas en orden y sube el archivo de datos `entrenamiento.zip` cuando se solicite.
+3. El ZIP de datos debe contener **7 carpetas de clases con grabaciones WAV**. El cuaderno calcula espectrogramas Mel, separa grupos de grabaciones en entrenamiento/validación/prueba y entrena una red CNN.
+4. Al finalizar, genera `bosqyn_tensorflow.keras` y `bosqyn_tensorflow_config.json`, muestra un reporte de evaluación y permite descargar ambos archivos.
+
+**Estado:** el cuaderno está disponible, pero el conjunto de WAV y el modelo acústico ya entrenado no se han incorporado al repositorio. Tampoco se ha implementado aún su inferencia en el navegador. Los archivos `.keras` **no se ejecutan directamente con TensorFlow.js**: para integrarlos deberá crearse un servicio de inferencia Python o convertir el modelo a un formato web compatible y reproducir exactamente el preprocesamiento de audio.
+
+**Nota metodológica:** los grupos de procedencia se infieren de los nombres de archivo. Deben verificarse para evitar que grabaciones derivadas de una misma fuente se repartan entre entrenamiento y prueba. Las métricas reportadas por Colab solo tendrán valor tras completar el entrenamiento con datos apropiados.
