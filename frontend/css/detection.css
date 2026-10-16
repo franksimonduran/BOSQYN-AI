@@ -1,0 +1,56 @@
+/* BOSQYN category illustrations and acoustic monitoring */
+.bosqyn-category-logo{width:37px;height:37px;object-fit:contain;border-radius:8px;vertical-align:middle;filter:drop-shadow(0 0 5px #126b3d52)}
+.bosqyn-logo-inline{width:20px;height:20px;object-fit:contain;border-radius:4px;display:inline-block;margin-right:5px}
+.bosqyn-detect-header{display:flex;align-items:center;gap:12px}
+.bosqyn-detect-header img{height:48px;width:48px;object-fit:contain}
+.bosqyn-detection-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0 0}
+.bosqyn-detection-options a{background:linear-gradient(125deg,#0c2920,#123126);border:1px solid #225543;border-radius:10px;color:#e2f6eb;text-decoration:none;display:flex;align-items:center;gap:9px;padding:11px;min-height:70px}
+.bosqyn-detection-options a:hover{background:#194a32}
+.bosqyn-detection-options img{width:43px;height:43px;object-fit:contain}
+.bosqyn-detection-options b{font-size:11px}
+.bosqyn-detection-options small{display:block;color:#9dbfb0;font-size:9px}
+.bosqyn-acoustic{padding:14px 0 25px;color:#e5f5ed}
+.bosqyn-acoustic p{color:#aac4b7;line-height:1.6}
+.bosqyn-acoustic h1{font-size:20px;font-weight:800;margin:8px 0}
+.bosqyn-acoustic h2{font-size:14px;font-weight:750;margin:0}
+.bosqyn-acoustic h3{font-size:13px;font-weight:750;margin:0}
+.bosqyn-acoustic .bosqyn-feature-header p{font-size:11px;max-width:660px}
+.bosqyn-audio-topline{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:16px 0}
+.bosqyn-audio-heading{display:flex;align-items:center;gap:11px}
+.bosqyn-audio-heading p{margin:3px 0;font-size:10px}
+.bosqyn-audio-heroicon{height:48px;width:48px;object-fit:contain}
+.bosqyn-audio-badge{display:inline-block;color:#ffd089;border:1px solid #6d4a21;background:#47321c;padding:5px 9px;border-radius:18px;font-size:10px;white-space:nowrap}
+.bosqyn-audio-badge.ready{background:#0d5d36;border-color:#27b76f;color:#c7ffdc}
+.bosqyn-audio-layout{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.bosqyn-audio-panel{padding:16px;border:1px solid #1f4a38;border-radius:12px;background:linear-gradient(145deg,#0a241b,#071b15)}
+.bosqyn-mic-display{display:flex;align-items:center;gap:12px}
+.bosqyn-mic-display p{font-size:10px;margin:3px 0}
+.bosqyn-audio-mic{border:1px solid #285c3d;background:#133b29;width:55px;height:55px;display:grid;place-items:center;border-radius:50%;font-size:26px;color:#6bdda0;flex-shrink:0}
+.bosqyn-audio-mic.on{border-color:#2df69c;box-shadow:0 0 0 5px #25a96b22,0 0 16px #22db8570;animation:bosqyn-pulse 2s ease-in-out infinite}
+@keyframes bosqyn-pulse{50%{box-shadow:0 0 0 8px #25a96b0c,0 0 22px #22db85a0}}
+.bosqyn-audio-controls{display:flex;gap:10px;margin:18px 0}
+.bosqyn-audio-controls button{background:#147b49;border:1px solid #1cbd70;border-radius:8px;color:#fff;font-weight:700;font-size:11px;padding:11px 15px}
+.bosqyn-audio-controls button+button{background:#19352a;border-color:#39644f}
+.bosqyn-audio-controls button:disabled{opacity:.35;cursor:not-allowed}
+.bosqyn-audio-status{padding:10px 11px;background:#1c2e25;border:1px solid #385544;border-radius:7px;font-size:10px}
+.bosqyn-audio-status.ready{background:#103a28;border-color:#258953;color:#c7f7d8}
+.bosqyn-audio-status.error{background:#422b20;border-color:#8f4b2c;color:#ffbd9f}
+.bosqyn-audio-caption{display:flex;justify-content:space-between;gap:6px;font-size:10px;margin:17px 0 8px}
+.bosqyn-audio-warning{border:1px solid #33523b;padding:10px;border-radius:8px;font-size:10px;color:#bbd8c5}
+.bosqyn-audio-warning.risk{background:#482e1c;border-color:#c67a23;color:#ffce8e}
+.bosqyn-audio-privacy{font-size:9px!important}
+.bosqyn-audio-top{font-size:11px;margin:10px 0 20px}
+.bosqyn-audio-row{display:grid;grid-template-columns:29px minmax(110px,1.1fr) minmax(75px,1.5fr) 45px;gap:8px;align-items:center;margin-bottom:13px;font-size:10px}
+.bosqyn-audio-row img{width:26px;height:26px;object-fit:contain}
+.bosqyn-audio-row strong{text-align:right;font-size:10px}
+.bosqyn-audio-progress{height:7px;background:#2b4437;border-radius:8px;overflow:hidden}
+.bosqyn-audio-progress>div{height:100%;background:linear-gradient(90deg,#2ad47b,#eaa641)}
+.bosqyn-audio-placeholder{font-size:10px}
+.bosqyn-audio-disclaimer{font-size:10px;color:#93b6a4;border-top:1px solid #2d4c37;padding-top:12px;margin-top:22px}
+.bosqyn-category-showcase{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.bosqyn-category-showcase article{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #244d38;border-radius:10px;background:#10271d}
+.bosqyn-category-showcase img{width:44px;height:44px;object-fit:contain}
+.bosqyn-category-showcase strong{font-size:11px}
+.bosqyn-category-showcase p{font-size:10px;margin:3px 0}
+@media(max-width:680px){.bosqyn-audio-layout,.bosqyn-category-showcase{grid-template-columns:1fr}.bosqyn-detection-options{grid-template-columns:repeat(2,minmax(0,1fr))}.bosqyn-audio-topline{flex-wrap:wrap}}
+@media(max-width:450px){.bosqyn-detection-options{grid-template-columns:1fr}.bosqyn-audio-row{grid-template-columns:25px minmax(80px,1fr) 80px 37px;gap:5px}}

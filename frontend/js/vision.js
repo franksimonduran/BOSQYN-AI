@@ -12,6 +12,10 @@ Bosqyn.vision = (function () {
     .toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
   const ALIASES = { INCENDIO: 'FUEGO', TALA: 'INDICIOS_TALA' };
   const toCanonical = value => ALIASES[NORMALIZE(value)] || NORMALIZE(value);
+const ICONS = { HUMO: 'Humo.png', FUEGO: 'Fuego.png', INCENDIO: 'Fuego.png', NORMAL: 'Bosque.png', TALA: 'Tala.png', INDICIOS_TALA: 'Tala.png', IR_AL_BOSQUE: 'Bosque.png', NEBLINA_NUBES: 'Bosque.png' };
+  function iconFor(label) {
+    return ICONS[toCanonical(label)] || 'Bosque.png';
+  }
   let modelPromise = null;
   let librariesPromise = null;
   let activeRun = 0;
@@ -87,7 +91,23 @@ Bosqyn.vision = (function () {
         continue;
       }
       row.style.display = '';
-      if (row.children[0]) row.children[0].textContent = item.className;
+      if (row.children[0]) {
+        const title = row.children[0];
+        const icon = document.createElement('img');
+        icon.src = 'img/deteccion/' + iconFor(item.className);
+        icon.alt = '';
+        icon.className = 'bosqyn-logo-inline';
+        const label = document.createElement('span');
+        label.textContent = item.className;
+        title.classList.add('bosqyn-detect-header');
+        title.style.gap = '3px';
+        title.style.width = '126px';
+        title.style.minWidth = '126px';
+        title.style.flexShrink = '0';
+        icon.style.flexShrink = '0';
+        label.style.fontSize = '9px';
+        title.replaceChildren(icon, label);
+      }
       if (row.children[2]) row.children[2].textContent = Math.round(score(item) * 100) + '%';
       if (row.children[1]?.firstElementChild)
         row.children[1].firstElementChild.style.width = Math.max(4, Math.round(score(item) * 100)) + '%';

@@ -1,0 +1,6 @@
+# Requisitos OPCIONALES: solo para habilitar la inferencia acústica con Keras.
+# No se instalan por defecto en Railway; el servidor visual sigue usando stdlib.
+tensorflow-cpu>=2.16,<2.19
+numpy>=1.26,<2.1
+librosa>=0.10,<0.12
+soundfile>=0.12,<0.14

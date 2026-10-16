@@ -10,12 +10,15 @@ import base64
 import binascii
 import json
 import os
+import threading
+import time
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from .storage import EvidenceStore
+from .audio_model import AudioModel
 from .vision_model import prepare_vision_model
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -67,12 +70,15 @@ class BosqynHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         target = urlsplit(self.path)
         route = target.path
+        if route == "/api/audio/model-info":
+            return self.json_response(200, self.server.audio_model.info())
         if route == "/api/model-info":
             return self.json_response(200, self.server.vision_model)
         if route == "/api/health":
             return self.json_response(200, {
                 "status": "ok", "service": "BOSQYN AI", "python_backend": True,
                 "model_integrated": self.server.vision_model["available"], "model_assets_ready": self.server.vision_model["available"], "mode": "prototipo_local",
+                "audio_model_ready": self.server.audio_model.info()["available"],
             })
         if route == "/api/alerts":
             try:
@@ -107,7 +113,62 @@ class BosqynHandler(SimpleHTTPRequestHandler):
             return True
         return False
 
+    def predict_audio(self):
+        """Stateless microphone classification; never writes evidence or audio to disk."""
+        engine = self.server.audio_model
+        if not engine.info()["available"]:
+            return self.json_response(503, {
+                "error": engine.info()["reason"],
+                "audio_available": False,
+            })
+        if self.headers.get("Content-Type", "").split(";")[0].strip().lower() != "application/octet-stream":
+            return self.json_response(415, {"error": "Se requiere application/octet-stream (PCM16 mono 16 kHz)"})
+        if self.headers.get("X-Bosqyn-Sample-Rate") != "16000":
+            return self.json_response(400, {"error": "Frecuencia requerida: 16000 Hz"})
+        # Reject cross-origin browser submissions; this is not a writable API.
+        origin = self.headers.get("Origin")
+        if origin:
+            try:
+                parsed = urlsplit(origin)
+                if parsed.netloc.lower() != self.headers.get("Host", "").lower() or parsed.scheme not in ("http", "https"):
+                    return self.json_response(403, {"error": "Origen no autorizado"})
+            except ValueError:
+                return self.json_response(403, {"error": "Origen inválido"})
+        try:
+            size = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            size = 0
+        if not 32000 <= size <= 128000 or size % 2:
+            return self.json_response(413, {"error": "Audio fuera de rango: 1 a 4 s PCM16 mono 16 kHz"})
+        client = self.client_address[0]
+        now = time.monotonic()
+        with self.server.audio_rate_lock:
+            last = self.server.audio_last_request.get(client, 0)
+            if now - last < 2.5:
+                return self.json_response(429, {"error": "Espera entre análisis acústicos"})
+            self.server.audio_last_request[client] = now
+            if len(self.server.audio_last_request) > 1000:
+                self.server.audio_last_request = {client: now}
+        if not self.server.audio_semaphore.acquire(blocking=False):
+            return self.json_response(429, {"error": "Motor acústico ocupado; vuelve a intentar"})
+        try:
+            self.connection.settimeout(20)
+            data = self.rfile.read(size)
+            if len(data) != size:
+                return self.json_response(400, {"error": "Audio incompleto"})
+            prediction = engine.predict_pcm16(data)
+            return self.json_response(200, prediction)
+        except ValueError as error:
+            return self.json_response(400, {"error": str(error)})
+        except Exception as error:
+            print("BOSQYN audio inference failed:", type(error).__name__, str(error), flush=True)
+            return self.json_response(503, {"error": "No se pudo ejecutar el modelo de audio; revisa los registros del servidor"})
+        finally:
+            self.server.audio_semaphore.release()
+
     def do_POST(self):
+        if urlsplit(self.path).path == "/api/audio/predict":
+            return self.predict_audio()
         if self.writes_forbidden():
             return
         if urlsplit(self.path).path != "/api/alerts":
@@ -173,6 +234,10 @@ def make_server(frontend_dir: Path, data_dir: Path, port: int = 5500, host: str 
     server = ThreadingHTTPServer((host, port), partial(BosqynHandler, directory=str(frontend_dir)))
     server.store = EvidenceStore(data_dir)
     server.vision_model = prepare_vision_model(frontend_dir)
+    server.audio_model = AudioModel()
+    server.audio_semaphore = threading.BoundedSemaphore(1)
+    server.audio_rate_lock = threading.Lock()
+    server.audio_last_request = {}
     print('Modelo de visión:', json.dumps(server.vision_model, ensure_ascii=False))
     return server
 
@@ -186,7 +251,7 @@ def main():
     args = parser.parse_args()
     with make_server(args.frontend_dir, args.data_dir, args.port, host=args.host) as server:
         print(f"BOSQYN AI disponible en http://127.0.0.1:{server.server_address[1]}")
-        print("Servidor local; IA sin conectar. Ctrl+C para detener.")
+        print("Servidor de monitoreo activo; modelos disponibles según configuración. Ctrl+C para detener.")
         try:
             server.serve_forever()
         except KeyboardInterrupt:
