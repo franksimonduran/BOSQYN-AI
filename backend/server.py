@@ -239,6 +239,24 @@ def make_server(frontend_dir: Path, data_dir: Path, port: int = 5500, host: str 
     server.audio_semaphore = threading.BoundedSemaphore(1)
     server.audio_rate_lock = threading.Lock()
     server.audio_last_request = {}
+
+    # Self-check is asynchronous so a broken audio model cannot prevent the
+    # visual monitoring service from starting or passing its healthcheck.
+    if server.audio_model.info()["available"]:
+        def validate_audio_model():
+            try:
+                verification = server.audio_model.predict_pcm16(bytes(96000))
+                print("Modelo acústico: inferencia de arranque verificada con señal silenciosa; clases:",
+                      len(verification["predictions"]), flush=True)
+            except Exception as error:
+                server.audio_model._info["available"] = False
+                server.audio_model._info["reason"] = (
+                    "Modelo acústico incompatible o no operativo: "
+                    + str(error)
+                )
+                print("Modelo acústico: error de autoverificación:",
+                      type(error).__name__, str(error), flush=True)
+        threading.Thread(target=validate_audio_model, daemon=True).start()
     print('Modelo de visión:', json.dumps(server.vision_model, ensure_ascii=False))
     return server
 

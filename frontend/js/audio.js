@@ -4,12 +4,12 @@ Bosqyn.audio = (() => {
   "use strict";
   const iconByLabel = value => {
     const s = String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (/motosierra|tala|logging|chainsaw|maquinaria forestal/.test(s)) return "Tala.png";
+    if (/motosierra|tala|logging|chainsaw|maquinaria[_\s-]*(?:forestal|deforestacion)/.test(s)) return "Tala.png";
     return "Bosque.png";
   };
   const potentiallyLogging = value => {
     const s = String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    return /motosierra|chainsaw|maquinaria forestal|tala mecanica|corte de arbol/.test(s);
+    return /motosierra|chainsaw|maquinaria[_\s-]*(?:forestal|deforestacion)|tala[_\s-]*mecanica|corte[_\s-]*de[_\s-]*arbol/.test(s);
   };
   const escape = value => String(value).replace(/[&<>"']/g, ch => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
