@@ -65,7 +65,16 @@ Bosqyn.audio = (() => {
     const privacy = root.querySelector("#audio-privacy");
 
     function setState(message, level = "") {
-      if (!state || !root.isConnected) return;
+      if (!root.isConnected) return;
+      // En Monitoreo no hay panel de diagnóstico: errores críticos se muestran
+      // en la insignia del modelo, pero los mensajes técnicos no ocupan espacio.
+      if (!state) {
+        if (level === "error" && availability) {
+          availability.textContent = message;
+          availability.className = "bosqyn-audio-badge error";
+        }
+        return;
+      }
       state.textContent = message;
       state.className = "bosqyn-audio-status" + (level ? " " + level : "");
     }
@@ -98,19 +107,24 @@ Bosqyn.audio = (() => {
         detail: {className:best.className, probability:best.probability, timestamp:Date.now()}
       }));
       dominant.textContent = "Clase acústica predominante";
-      observed.textContent = String(++sentCount);
+      sentCount++;
+      if (observed) observed.textContent = String(sentCount);
       // El backend entrega únicamente Tala/Normal, agregando las 7 salidas originales.
       if (best.className === "Tala" && best.probability >= .8) {
         streak++;
         if (streak >= 2 && Date.now() - lastWarning > 12000) {
           lastWarning = Date.now();
-          notice.textContent = "Indicio acústico de Tala: posibles sonidos de motosierra o maquinaria de deforestación. Requiere verificación humana.";
-          notice.classList.add("risk");
+          if (notice) {
+            notice.textContent = "Indicio acústico de Tala: posibles sonidos de motosierra o maquinaria de deforestación. Requiere verificación humana.";
+            notice.classList.add("risk");
+          }
         }
       } else {
         streak = 0;
-        notice.textContent = "Sin detección persistente de sonidos asociados a Tala. Normal agrupa otras clases y no garantiza ausencia de riesgos.";
-        notice.classList.remove("risk");
+        if (notice) {
+          notice.textContent = "Sin detección persistente de sonidos asociados a Tala. Normal agrupa otras clases y no garantiza ausencia de riesgos.";
+          notice.classList.remove("risk");
+        }
       }
     }
 
@@ -177,7 +191,7 @@ Bosqyn.audio = (() => {
     async function startMic(providedStream = null) {
       if (startPending || running || !available) return false;
       startPending = true;
-      start.disabled = true;
+      if (start) start.disabled = true;
       setState("Solicitando permiso al micrófono…");
       try {
         if (!navigator.mediaDevices?.getUserMedia)
@@ -221,7 +235,7 @@ Bosqyn.audio = (() => {
           gathered = 0;
           if (!inflight) analyze(whole, context.sampleRate);
         };
-        stop.disabled = false;
+        if (stop) stop.disabled = false;
         if (signal) signal.classList.add("on");
         setState(sharing
           ? "Imagen y sonido activados desde el monitoreo conjunto. El video no se envía al servidor."
@@ -246,8 +260,8 @@ Bosqyn.audio = (() => {
         availability.textContent = available ? "Modelo acústico listo" :
           info.asset_present ? "Modelo detectado · configuración pendiente" : "Modelo acústico no encontrado";
         availability.className = "bosqyn-audio-badge" + (available ? " ready" : "");
-        privacy.textContent = (info.reason || "Modelo acústico configurado.") + " Tala agrupa MOTOSIERRA y MAQUINARIA_DEFORESTACION. Normal agrupa las otras cinco clases; se trata de una reclasificación, no un entrenamiento nuevo.";
-        start.disabled = !available;
+        if (privacy) privacy.textContent = (info.reason || "Modelo acústico configurado.") + " Tala agrupa MOTOSIERRA y MAQUINARIA_DEFORESTACION. Normal agrupa las otras cinco clases; se trata de una reclasificación, no un entrenamiento nuevo.";
+        if (start) start.disabled = !available;
         if (bars) {
           bars.replaceChildren();
           const waiting = document.createElement("p");
@@ -258,8 +272,8 @@ Bosqyn.audio = (() => {
         setState(available ? "Preparado. Pulsa «Iniciar micrófono»." : "Reconocimiento acústico no disponible: " + (info.reason || "Configuración pendiente"), available ? "ready" : "");
       } catch (error) {
         available = false;
-        start.disabled = true;
-        availability.textContent = "Sin conexión al motor acústico";
+        if (start) start.disabled = true;
+        if (availability) availability.textContent = "Sin conexión al motor acústico";
         setState(error.message, "error");
       }
     }

@@ -191,7 +191,7 @@ try{
 }catch(micError){
   if(opened)opened.getTracks().forEach(t=>t.stop());
   opened=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
-  sourceLabel='Solo webcam; pulsa Activar micrófono para añadir audio';
+  sourceLabel='Solo webcam · micrófono no disponible o sin permiso';
 }
 if(!root.isConnected){opened.getTracks().forEach(track=>track.stop());return}
 stream=opened;video=document.createElement('video');video.className=image.className;video.autoplay=true;video.playsInline=true;video.muted=true;video.style.width='100%';video.style.height='100%';video.style.objectFit='cover';image.after(video);video.srcObject=stream;await video.play();image.style.display='none';if(badge)badge.style.display='';button.innerHTML=Bosqyn.icons.square+' Detener monitoreo';if(mediaSource)mediaSource.textContent=sourceLabel;status.classList.remove('bosqyn-camera-error');status.textContent='Webcam encendida. Iniciando el modelo de visión…';if(Bosqyn.vision)Bosqyn.vision.start(video,root,status);
