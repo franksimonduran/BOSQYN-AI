@@ -36,6 +36,11 @@ class BosqynHandler(SimpleHTTPRequestHandler):
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Permissions-Policy", "camera=(self), microphone=(self)")
+        # No cachear el shell ni scripts: evita mezclar el HTML nuevo con un mapa JS antiguo.
+        static_path = urlsplit(self.path).path
+        if (static_path == "/" or static_path.endswith((".html", ".js", ".css"))) and not static_path.startswith("/api/"):
+            self.send_header("Cache-Control", "no-store, max-age=0")
+            self.send_header("Pragma", "no-cache")
         super().end_headers()
 
     def secure_cookie(self) -> bool:
