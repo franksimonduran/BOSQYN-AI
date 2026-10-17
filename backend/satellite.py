@@ -6,7 +6,9 @@ from urllib.request import urlopen
 from urllib.error import HTTPError
 from urllib.parse import quote
 
-_BBOX=(-77.1,-10.5,-75.1,-8.5)
+# Área rectangular aproximada que incluye el departamento de Huánuco.
+# No equivale a su límite administrativo; una futura máscara geográfica puede afinar el filtro.
+_BBOX=(-77.90,-10.63,-74.70,-8.34)
 _lock=threading.RLock()
 _events={}
 _status={"NASA":{"status":"pendiente"},"NOAA":{"status":"pendiente"}}
