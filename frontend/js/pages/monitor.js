@@ -35,14 +35,14 @@ dashboard.innerHTML=`
  </button>
 </div>
 <section class="bosqyn-satellite-center" id="bosqyn-satellite-center" role="tabpanel">
- <div class="bosqyn-satellite-heading"><h2>Centro de vigilancia satelital</h2><span style="background:#07492c;color:#46e58b;border-radius:15px;padding:4px 10px;font-size:10px">Nuevo módulo</span></div>
+ <div class="bosqyn-satellite-heading"><h2>Centro de vigilancia satelital · Huánuco</h2><span style="background:#07492c;color:#46e58b;border-radius:15px;padding:4px 10px;font-size:10px">Nuevo módulo</span></div>
  <div id="bosqyn-satellite-map" class="bosqyn-satellite-map" aria-label="Mapa de observaciones térmicas"><div style="padding:55px 10px;text-align:center;color:#a6d8be;font-size:12px">Cargando mapa de focos de calor y observaciones…</div></div>
  <div class="bosqyn-feed-status">
   <span><i class="bosqyn-source-dot" style="background:#fb6749"></i> NASA FIRMS: <b id="bosqyn-nasa-status">consultando</b></span>
   <span><i class="bosqyn-source-dot" style="background:#efbe56"></i> NOAA GOES-19: <b id="bosqyn-noaa-status">consultando</b></span>
   <span><b id="bosqyn-events-count">0</b> observaciones</span>
  </div>
- <p class="bosqyn-footnote">Observaciones periódicas, no detecciones confirmadas ni video en tiempo real. La ausencia de puntos no descarta incendios.</p>
+ <p class="bosqyn-footnote">Zona: departamento de Huánuco (cobertura rectangular aproximada). Observaciones periódicas, no incendios confirmados ni video en tiempo real. La ausencia de puntos no descarta incendios.</p>
 </section>`;
 root.append(dashboard,livePanel);
 const modeLive=dashboard.querySelector('#bosqyn-mode-live');
@@ -98,10 +98,17 @@ loadLeaflet().then(()=>{
  if(disposed)return;
  const mapNode=dashboard.querySelector('#bosqyn-satellite-map');
  mapNode.textContent='';
- satelliteMap=window.L.map(mapNode).setView([-9.5,-76.1],8);
+ // Se restringe el visor al entorno geográfico del departamento de Huánuco.
+ // Es un rectángulo de cobertura, no el límite político exacto.
+ const huanucoBounds=window.L.latLngBounds([[-10.63,-77.90],[-8.34,-74.70]]);
+ satelliteMap=window.L.map(mapNode,{maxBounds:huanucoBounds,maxBoundsViscosity:1});
+ satelliteMap.fitBounds(huanucoBounds,{padding:[12,12]});
+ satelliteMap.setMinZoom(satelliteMap.getZoom());
  // Esri World Topographic Map no usa una API key del cliente en esta capa pública.
  const tiles=window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{
   maxZoom:17,
+  bounds:huanucoBounds,
+  noWrap:true,
   attribution:'Tiles &copy; Esri, HERE, Garmin, FAO, NOAA, USGS'
  }).addTo(satelliteMap);
  // Si el proveedor bloquea la carga, conservar el mapa y los marcadores;
