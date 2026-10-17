@@ -99,7 +99,25 @@ loadLeaflet().then(()=>{
  const mapNode=dashboard.querySelector('#bosqyn-satellite-map');
  mapNode.textContent='';
  satelliteMap=window.L.map(mapNode).setView([-9.5,-76.1],8);
- window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19,attribution:'&copy; OpenStreetMap contributors &copy; CARTO'}).addTo(satelliteMap);
+ // Esri World Topographic Map no usa una API key del cliente en esta capa pública.
+ const tiles=window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{
+  maxZoom:17,
+  attribution:'Tiles &copy; Esri, HERE, Garmin, FAO, NOAA, USGS'
+ }).addTo(satelliteMap);
+ // Si el proveedor bloquea la carga, conservar el mapa y los marcadores;
+ // evita mosaicos de error que cubren las observaciones.
+ let tileErrors=0;
+ tiles.on('tileerror',()=>{
+  tileErrors++;
+  if(tileErrors===3){
+   satelliteMap.removeLayer(tiles);
+   mapNode.style.background='repeating-linear-gradient(0deg,transparent,transparent 69px,#255344 70px),repeating-linear-gradient(90deg,transparent,transparent 69px,#255344 70px),#123c2d';
+   const info=document.createElement('div');
+   info.textContent='Mapa base temporalmente no disponible. Las ubicaciones satelitales siguen visibles.';
+   info.style.cssText='position:absolute;top:8px;right:8px;z-index:500;color:#def5e4;background:#0a241bcc;border-radius:6px;padding:7px;font-size:11px;max-width:240px';
+   mapNode.append(info);
+  }
+ });
  satelliteLayer=window.L.layerGroup().addTo(satelliteMap);
  refreshSatellite();
 }).catch(()=>{
