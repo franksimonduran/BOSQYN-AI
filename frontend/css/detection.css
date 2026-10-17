@@ -222,3 +222,101 @@
   .bosqyn-combined-audio .bosqyn-audio-row > .bosqyn-audio-progress{grid-column:2;grid-row:2}
   .bosqyn-combined-audio .bosqyn-audio-row > strong{grid-column:3;grid-row:1}
 }
+
+/* Responsive 20261017: teléfono, tablet y escritorio. */
+html,body{width:100%;min-width:0}
+#app{height:100vh;height:100dvh;width:100%}
+#app > div{height:100%;min-width:0}
+#app main{min-height:0;min-width:0}
+#view{overscroll-behavior-y:contain;scroll-padding-bottom:24px}
+#view > *,#bosqyn-live-panel > *{min-width:0;max-width:100%}
+#view h1,#view h2,#view p{overflow-wrap:break-word}
+#view > section:first-child > .flex > div{min-width:0}
+#view img{max-width:100%}
+#view .bosqyn-stats{min-height:0}
+#view .bosqyn-stats-chart img{height:auto;min-height:0}
+#view .bosqyn-feature-grid,#view .bosqyn-audio-layout{grid-template-columns:repeat(2,minmax(0,1fr))}
+#view .bosqyn-satellite-cards{gap:16px;margin-bottom:20px}
+#view .bosqyn-satellite-heading{gap:14px;flex-wrap:wrap}
+#view .bosqyn-satellite-map{width:100%;height:clamp(300px,48vh,650px)}
+#view .bosqyn-unified-camera{min-height:0;aspect-ratio:16/9}
+#bosqyn-live-panel > .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:22px}
+#bosqyn-live-panel > .grid > *{min-width:0;min-height:48px;height:auto;padding:12px;gap:12px}
+#bosqyn-live-panel button{white-space:normal;line-height:1.5}
+#view .bosqyn-audio-layout > *,#view .bosqyn-feature-grid > *{min-width:0}
+#view .bosqyn-real-card{flex-wrap:wrap}
+#view .bosqyn-real-card > div{flex:1 1 180px}
+#view .bosqyn-real-actions button{min-height:44px}
+#view .bosqyn-stats-chart-header button{min-height:44px}
+#view [data-filter]{min-height:44px}
+.bosqyn-auth-dialog{max-height:calc(100dvh - 32px);overflow-y:auto}
+.bosqyn-auth-dialog input{font-size:16px}
+@media(min-width:1101px){
+  #app aside{width:190px;padding-left:18px;padding-right:18px}
+  #view{padding-left:32px;padding-right:32px}
+  #header{padding-left:32px;padding-right:32px}
+}
+@media(min-width:768px) and (max-width:1100px){
+  #app aside{width:152px}
+  #view{padding-left:20px;padding-right:20px}
+  #view .bosqyn-unified-grid{grid-template-columns:minmax(0,1fr)}
+  #view .bosqyn-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #bosqyn-live-panel > .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #bosqyn-live-panel > .grid > :last-child{grid-column:1/-1}
+}
+@media(max-width:767px){
+  #app{padding:0}
+  #app > div{flex-direction:column;border-radius:0}
+  #app main{order:0;flex:1 1 0%;width:100%}
+  #app aside{order:1;width:100%;flex-direction:row;flex-shrink:0;padding:6px 8px calc(6px + env(safe-area-inset-bottom));border-right-width:0}
+  #app aside > div{display:none}
+  #app aside nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;gap:4px;margin:0}
+  #app aside nav button{flex-direction:column;justify-content:center;gap:5px;min-height:56px;padding:8px 3px;text-align:center;font-size:11px}
+  #app aside nav button > span{display:block}
+  #app aside nav button > svg{width:20px;height:20px}
+  #header{padding:10px 16px;min-height:58px;gap:14px}
+  #header > button{min-width:44px;min-height:44px;justify-content:center}
+  #view{padding:0 16px 24px;overflow-x:hidden}
+  #view > section:first-child{min-height:0;padding:22px 0}
+  #view > section:first-child h1{font-size:clamp(28px,7vw,44px)}
+  #view > section:first-child p{width:auto;font-size:13px}
+  #view > section:first-child > .flex{align-items:flex-start}
+  #view > section.grid.grid-cols-4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #view > section.grid > .card{flex-wrap:wrap;align-content:center}
+  #view > section.grid > article.card{min-height:175px}
+  #view > section.grid > article.card img{height:90px}
+  #view .bosqyn-feature-grid,#view .bosqyn-audio-layout,#view .bosqyn-category-showcase{grid-template-columns:minmax(0,1fr)}
+  #view .bosqyn-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #view .bosqyn-stats-card strong{font-size:26px}
+  #view .bosqyn-stats-card span{font-size:12px;line-height:1.5}
+  #view .bosqyn-detection-options{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #view .bosqyn-detection-options a{flex-wrap:wrap;gap:10px;padding:14px}
+  #view .bosqyn-unified-grid{grid-template-columns:minmax(0,1fr)}
+  #view .bosqyn-unified-results{padding:18px}
+  #view .bosqyn-unified-camera{min-height:0;aspect-ratio:4/3}
+  #bosqyn-live-panel > .grid{grid-template-columns:minmax(0,1fr);gap:12px}
+  #view .bosqyn-satellite-center{padding:14px}
+  #view .bosqyn-satellite-map{height:clamp(260px,42dvh,440px);min-height:260px}
+  #view .bosqyn-satellite-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  #view .bosqyn-satellite-choice{padding:12px;min-width:0}
+  #view .bosqyn-satellite-choice .choice-title{line-height:1.5;font-size:12px}
+  #view .bosqyn-real-card img{width:100%;height:auto;max-height:220px;object-fit:cover}
+  #view .bosqyn-real-card{align-items:stretch}
+  #view .bosqyn-real-card > div{flex-basis:100%}
+  #view .bosqyn-audio-badge{white-space:normal;max-width:100%}
+  #view .bosqyn-unified-note,#view .bosqyn-dominant-tip{font-size:11px}
+}
+@media(max-width:359px){
+  #view{padding-left:12px;padding-right:12px}
+  #view > section.grid.grid-cols-4,#view .bosqyn-stats-grid,#view .bosqyn-detection-options,#view .bosqyn-satellite-cards{grid-template-columns:minmax(0,1fr)}
+  #view > section:first-child .w-\[52px\]{width:30px;height:48px}
+  #app aside nav button{font-size:10px}
+}
+@media(max-height:500px) and (max-width:767px){
+  #app aside nav button{min-height:44px;flex-direction:row}
+  #view .bosqyn-unified-camera{aspect-ratio:16/9}
+}
+@media(prefers-reduced-motion:reduce){
+  .bosqyn-audio-mic.on{animation:none}
+  .bosqyn-dominant-progress > span{transition:none}
+}
