@@ -33,20 +33,25 @@ class EvidenceStore:
                 )
             """)
 
+            conn.execute("CREATE TABLE IF NOT EXISTS alert_audio (alert_id INTEGER PRIMARY KEY REFERENCES alerts(id) ON DELETE CASCADE, wav BLOB NOT NULL)")
+
     @contextmanager
     def connect(self):
         conn = sqlite3.connect(self.database, timeout=10)
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys=ON")
         try:
             with conn:
                 yield conn
         finally:
             conn.close()
 
-    @staticmethod
-    def to_public(row):
+    def to_public(self, row):
         record = dict(row)
         record["evidence_url"] = f"/api/evidence/{record['id']}"
+        with self.connect() as conn:
+            if conn.execute("SELECT 1 FROM alert_audio WHERE alert_id=?", (record["id"],)).fetchone():
+                record["audio_url"] = f"/api/audio-evidence/{record['id']}"
         record.pop("evidence_filename", None)
         return record
 
@@ -192,6 +197,11 @@ class EvidenceStore:
                 if size > 30_000_000:
                     raise ValueError("El respaldo supera 30 MB de imágenes; conserva una copia del volumen antes de continuar")
                 record["image_data"] = "data:image/" + ("jpeg" if path.suffix == ".jpg" else "png") + ";base64," + base64.b64encode(raw).decode()
+                audio = self.get_audio(record["id"])
+                if audio:
+                    size += len(audio)
+                    if size > 30_000_000: raise ValueError("El respaldo supera 30 MB")
+                    record["audio_data"] = base64.b64encode(audio).decode()
                 records.append(record)
         return {"format": "bosqyn-server-evidence", "version": 1, "exported_at": datetime.now(timezone.utc).isoformat(), "records": records}
 
@@ -222,20 +232,27 @@ class EvidenceStore:
                 raise ValueError("Imagen inválida") from error
             if ext is None or not 0 < len(raw) <= 2_500_000 or not raw.startswith(b"\xff\xd8\xff" if ext == "jpg" else b"\x89PNG\r\n\x1a\n"):
                 raise ValueError("Imagen inválida")
-            prepared.append((category,r["source"],score,r["status"],stamp.astimezone(timezone.utc).isoformat(),raw,ext))
+            audio_raw = None
+            if r.get("audio_data") is not None:
+                try: audio_raw = base64.b64decode(r["audio_data"], validate=True)
+                except Exception as error: raise ValueError("Audio de respaldo inválido") from error
+                validate_wav(audio_raw)
+                if r["source"] != "VISION_AUTOMATICA": raise ValueError("Audio sin incidente automático")
+            prepared.append((audio_raw,category,r["source"],score,r["status"],stamp.astimezone(timezone.utc).isoformat(),raw,ext))
         created = []
         inserted = 0
         try:
             with self.connect() as conn:
                 conn.execute("BEGIN IMMEDIATE")
-                for cat,source,score,status,stamp,raw,ext in prepared:
+                for audio_raw,cat,source,score,status,stamp,raw,ext in prepared:
                     candidates = conn.execute("SELECT evidence_filename FROM alerts WHERE category=? AND source=? AND occurred_at=?", (cat,source,stamp)).fetchall()
                     if any((self.image_dir / x[0]).read_bytes() == raw for x in candidates):
                         continue
                     filename = f"{uuid4().hex}.{ext}"
                     path = self.image_dir / filename
                     path.write_bytes(raw); created.append(path)
-                    conn.execute("INSERT INTO alerts(category,source,confidence,status,occurred_at,evidence_filename) VALUES (?,?,?,?,?,?)", (cat,source,score,status,stamp,filename))
+                    cur=conn.execute("INSERT INTO alerts(category,source,confidence,status,occurred_at,evidence_filename) VALUES (?,?,?,?,?,?)", (cat,source,score,status,stamp,filename))
+                    if audio_raw: conn.execute("INSERT INTO alert_audio(alert_id,wav) VALUES (?,?)",(cur.lastrowid,audio_raw))
                     inserted += 1
         except Exception:
             for path in created: path.unlink(missing_ok=True)
@@ -258,3 +275,27 @@ class EvidenceStore:
     def source_counts(self):
         with self.connect() as conn:
             return dict(conn.execute("SELECT source, COUNT(*) FROM alerts GROUP BY source").fetchall())
+
+    def attach_audio(self, alert_id, wav):
+        validate_wav(wav)
+        with self.connect() as conn:
+            row=conn.execute("SELECT category,source FROM alerts WHERE id=?",(alert_id,)).fetchone()
+            if not row or row["source"]!="VISION_AUTOMATICA" or row["category"] not in {"HUMO","INCENDIO","TALA"}:
+                raise ValueError("El audio solo se adjunta a incidentes de amenaza")
+            conn.execute("INSERT OR IGNORE INTO alert_audio(alert_id,wav) VALUES (?,?)",(alert_id,wav))
+
+    def get_audio(self, alert_id):
+        with self.connect() as conn:
+            row=conn.execute("SELECT wav FROM alert_audio WHERE alert_id=?",(alert_id,)).fetchone()
+        return bytes(row[0]) if row else None
+
+
+def validate_wav(wav):
+    import io, wave
+    try:
+        with wave.open(io.BytesIO(wav), "rb") as audio:
+            if audio.getnchannels()!=1 or audio.getframerate()!=16000 or audio.getsampwidth()!=2 or not 16000<=audio.getnframes()<=64000 or len(audio.readframes(audio.getnframes()))!=audio.getnframes()*2:
+                raise ValueError("Clip WAV inválido: se requiere mono PCM16, 16 kHz y 1–4 segundos")
+    except (wave.Error, EOFError) as error:
+        raise ValueError("Archivo WAV inválido") from error
+    if len(wav)>130000: raise ValueError("Clip demasiado grande")

@@ -25,7 +25,7 @@ GitHub Actions comprueba pruebas Python, flujos de interfaz, sintaxis JavaScript
 
 - Inicio y estadísticas consultan conteos reales de SQLite; no presentan porcentajes ficticios de funcionamiento ni registros de ejemplo.
 - Historial con paginación y filtros de categoría, estado y origen aplicados en el servidor.
-- Capturas manuales y registro opcional de indicios visuales automáticos. El administrador habilita este último en Monitoreo. Requiere tres predicciones consecutivas de HUMO, INCENDIO o TALA con confianza mínima de 85 %. La API valida los valores y evita repetir categoría y origen durante 60 segundos mediante una transacción SQLite, incluso si llegan peticiones simultáneas.
+- Capturas manuales y registro opcional de indicios visuales automáticos. Invitado y Administrador pueden utilizar el guardado automático en Monitoreo. Requiere tres predicciones consecutivas de HUMO, INCENDIO o TALA con confianza mínima de 85 %. La API valida los valores y evita repetir categoría y origen durante 60 segundos mediante una transacción SQLite, incluso si llegan peticiones simultáneas.
 - Las predicciones enviadas por el navegador son indicios no validados por un modelo del servidor: requieren revisión humana. Una captura con tala no determina ilegalidad.
 - Respaldo JSON autenticado con imágenes y metadatos; restauración validada y transaccional sin reemplazar evidencias existentes. Límite de exportación: 30 MB de imágenes; restauración: 45 MB de JSON. Los respaldos de la antigua aplicación local tienen otro formato y no se importan aquí.
 - Retención bajo confirmación administrativa: vista previa y eliminación solo de descartadas de más de 90 días. No borra pendientes ni confirmadas y no se ejecuta automáticamente.
@@ -44,6 +44,16 @@ Se mantienen los archivos y adaptadores existentes sin reentrenar ni sustituir l
 
 ## Operación y privacidad
 
-SQLite y las imágenes se conservan en `BOSQYN_DATA_DIR`, en el volumen `/data` en Railway. Los endpoints de evidencias, respaldos y operaciones requieren administrador. Las escrituras públicas necesitan `BOSQYN_READ_ONLY=0`, una sesión válida y comprobación de origen. No publicar contraseñas, imágenes privadas ni respaldos en GitHub. Descargar y comprobar respaldos periódicamente antes de aplicar retención; el respaldo disponible es manual, no un plan automatizado externo.
+SQLite y las imágenes se conservan en `BOSQYN_DATA_DIR`, en el volumen `/data` en Railway. Los endpoints de evidencias, respaldos y operaciones requieren una sesión; las operaciones de gestión requieren administrador. Las escrituras públicas necesitan `BOSQYN_READ_ONLY=0`, una sesión válida y comprobación de origen. No publicar contraseñas, imágenes privadas ni respaldos en GitHub. Descargar y comprobar respaldos periódicamente antes de aplicar retención; el respaldo disponible es manual, no un plan automatizado externo.
 
 Despliegue: mantener el servicio existente y su volumen; usar `main` como fuente y `/api/health` como comprobación. Antes de publicar, exigir CI satisfactorio. Ante una regresión, volver al último despliegue estable desde Railway conservando el volumen.
+
+## Campana y sonido de evidencias
+
+La campana del encabezado consulta las amenazas automáticas pendientes para la sesión de Invitado o Administrador, muestra su cantidad y abre un panel con acceso al historial. Se actualiza tras guardar incidentes y cada 15 segundos. La cantidad disminuye al confirmar o descartar.
+
+Monitoreo ya no ofrece el botón de captura manual. El guardado automático inicia habilitado (requiere acceso Invitado o Administrador) y solo admite HUMO, INCENDIO y TALA con persistencia y umbral; NORMAL e IR_AL_BOSQUE no guardan fotos ni sonidos. Cuando el micrófono está disponible, se adjunta un WAV mono de aproximadamente tres segundos al incidente. Los fragmentos normales solo circulan en memoria; no se archivan. Si no hay micrófono o clip disponible se informa y se conserva la fotografía. El historial permite escuchar y descargar el sonido, protegido por autenticación. Los respaldos y la retención incluyen esos clips. Los modelos no se modificaron.
+
+## Accesos Invitado y Administrador
+
+La pantalla de acceso ofrece dos apartados. Invitado inicia una sesión temporal sin contraseña y puede usar cámara/micrófono, capturas automáticas con sonido, campana, historial, reproducción/descarga de evidencias, revisión de estados, CSV y estadísticas. Administrador añade eliminación, respaldo/restauración, retención y supervisión. Las evidencias son compartidas entre las sesiones que acceden a la plataforma; el acceso invitado permite consultar las evidencias del proyecto. Las rutas administrativas siguen comprobando el rol en el servidor, no solo en la interfaz.

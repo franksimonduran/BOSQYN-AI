@@ -20,7 +20,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from . import satellite
-from .storage import EvidenceStore
+from .storage import EvidenceStore, validate_wav
 from .auth import AdminAuth
 from .audio_model import AudioModel
 from .vision_model import prepare_vision_model
@@ -56,10 +56,25 @@ class BosqynHandler(SimpleHTTPRequestHandler):
         if not self.server.auth.configured():
             self.json_response(503, {"error": "Acceso administrativo sin configurar."})
             return False
-        if not self.authorized():
-            self.json_response(401, {"error": "Inicia sesión como administrador para acceder a las evidencias.", "login_required": True})
+        if self.server.auth.role(self.headers,self.secure_cookie()) != "admin":
+            self.json_response(403 if self.authorized() else 401, {"error": "Inicia sesión como administrador para acceder a las evidencias.", "login_required": True})
             return False
         return True
+
+    def require_access(self):
+        if self.authorized(): return True
+        self.json_response(401,{"error":"Elige acceso Invitado o Administrador para usar las evidencias.","login_required":True})
+        return False
+
+    def guest_login(self):
+        if not self.same_origin(): return self.json_response(403,{"error":"Origen no autorizado"})
+        try: token=self.server.auth.create_guest()
+        except ValueError as error: return self.json_response(429,{"error":str(error)})
+        body=b'{"authenticated":true,"role":"guest"}'
+        self.send_response(200);self.send_header("Content-Type","application/json")
+        self.send_header("Set-Cookie",self.server.auth.cookie_header(token,self.secure_cookie()))
+        self.send_header("Cache-Control","no-store");self.send_header("Content-Length",str(len(body)))
+        self.end_headers();return self.wfile.write(body)
 
     def same_origin(self) -> bool:
         # POST/PATCH/DELETE requests are only accepted from this site's own origin.
@@ -125,6 +140,7 @@ class BosqynHandler(SimpleHTTPRequestHandler):
             auth = self.server.auth
             return self.json_response(200, {
                 "authenticated": self.authorized(),
+                "role": self.server.auth.role(self.headers,self.secure_cookie()),
                 "login_required": auth.login_required,
                 "configured": auth.configured(),
                 "persistent_storage": self.server.persistent_storage,
@@ -139,6 +155,20 @@ class BosqynHandler(SimpleHTTPRequestHandler):
                 "model_integrated": self.server.vision_model["available"], "model_assets_ready": self.server.vision_model["available"], "mode": "local" if self.server.auth.local_mode else "servidor_autenticado",
                 "audio_model_ready": self.server.audio_model.info()["available"],
             })
+        if route == "/api/notifications":
+            if not self.require_access(): return
+            return self.json_response(200,self.store.list_alerts(10,status="PENDIENTE",source="VISION_AUTOMATICA"))
+        if route.startswith("/api/audio-evidence/"):
+            if not self.require_access(): return
+            token=route.rsplit("/",1)[-1]
+            audio=self.store.get_audio(int(token)) if token.isdigit() else None
+            if not audio: return self.json_response(404,{"error":"Audio no encontrado"})
+            self.send_response(200)
+            self.send_header("Content-Type","audio/wav")
+            self.send_header("Content-Length",str(len(audio)))
+            self.send_header("Cache-Control","no-store")
+            self.end_headers()
+            return self.wfile.write(audio)
         if route == "/api/operations":
             if not self.require_admin(): return
             disk = shutil.disk_usage(self.store.data_dir)
@@ -148,7 +178,7 @@ class BosqynHandler(SimpleHTTPRequestHandler):
             try: return self.json_response(200, self.store.export_backup())
             except (ValueError, OSError) as error: return self.json_response(409, {"error": str(error)})
         if route == "/api/alerts":
-            if not self.require_admin():
+            if not self.require_access():
                 return
             try:
                 limit = min(200, max(1, int(parse_qs(target.query).get("limit", ["100"])[0])))
@@ -186,7 +216,7 @@ class BosqynHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             return self.wfile.write(png)
         if route.startswith("/api/evidence/"):
-            if not self.require_admin():
+            if not self.require_access():
                 return
             parts = route.split("/")
             if len(parts) != 4 or not parts[3].isdigit():
@@ -210,7 +240,8 @@ class BosqynHandler(SimpleHTTPRequestHandler):
         if os.environ.get("BOSQYN_READ_ONLY", "0" if self.server.auth.local_mode else "1") == "1":
             self.json_response(403, {"error": "El guardado todavía está deshabilitado en la configuración del servidor."})
             return True
-        if not self.require_admin():
+        management=self.command=="DELETE" or urlsplit(self.path).path in {"/api/backup/restore","/api/retention"}
+        if not (self.require_admin() if management else self.require_access()):
             return True
         if not self.same_origin():
             self.json_response(403, {"error": "Origen de solicitud no autorizado."})
@@ -309,6 +340,8 @@ class BosqynHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         route = urlsplit(self.path).path
+        if route == "/api/auth/guest":
+            return self.guest_login()
         if route == "/api/auth/login":
             return self.authenticate()
         if route == "/api/auth/logout":
@@ -332,6 +365,12 @@ class BosqynHandler(SimpleHTTPRequestHandler):
         try:
             data = self.read_json()
             automatic = data.get("source") == "VISION_AUTOMATICA"
+            audio=None
+            if data.get("audio_data") is not None:
+                if not automatic: raise ValueError("El audio requiere un incidente automático")
+                try: audio=base64.b64decode(data["audio_data"],validate=True)
+                except Exception as error: raise ValueError("Audio base64 inválido") from error
+                validate_wav(audio)
             if not automatic and data.get("category") != "REVISION_MANUAL":
                 raise ValueError("Una captura manual requiere REVISION_MANUAL")
             uri = data.get("image_data")
@@ -363,6 +402,9 @@ class BosqynHandler(SimpleHTTPRequestHandler):
                 record = self.store.add_visual_incident(data["category"], data.get("confidence"), image, ext)
             else:
                 record = self.store.add_manual_capture(image, ext)
+            if audio is not None:
+                self.store.attach_audio(record["id"],audio)
+                record.update(self.store.get_alert(record["id"]))
             return self.json_response(200 if record.get("duplicate") else 201, record)
         except ValueError as error:
             return self.json_response(400, {"error": str(error)})

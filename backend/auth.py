@@ -24,6 +24,7 @@ class AdminAuth:
         self.enabled = len(self.password) >= 16
         self.sessions: dict[str, float] = {}
         self.failures: dict[str, list[float]] = {}
+        self.roles: dict[str, str] = {}
         self.lock = threading.RLock()
 
     @property
@@ -80,10 +81,27 @@ class AdminAuth:
                 self.sessions = {k: v for k, v in self.sessions.items() if v > time.time()}
             return True, token
 
+    def role(self, headers, secure=True):
+        token=self.session(headers,secure)
+        if not token: return None
+        return "admin" if token=="local" else self.roles.get(token,"admin")
+
+    def create_guest(self):
+        now=time.time()
+        with self.lock:
+            self.sessions={key:expiry for key,expiry in self.sessions.items() if expiry>now}
+            self.roles={key:role for key,role in self.roles.items() if key in self.sessions}
+            if len(self.sessions)>=2000: raise ValueError("Demasiadas sesiones activas; vuelve a intentar")
+            token=secrets.token_urlsafe(32)
+            self.sessions[token]=now+SESSION_SECONDS
+            self.roles[token]="guest"
+        return token
+
     def revoke(self, token: str | None):
         if token and token != "local":
             with self.lock:
                 self.sessions.pop(token, None)
+                self.roles.pop(token, None)
 
     def cookie_header(self, token: str, secure: bool) -> str:
         opts = [

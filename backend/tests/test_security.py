@@ -80,7 +80,7 @@ class SecuredAPITests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertTrue(state["configured"])
         self.assertFalse(state["authenticated"])
-        for path in ("/api/alerts", "/api/evidence/1", "/api/backup", "/api/operations"):
+        for path in ("/api/alerts", "/api/evidence/1", "/api/backup", "/api/operations", "/api/notifications", "/api/audio-evidence/1"):
             self.assertEqual(self.request(path)[0], 401)
         self.assertEqual(self.request("/api/alerts", "POST", {"category": "REVISION_MANUAL"})[0], 401)
         self.assertEqual(self.request("/api/alerts/1", "PATCH", {"status": "CONFIRMADA"})[0], 401)
@@ -125,6 +125,30 @@ class SecuredAPITests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertTrue(deleted["deleted"])
         self.assertEqual(self.request(item["evidence_url"], cookie=self.cookie)[0], 404)
+
+    def test_04_guest_operational_access_cannot_manage_or_escalate(self):
+        self.assertEqual(self.request("/api/auth/guest","POST",{},origin=False)[0],403)
+        code,result,cookie=self.request("/api/auth/guest","POST",{})
+        self.assertEqual(code,200)
+        self.assertEqual(result["role"],"guest")
+        token=cookie.split(";",1)[0]
+        state=self.request("/api/auth/status",cookie=token)[1]
+        self.assertEqual(state["role"],"guest")
+        self.assertEqual(self.request("/api/alerts",cookie=token)[0],200)
+        self.assertEqual(self.request("/api/notifications",cookie=token)[0],200)
+        self.assertEqual(self.request("/api/backup",cookie=token)[0],403)
+        self.assertEqual(self.request("/api/retention","POST",{"apply":True},token)[0],403)
+        self.assertEqual(self.request("/api/alerts/1","DELETE",cookie=token)[0],403)
+        payload={"source":"VISION_AUTOMATICA","category":"HUMO","confidence":.94,"image_data":"data:image/png;base64,"+base64.b64encode(b"\x89PNG\r\n\x1a\nguest").decode()}
+        code,row,_=self.request("/api/alerts","POST",payload,token)
+        self.assertEqual(code,201)
+        self.assertEqual(self.request(row["evidence_url"],cookie=token)[0],200)
+        self.assertEqual(self.request("/api/alerts/"+str(row["id"]),"PATCH",{"status":"DESCARTADA"},token)[0],200)
+        self.login()
+        self.assertEqual(self.request("/api/alerts/"+str(row["id"]),"DELETE",cookie=self.cookie)[0],200)
+        self.assertEqual(self.request("/api/auth/logout","POST",cookie=token)[0],200)
+        self.assertEqual(self.request("/api/alerts",cookie=token)[0],401)
+
 
 
 class AuthFailsClosedTests(unittest.TestCase):

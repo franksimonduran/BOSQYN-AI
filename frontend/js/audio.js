@@ -1,4 +1,4 @@
-/* BOSQYN AI: live microphone inference. No recording is persisted or sent to third parties. */
+/* Microphone inference; short PCM clips stay in memory until an alert saves evidence. */
 window.Bosqyn = window.Bosqyn || {};
 Bosqyn.audio = (() => {
   "use strict";
@@ -33,6 +33,14 @@ Bosqyn.audio = (() => {
       result[i] = clipped < 0 ? clipped * 32768 : clipped * 32767;
     }
     return result;
+  }
+
+  function wavBase64(pcm) {
+    const buffer=new ArrayBuffer(44+pcm.length*2),view=new DataView(buffer);
+    const text=(offset,value)=>{for(let i=0;i<value.length;i++)view.setUint8(offset+i,value.charCodeAt(i));};
+    text(0,'RIFF');view.setUint32(4,36+pcm.length*2,true);text(8,'WAVE');text(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);view.setUint32(24,16000,true);view.setUint32(28,32000,true);view.setUint16(32,2,true);view.setUint16(34,16,true);text(36,'data');view.setUint32(40,pcm.length*2,true);
+    for(let i=0;i<pcm.length;i++)view.setInt16(44+i*2,pcm[i],true);
+    const bytes=new Uint8Array(buffer);let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(binary);
   }
 
   function mount(root) {
@@ -152,7 +160,7 @@ Bosqyn.audio = (() => {
             !["Tala", "Normal"].every(label => payload.predictions.some(p => p.className === label)))
           throw new Error("El servidor no devuelve las clases acústicas Tala y Normal");
         render(payload.predictions);
-        setState("Micrófono activo: análisis acústico local + inferencia en Python. No se guardan grabaciones.", "ready");
+        setState("Micrófono activo: análisis acústico local + inferencia en Python. Solo se guardan clips vinculados a una alerta de amenaza.", "ready");
       } catch (error) {
         if (!running || error.name === "AbortError") return;
         setState("No se pudo clasificar audio: " + error.message, "error");
@@ -189,7 +197,7 @@ Bosqyn.audio = (() => {
     }
 
     async function startMic(providedStream = null) {
-      if (startPending || running || !available) return false;
+      if (startPending || running || (!available && !providedStream)) return false;
       startPending = true;
       if (start) start.disabled = true;
       setState("Solicitando permiso al micrófono…");
@@ -233,7 +241,9 @@ Bosqyn.audio = (() => {
           for (const part of chunks) {whole.set(part, offset);offset += part.length;}
           chunks = [];
           gathered = 0;
-          if (!inflight) analyze(whole, context.sampleRate);
+          const pcm = downsample(whole, context.sampleRate);
+          root.dispatchEvent(new CustomEvent('bosqyn:audio-clip',{detail:{audio_data:wavBase64(pcm),timestamp:Date.now()}}));
+          if (available && !inflight) analyze(whole, context.sampleRate);
         };
         if (stop) stop.disabled = false;
         if (signal) signal.classList.add("on");

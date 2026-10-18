@@ -130,7 +130,6 @@ refreshSatellite();
 satelliteTimer=setInterval(refreshSatellite,60000);
 
 const button=root.querySelector('#btn-live'),image=root.querySelector('#live-img'),badge=root.querySelector('#live-badge'),soundButton=root.querySelector('#btn-sound');
-const captureButton=[...root.querySelectorAll('button')].find(el=>el.textContent.includes('Capturar imagen'));
 const status=document.createElement('div');status.className='bosqyn-camera-status';status.setAttribute('role','status');status.textContent='Un solo botón inicia la webcam y su micrófono disponible. Las detecciones requieren verificación.';root.prepend(status);
 const audioController=Bosqyn.audio && typeof Bosqyn.audio.mount==='function' ? Bosqyn.audio.mount(root) : null;
 const mediaSource=root.querySelector('#combined-source');
@@ -200,30 +199,6 @@ if(opened.getAudioTracks().some(t=>t.readyState==='live')&&audioController?.star
 if(button){button.innerHTML=Bosqyn.icons.play+' Iniciar cámara y audio';button.addEventListener('click',()=>{if(stream){stop();status.classList.remove('bosqyn-camera-error');status.textContent='Webcam y micrófono detenidos; inferencia interrumpida.';if(Bosqyn.vision)Bosqyn.vision.reset(root)}else start()})}
 if(badge)badge.style.display='none';
 
-if(captureButton)captureButton.addEventListener('click',async()=>{
-  if(!stream||!video||!video.videoWidth){status.textContent='Inicia la webcam para registrar una captura.';status.classList.add('bosqyn-camera-error');return}
-  if(!await Bosqyn.auth.ensure('Inicia sesión como administrador para guardar la captura en BOSQYN AI.')){
-    status.textContent='Captura cancelada: solo los administradores pueden guardar evidencias.';
-    return;
-  }
-  const ratio=Math.min(1,1280/Math.max(video.videoWidth,video.videoHeight));
-  const canvas=document.createElement('canvas');
-  canvas.width=Math.max(1,Math.round(video.videoWidth*ratio));
-  canvas.height=Math.max(1,Math.round(video.videoHeight*ratio));
-  canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
-  const image_data=canvas.toDataURL('image/jpeg',0.82);
-  captureButton.disabled=true;
-  status.classList.remove('bosqyn-camera-error');status.textContent='Guardando captura manual en Python...';
-  try{
-    const response=await fetch('/api/alerts',{method:'POST',headers:{'Content-Type':'application/json','X-Bosqyn-Action':'1'},credentials:'same-origin',body:JSON.stringify({category:'REVISION_MANUAL',image_data})});
-    const result=await response.json();
-    if(!response.ok)throw Error(result.error||'Error de almacenamiento');
-    status.textContent='Captura #'+result.id+' guardada en SQLite como REVISIÓN MANUAL. Consúltala en Alertas.';
-  }catch(error){
-    status.textContent='No se pudo guardar: '+error.message+'. Revisa la sesión de administrador y el almacenamiento.';status.classList.add('bosqyn-camera-error');
-    console.error('BOSQYN AI',error);
-  }finally{captureButton.disabled=false}
-});
 if(soundButton)soundButton.addEventListener('click',()=>{sound=!sound;Bosqyn.operations?.setSound(sound);let knob=soundButton.firstElementChild;soundButton.classList.toggle('bg-[#22c55e]',sound);soundButton.classList.toggle('bg-white/15',!sound);if(knob){knob.classList.toggle('left-[14px]',sound);knob.classList.toggle('left-[2px]',!sound)}status.textContent='Sonido '+(sound?'activado':'desactivado')+'. Los avisos del navegador se configuran arriba.'});
 // Se limpian las pistas de video y audio al abandonar Monitoreo.
 return function(){disposed=true;if(satelliteTimer)clearInterval(satelliteTimer);if(satelliteMap)satelliteMap.remove();if(cleanupOperations)cleanupOperations();stop();if(typeof audioController==='function')audioController();};

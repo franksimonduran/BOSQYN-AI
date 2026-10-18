@@ -49,6 +49,24 @@ class OperationsTests(unittest.TestCase):
         self.assertEqual(self.store.statistics()['total'],3)
         self.assertEqual(self.store.retention(apply=True)['removed'],1)
         self.assertEqual(self.store.statistics()['total'],2)
+    def test_audio_evidence_backup_and_delete(self):
+        import io, wave
+        buffer=io.BytesIO()
+        with wave.open(buffer,"wb") as wav:
+            wav.setnchannels(1);wav.setsampwidth(2);wav.setframerate(16000);wav.writeframes(bytes(96000))
+        audio=buffer.getvalue()
+        row=self.store.add_visual_incident("TALA",.93,IMAGE,"png")
+        self.store.attach_audio(row["id"],audio)
+        self.assertEqual(self.store.get_audio(row["id"]),audio)
+        self.assertIn("audio_url",self.store.get_alert(row["id"]))
+        backup=self.store.export_backup()
+        self.store.remove_alert(row["id"])
+        self.assertIsNone(self.store.get_audio(row["id"]))
+        self.store.restore_backup(backup)
+        restored=self.store.list_alerts()["items"][0]
+        self.assertEqual(self.store.get_audio(restored["id"]),audio)
+        with self.assertRaises(ValueError):self.store.attach_audio(restored["id"],b"not audio")
+
     def test_filtered_pagination(self):
         self.store.add_manual_capture(IMAGE,'png');self.store.add_visual_incident('TALA',.9,IMAGE,'png')
         self.assertEqual(self.store.list_alerts(source='CAPTURA_MANUAL')['total'],1)
