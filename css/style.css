@@ -90,3 +90,15 @@ pre{margin:18px 0;line-height:1.65}
   .camera-empty div{font-size:42px}
   .camera-empty h3{margin:8px 0}
 }
+
+/* Identidad y accesibilidad de los registros. */
+.category-icon{width:42px;height:42px;object-fit:contain;border-radius:10px;background:#193b2b;flex-shrink:0}
+.record img.category-icon{width:32px;height:32px;object-fit:contain}
+.record-title{display:flex;align-items:center;gap:10px}
+.fallback{display:grid;place-items:center;color:var(--accent);font-size:24px}
+:focus-visible{outline:3px solid #83efb9;outline-offset:4px}
+#operationMessage{margin:20px 0;overflow-wrap:anywhere}
+#settingsState{margin-top:20px}
+#resetSettings{margin-bottom:24px}
+@media(max-width:580px){.head>.buttons>.btn{flex:1 1 140px}.video-overlay small{font-size:10px}.pred-head{gap:10px}.header-right{max-width:100%}.brand{font-size:25px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}

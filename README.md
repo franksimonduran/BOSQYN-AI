@@ -40,3 +40,13 @@ El cuaderno [BOSQYN_IA_Entrenar_TensorFlow.ipynb](notebooks/BOSQYN_IA_Entrenar_T
 **Estado:** el cuaderno está disponible, pero el conjunto de WAV y el modelo acústico ya entrenado no se han incorporado al repositorio. Tampoco se ha implementado aún su inferencia en el navegador. Los archivos `.keras` **no se ejecutan directamente con TensorFlow.js**: para integrarlos deberá crearse un servicio de inferencia Python o convertir el modelo a un formato web compatible y reproducir exactamente el preprocesamiento de audio.
 
 **Nota metodológica:** los grupos de procedencia se infieren de los nombres de archivo. Deben verificarse para evitar que grabaciones derivadas de una misma fuente se repartan entre entrenamiento y prueba. Las métricas reportadas por Colab solo tendrán valor tras completar el entrenamiento con datos apropiados.
+
+## Historial, respaldo y configuración
+
+- El inicio distingue alertas automáticas y capturas manuales. Las estadísticas generales cuentan ambos tipos de registros.
+- El historial permite filtrar por clase, estado y origen, incluso sin cargar un modelo.
+- «Respaldo con imágenes» descarga un JSON versionado con todas las imágenes y metadatos. «Restaurar respaldo» agrega registros nuevos sin sobrescribir IDs existentes; valida el contenido y admite hasta 50 MB y 5000 registros por archivo.
+- Cada evidencia permite descargar su imagen. El CSV contiene metadatos, no fotografías.
+- Los ajustes de confianza, persistencia, intervalo y sonido se conservan en localStorage. «Restablecer ajustes» recupera los valores iniciales.
+- El almacenamiento sigue siendo local al navegador: conserva un respaldo antes de borrar sus datos o cambiar de equipo.
+- La integración y evaluación de los modelos visual y acústico queda para la última etapa. Estos cambios no añaden detección acústica ni certifican la precisión del modelo.
