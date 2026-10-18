@@ -1,6 +1,6 @@
 window.Bosqyn=window.Bosqyn||{};Bosqyn.pages=Bosqyn.pages||{};
 (function(){'use strict';
-const routes=['inicio','incendios','tala','audio','monitoreo','alertas','estadisticas'],app=document.getElementById('app'),view=document.getElementById('view'),hero=document.getElementById('hero'),header=document.getElementById('header'),nav=[...document.querySelectorAll('[data-nav]')];
+const routes=['inicio','monitoreo','alertas','estadisticas'],app=document.getElementById('app'),view=document.getElementById('view'),hero=document.getElementById('hero'),header=document.getElementById('header'),nav=[...document.querySelectorAll('[data-nav]')];
 const ON=['border-[#1fb457]/60','bg-gradient-to-r','from-[#0b7f3f]','to-[#12a653]','text-white','shadow-[0_0_14px_rgba(34,197,94,0.25)]'],OFF=['border-transparent','text-[#c5d3cc]','hover:bg-white/5'];
 const cache=new Map();let current='',cleanup=null,request=0;
 // Evita ampliar excesivamente el dashboard en pantallas de escritorio: el zoom
