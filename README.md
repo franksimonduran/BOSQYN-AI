@@ -1,52 +1,49 @@
-# BOSQYN AI — aplicación web
+# BOSQYN AI
 
-Frontend de monitoreo forestal con webcam, Teachable Machine, TensorFlow.js, historial local y servidor Python de solo lectura.
+Prototipo de monitoreo forestal para INNOBEST HUÁNUCO 2026. La versión oficial es `main`: integra el backend y frontend de la rama de producción `feature/monitoreo-pestanas-20261016` y las mejoras operativas. Las ramas de preparación se conservan como historial; no son versiones oficiales.
 
-## Ejecutar
+## Ejecutar y verificar
 
-1. Desde la raíz ejecuta: python server.py
-2. Abre http://localhost:8000 (o el HTTPS de Railway).
-3. Importa el archivo tm-my-image-model.zip exportado de Teachable Machine usando el botón «Importar modelo ZIP».
-4. Inicia la webcam y permite el acceso desde el navegador.
+Python 3.11 o superior:
 
-El modelo importado queda guardado localmente en IndexedDB para próximas visitas. Para carga automática de cualquier navegador, añade al repositorio la carpeta model/ con model.json, metadata.json y weights.bin. Esos archivos no estaban subidos a GitHub al preparar esta versión.
+```bash
+python -m pip install -r requirements.txt
+python -m backend.server
+```
 
-## Railway
+Abrir `http://127.0.0.1:5500`. En un servidor público se requiere HTTPS, contraseña administrativa y volumen persistente. Consultar [RAILWAY.md](RAILWAY.md).
 
-Conecta la rama main del repositorio y utiliza python server.py como comando de inicio (archivo railway.json incluido). No es necesario configurar rutas de escritura.
+```bash
+python -m unittest discover -s backend/tests -v
+npm ci --ignore-scripts
+npm test
+```
 
-## Alcance y seguridad
+GitHub Actions comprueba pruebas Python, flujos de interfaz, sintaxis JavaScript y estructura del archivo visual. Las pruebas usan datos sintéticos identificados como fixtures; no acreditan precisión de los modelos.
 
-- Alertas de humo, incendio y posibles indicios de tala con confirmación humana.
-- Evidencias e historial locales en IndexedDB; exportación CSV; estadísticas descriptivas.
-- API de escritura deshabilitada (POST/PUT/PATCH/DELETE devuelven 405).
-- El modelo aportado clasifica imágenes, NO reconoce sonidos de motosierra. El audio requiere un modelo diferente.
-- La clase «Ir al bosque» no genera una alerta automática hasta definir su interpretación.
-- La confianza predicha no equivale a precisión medida, y la tala detectada no implica ilegalidad.
-- Se requiere conexión para cargar las bibliotecas de TensorFlow.js, Teachable Machine y JSZip desde CDN.
-- La webcam requiere HTTPS o localhost y permisos del navegador.
+## Funciones
 
-El archivo original bosqyn-ai-vanilla.zip se conserva sin modificar.
+- Inicio y estadísticas consultan conteos reales de SQLite; no presentan porcentajes ficticios de funcionamiento ni registros de ejemplo.
+- Historial con paginación y filtros de categoría, estado y origen aplicados en el servidor.
+- Capturas manuales y registro opcional de indicios visuales automáticos. El administrador habilita este último en Monitoreo. Requiere tres predicciones consecutivas de HUMO, INCENDIO o TALA con confianza mínima de 85 %. La API valida los valores y evita repetir categoría y origen durante 60 segundos mediante una transacción SQLite, incluso si llegan peticiones simultáneas.
+- Las predicciones enviadas por el navegador son indicios no validados por un modelo del servidor: requieren revisión humana. Una captura con tala no determina ilegalidad.
+- Respaldo JSON autenticado con imágenes y metadatos; restauración validada y transaccional sin reemplazar evidencias existentes. Límite de exportación: 30 MB de imágenes; restauración: 45 MB de JSON. Los respaldos de la antigua aplicación local tienen otro formato y no se importan aquí.
+- Retención bajo confirmación administrativa: vista previa y eliminación solo de descartadas de más de 90 días. No borra pendientes ni confirmadas y no se ejecuta automáticamente.
+- Avisos opcionales del navegador y sonido de nuevos incidentes mientras la página esté abierta. No son notificaciones push, correo, SMS ni un sistema de guardia permanente.
+- Supervisión administrativa de persistencia, espacio libre, tiempo de actividad y escritura mediante `/api/operations`; healthcheck público `/api/health`.
 
-## Entrenamiento del modelo acústico (TensorFlow / Google Colab)
+## Satélites y trazabilidad
 
-El cuaderno [BOSQYN_IA_Entrenar_TensorFlow.ipynb](notebooks/BOSQYN_IA_Entrenar_TensorFlow.ipynb) permite entrenar un clasificador de **sonidos** independiente del clasificador visual de webcam.
+NASA FIRMS y NOAA GOES-19 se consultan periódicamente desde el servidor; las credenciales no se envían al navegador. Cada observación distingue fecha de adquisición, fecha de consulta, producto y referencia de origen. Los códigos de confianza/calidad de NASA y NOAA no son porcentajes comparables. Se muestran las últimas 24 horas, hasta 500 observaciones, y se retienen hasta 5000 en memoria; se reconstruyen al reiniciar con la siguiente consulta.
 
-1. Abre el cuaderno en Google Colab (requiere una cuenta de Google).
-2. Ejecuta las celdas en orden y sube el archivo de datos `entrenamiento.zip` cuando se solicite.
-3. El ZIP de datos debe contener **7 carpetas de clases con grabaciones WAV**. El cuaderno calcula espectrogramas Mel, separa grupos de grabaciones en entrenamiento/validación/prueba y entrena una red CNN.
-4. Al finalizar, genera `bosqyn_tensorflow.keras` y `bosqyn_tensorflow_config.json`, muestra un reporte de evaluación y permite descargar ambos archivos.
+La consulta cubre un rectángulo `[-77.1, -10.5, -75.1, -8.5]` (oeste, sur, este, norte), no un límite administrativo completo de Huánuco. Desplazar el mapa fuera del área no amplía la consulta. Los puntos son observaciones térmicas, no incendios confirmados; la falta de puntos no descarta un incendio. La consulta es cada 30 minutos y el navegador refresca cada minuto. La disponibilidad depende de los proveedores y la clave NASA configurada.
 
-**Estado:** el cuaderno está disponible, pero el conjunto de WAV y el modelo acústico ya entrenado no se han incorporado al repositorio. Tampoco se ha implementado aún su inferencia en el navegador. Los archivos `.keras` **no se ejecutan directamente con TensorFlow.js**: para integrarlos deberá crearse un servicio de inferencia Python o convertir el modelo a un formato web compatible y reproducir exactamente el preprocesamiento de audio.
+## Pendiente para el cierre de modelos
 
-**Nota metodológica:** los grupos de procedencia se infieren de los nombres de archivo. Deben verificarse para evitar que grabaciones derivadas de una misma fuente se repartan entre entrenamiento y prueba. Las métricas reportadas por Colab solo tendrán valor tras completar el entrenamiento con datos apropiados.
+Se mantienen los archivos y adaptadores existentes sin reentrenar ni sustituir los modelos. Quedan pendientes la evaluación independiente de visión/audio, revisión de etiquetas y pruebas de cámara/micrófono en dispositivos objetivo. La confianza del modelo no equivale a precisión medida. La clase `Ir al bosque` no genera alertas automáticas.
 
-## Historial, respaldo y configuración
+## Operación y privacidad
 
-- El inicio distingue alertas automáticas y capturas manuales. Las estadísticas generales cuentan ambos tipos de registros.
-- El historial permite filtrar por clase, estado y origen, incluso sin cargar un modelo.
-- «Respaldo con imágenes» descarga un JSON versionado con todas las imágenes y metadatos. «Restaurar respaldo» agrega registros nuevos sin sobrescribir IDs existentes; valida el contenido y admite hasta 50 MB y 5000 registros por archivo.
-- Cada evidencia permite descargar su imagen. El CSV contiene metadatos, no fotografías.
-- Los ajustes de confianza, persistencia, intervalo y sonido se conservan en localStorage. «Restablecer ajustes» recupera los valores iniciales.
-- El almacenamiento sigue siendo local al navegador: conserva un respaldo antes de borrar sus datos o cambiar de equipo.
-- La integración y evaluación de los modelos visual y acústico queda para la última etapa. Estos cambios no añaden detección acústica ni certifican la precisión del modelo.
+SQLite y las imágenes se conservan en `BOSQYN_DATA_DIR`, en el volumen `/data` en Railway. Los endpoints de evidencias, respaldos y operaciones requieren administrador. Las escrituras públicas necesitan `BOSQYN_READ_ONLY=0`, una sesión válida y comprobación de origen. No publicar contraseñas, imágenes privadas ni respaldos en GitHub. Descargar y comprobar respaldos periódicamente antes de aplicar retención; el respaldo disponible es manual, no un plan automatizado externo.
+
+Despliegue: mantener el servicio existente y su volumen; usar `main` como fuente y `/api/health` como comprobación. Antes de publicar, exigir CI satisfactorio. Ante una regresión, volver al último despliegue estable desde Railway conservando el volumen.

@@ -1,0 +1,13 @@
+# BOSQYN AI: runtime ligero para inferencia acústica con Keras 3 (backend NumPy).
+# El clasificador visual continúa ejecutándose en el navegador.
+keras>=3.8,<4
+numpy>=1.26,<2.1
+librosa>=0.10.2,<0.12
+soundfile>=0.12,<0.14
+jax[cpu]>=0.4.38,<0.8
+matplotlib>=3.9,<4
+
+# Satellite feeds integrated into primary backend
+boto3>=1.35,<2
+h5py>=3.10,<4
+pyproj>=3.6,<4

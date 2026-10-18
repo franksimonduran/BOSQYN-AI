@@ -1,0 +1,33 @@
+<section class="bosqyn-stats" aria-label="Estadísticas BOSQYN AI">
+  <header class="bosqyn-stats-header">
+    <h1>Estadísticas ambientales</h1>
+    <p>Registros almacenados realmente en SQLite. Los gráficos son generados con Matplotlib por el servidor Python.</p>
+  </header>
+  <div class="bosqyn-stats-grid">
+    <article class="bosqyn-stats-card"><span>Capturas registradas</span><strong id="stats-total">—</strong></article>
+    <article class="bosqyn-stats-card"><span>Pendientes de revisión</span><strong id="stats-pending">—</strong></article>
+    <article class="bosqyn-stats-card"><span>Confirmadas manualmente</span><strong id="stats-confirmed">—</strong></article>
+    <article class="bosqyn-stats-card"><span>Descartadas manualmente</span><strong id="stats-discarded">—</strong></article>
+  </div>
+  <div class="bosqyn-stats-chart">
+    <div class="bosqyn-stats-chart-header">
+      <div><h2>Actividad registrada por día</h2><p class="bosqyn-stats-status" id="stats-period">Últimos siete días · hora UTC</p></div>
+      <button type="button" id="stats-refresh">Actualizar gráfico</button>
+    </div>
+    <img id="stats-chart" alt="Gráfico Matplotlib de capturas manuales guardadas cada día, diferenciadas por estado" loading="lazy">
+    <p class="bosqyn-stats-status" id="stats-message" role="status">Consultando estadísticas reales...</p>
+  </div>
+  <section class="bosqyn-stats-explainer" aria-label="Categorías que reconoce BOSQYN AI">
+    <h2 style="font-size:13px;font-weight:800;color:#e9fced">Categorías disponibles en los modelos</h2>
+    <div class="bosqyn-stats-class-grid">
+      <span class="bosqyn-stats-class-chip"><img src="img/deteccion/Humo.png" alt="">Humo · visual</span>
+      <span class="bosqyn-stats-class-chip"><img src="img/deteccion/Fuego.png" alt="">Incendio · visual</span>
+      <span class="bosqyn-stats-class-chip"><img src="img/deteccion/Bosque.png" alt="">Normal · visual</span>
+      <span class="bosqyn-stats-class-chip"><img src="img/deteccion/Tala.png" alt="">Tala · visual</span>
+      <span class="bosqyn-stats-class-chip"><img src="img/deteccion/Ir%20al%20bosque.png" alt="">Ir al bosque · visual</span>
+      <span class="bosqyn-stats-class-chip"><img src="img/deteccion/Tala.png" alt="">Tala · audio</span>
+      <span class="bosqyn-stats-class-chip"><img src="img/deteccion/Bosque.png" alt="">Normal · audio</span>
+    </div>
+    <p>Las categorías anteriores son las salidas posibles de los modelos, no cantidades detectadas. Por el momento, la base SQLite registra capturas manuales: los conteos y el gráfico no representan detecciones automáticas, exactitud ni eficacia de la inteligencia artificial.</p>
+  </section>
+</section>

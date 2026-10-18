@@ -1,0 +1,34 @@
+<section class="bosqyn-acoustic" aria-label="Detección acústica de maquinaria forestal">
+  <div class="bosqyn-feature-header">
+    <span class="bosqyn-kicker">BOSQYN AI · MONITOREO MULTIMODAL</span>
+    <h1>Reconocimiento de sonidos forestales</h1>
+    <p>Analiza el audio del micrófono y muestra dos resultados: Tala y Normal. El modelo Keras original conserva siete clases; las puntuaciones se agrupan para facilitar el monitoreo. Los indicios de tala necesitan verificación humana.</p>
+  </div>
+  <div class="bosqyn-audio-topline">
+    <div class="bosqyn-audio-heading">
+      <img src="img/deteccion/Tala.png" alt="" class="bosqyn-audio-heroicon">
+      <div><h2>Detección acústica</h2><p>Micrófono · 16 kHz · Ventanas de 3 segundos</p></div>
+    </div>
+    <span id="audio-model-status" class="bosqyn-audio-badge">Comprobando modelo…</span>
+  </div>
+  <div class="bosqyn-audio-layout">
+    <div class="bosqyn-audio-panel">
+      <div class="bosqyn-mic-display"><div id="audio-signal" class="bosqyn-audio-mic"><span aria-hidden="true">♬</span></div><div><h3>Entrada de micrófono</h3><p>Activación manual con permiso del navegador</p></div></div>
+      <div class="bosqyn-audio-controls"><button type="button" id="audio-start" disabled>Iniciar micrófono</button><button type="button" id="audio-stop" disabled>Detener micrófono</button></div>
+      <p id="audio-state" class="bosqyn-audio-status" role="status">Verificando disponibilidad del modelo de audio…</p>
+      <div class="bosqyn-audio-caption"><span>Fragmentos analizados</span><strong id="audio-frames">0</strong></div>
+      <div class="bosqyn-audio-warning" id="audio-warning" role="status">La alerta de Tala requiere al menos dos predicciones consecutivas de Tala con confianza suficiente.</div>
+      <p id="audio-privacy" class="bosqyn-audio-privacy">No se almacenan ni comparten grabaciones. Los fragmentos se procesan mediante la API de esta misma aplicación.</p>
+    </div>
+    <div class="bosqyn-audio-panel">
+      <h2>Detección acústica predominante</h2>
+      <p id="audio-top" class="bosqyn-audio-top">Sin predicciones todavía.</p>
+      <div id="audio-bars" class="bosqyn-audio-bars"><p class="bosqyn-audio-placeholder">Se mostrará solo el sonido predominante con su probabilidad.</p></div>
+      <div class="bosqyn-audio-disclaimer">El modelo Keras conserva sus siete clases. Tala suma MOTOSIERRA y MAQUINARIA_DEFORESTACION; Normal suma las otras cinco. Estas probabilidades no son una medición de precisión ni prueban tala ilegal.</div>
+    </div>
+  </div>
+  <div class="bosqyn-category-showcase">
+    <article><img src="img/deteccion/Bosque.png" alt=""><div><strong>Entorno natural</strong><p>Sonidos ambientales para contrastar predicciones.</p></div></article>
+    <article><img src="img/deteccion/Tala.png" alt=""><div><strong>Posible maquinaria</strong><p>Sonidos asociados a actividades forestales mecanizadas.</p></div></article>
+  </div>
+</section>

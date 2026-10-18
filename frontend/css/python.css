@@ -1,0 +1,16 @@
+/* BLOQUE PYTHON · registros verificables separados de datos de ejemplo */
+.bosqyn-real-panel{margin:14px 0 20px;padding:15px;border:1px solid rgba(67,178,115,.35);border-radius:12px;background:linear-gradient(120deg,rgba(13,52,34,.9),rgba(4,25,16,.9));color:#ebfff2}
+.bosqyn-real-panel h2{font-size:15px;font-weight:800;margin:0 0 7px}
+.bosqyn-real-panel p{font-size:11px;line-height:1.5;color:#b1d5c0;margin:5px 0 10px}
+.bosqyn-real-panel .bosqyn-real-status{color:#e7efaa}
+.bosqyn-real-list{display:grid;gap:9px}
+.bosqyn-real-card{display:flex;align-items:center;gap:12px;padding:9px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.bosqyn-real-card img{width:85px;height:65px;border-radius:5px;object-fit:cover}
+.bosqyn-real-card strong{font-size:11px;color:#fff}
+.bosqyn-real-card p{font-size:10px}
+.bosqyn-real-actions{display:flex;flex-wrap:wrap;gap:6px}
+.bosqyn-action{font-size:10px;padding:5px 9px;border-radius:6px;border:1px solid rgba(67,178,115,.45);color:#e2f9e9;background:rgba(20,113,65,.25)}
+.bosqyn-action:hover{background:rgba(34,197,94,.25)}
+.bosqyn-demo-label{color:#e3c281;font-size:10px;font-weight:800;margin-bottom:10px;letter-spacing:.04em}
+@media(max-width:767px){.bosqyn-real-card{flex-direction:column;align-items:stretch}.bosqyn-real-card img{width:100%;height:130px}}
+.bosqyn-live-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0}.bosqyn-live-metrics article{padding:16px;display:grid;gap:8px}.bosqyn-live-metrics b{font-size:24px}.bosqyn-live-metrics span{font-size:12px}.bosqyn-filters{display:flex;flex-wrap:wrap;gap:14px;margin:18px 0}.bosqyn-filters label{display:flex;gap:8px;align-items:center}.bosqyn-filters select{background:#12382a;color:#e7f7ec;border:1px solid #3c6952;padding:8px;border-radius:6px}.bosqyn-monitor-settings{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0;font-size:12px}.bosqyn-monitor-settings input{accent-color:#22c55e}.bosqyn-operations{padding:12px;border:1px solid #315a49;border-radius:8px;margin:12px 0;font-size:12px;overflow-wrap:anywhere}.bosqyn-real-card>div{min-width:0;overflow-wrap:anywhere}:focus-visible{outline:2px solid #6eeda9;outline-offset:3px}@media(max-width:640px){.bosqyn-live-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.bosqyn-filters{flex-direction:column}.bosqyn-filters label{justify-content:space-between}.bosqyn-real-actions{flex-wrap:wrap}.bosqyn-action{min-height:40px}.bosqyn-real-card{max-width:100%}}

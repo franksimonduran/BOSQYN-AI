@@ -218,3 +218,18 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# BOSQYN private evidence and local credentials
+backend/data/
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+*.env
+/data/
+
+node_modules/
+
+node_modules
+frontend/models/vision/model.json
+frontend/models/vision/metadata.json
+frontend/models/vision/weights.bin

@@ -1,0 +1,3 @@
+# Requisitos para inferencia acústica Keras 3 / backend NumPy.
+# Son los mismos que usa el despliegue Railway del prototipo.
+-r requirements.txt
