@@ -1,6 +1,10 @@
 {
   "name": "bosqyn-ai-quality",
   "private": true,
-  "scripts": {"test": "node --test tests/frontend.test.cjs"},
-  "devDependencies": {"jsdom": "30.1.3"}
+  "scripts": {
+    "test": "node --test tests/frontend.test.cjs"
+  },
+  "devDependencies": {
+    "jsdom": "30.1.3"
+  }
 }

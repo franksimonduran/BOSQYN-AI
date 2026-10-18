@@ -1,2 +1,38 @@
-window.Bosqyn=window.Bosqyn||{};Bosqyn.pages=Bosqyn.pages||{};
-Bosqyn.pages.inicio=function(root){let active=true;async function refresh(){try{const [s,h]=await Promise.all([fetch('/api/statistics',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Estadísticas no disponibles');return r.json();}),fetch('/api/health',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Servidor no disponible');return r.json();})]);if(!active)return;for(const [key,value]of [['total',s.total],['pending',s.by_status?.PENDIENTE||0],['auto',s.by_source?.VISION_AUTOMATICA||0],['health',h.status==='ok'?'En línea':'Revisar']])root.querySelector('[data-home-'+key+']').textContent=value;root.querySelector('[data-home-status]').textContent='Actualizado: '+new Date().toLocaleTimeString('es-PE');}catch(e){if(active)root.querySelector('[data-home-status]').textContent=e.message;}}refresh();const timer=setInterval(refresh,30000);return()=>{active=false;clearInterval(timer);};};
+window.Bosqyn = window.Bosqyn || {};
+Bosqyn.pages = Bosqyn.pages || {};
+Bosqyn.pages.inicio = function (root) {
+  let active = true;
+  async function refresh() {
+    try {
+      const [s, h] = await Promise.all([
+        fetch("/api/statistics", { cache: "no-store" }).then((r) => {
+          if (!r.ok) throw Error("Estadísticas no disponibles");
+          return r.json();
+        }),
+        fetch("/api/health", { cache: "no-store" }).then((r) => {
+          if (!r.ok) throw Error("Servidor no disponible");
+          return r.json();
+        }),
+      ]);
+      if (!active) return;
+      for (const [key, value] of [
+        ["total", s.total],
+        ["pending", s.by_status?.PENDIENTE || 0],
+        ["auto", s.by_source?.VISION_AUTOMATICA || 0],
+        ["health", h.status === "ok" ? "En línea" : "Revisar"],
+      ])
+        root.querySelector("[data-home-" + key + "]").textContent = value;
+      root.querySelector("[data-home-status]").textContent =
+        "Actualizado: " + new Date().toLocaleTimeString("es-PE");
+    } catch (e) {
+      if (active)
+        root.querySelector("[data-home-status]").textContent = e.message;
+    }
+  }
+  refresh();
+  const timer = setInterval(refresh, 30000);
+  return () => {
+    active = false;
+    clearInterval(timer);
+  };
+};

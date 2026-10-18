@@ -2,6 +2,7 @@
 
 CSV columns: actual,predicted; use genuinely held-out test images.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -14,7 +15,9 @@ from pathlib import Path
 def evaluate_csv(path: Path):
     with Path(path).open("r", newline="", encoding="utf-8-sig") as source:
         reader = csv.DictReader(source)
-        if not reader.fieldnames or not {"actual", "predicted"}.issubset(reader.fieldnames):
+        if not reader.fieldnames or not {"actual", "predicted"}.issubset(
+            reader.fieldnames
+        ):
             raise ValueError("El CSV debe contener las columnas: actual,predicted")
         pairs = []
         for row in reader:
@@ -26,15 +29,34 @@ def evaluate_csv(path: Path):
     if not pairs:
         raise ValueError("El CSV no contiene ejemplos")
     classes = sorted({value for pair in pairs for value in pair})
-    matrix = {actual: Counter(pred for true, pred in pairs if true == actual) for actual in classes}
+    matrix = {
+        actual: Counter(pred for true, pred in pairs if true == actual)
+        for actual in classes
+    }
     by_class = {}
     for label in classes:
         true_positive = matrix[label][label]
-        false_positive = sum(matrix[other][label] for other in classes if other != label)
-        false_negative = sum(matrix[label][other] for other in classes if other != label)
-        precision = true_positive / (true_positive + false_positive) if (true_positive + false_positive) else 0.0
-        recall = true_positive / (true_positive + false_negative) if (true_positive + false_negative) else 0.0
-        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
+        false_positive = sum(
+            matrix[other][label] for other in classes if other != label
+        )
+        false_negative = sum(
+            matrix[label][other] for other in classes if other != label
+        )
+        precision = (
+            true_positive / (true_positive + false_positive)
+            if (true_positive + false_positive)
+            else 0.0
+        )
+        recall = (
+            true_positive / (true_positive + false_negative)
+            if (true_positive + false_negative)
+            else 0.0
+        )
+        f1 = (
+            2 * precision * recall / (precision + recall)
+            if (precision + recall)
+            else 0.0
+        )
         by_class[label] = {
             "support": sum(matrix[label].values()),
             "precision": round(precision, 4),

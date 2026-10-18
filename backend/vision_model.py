@@ -3,6 +3,7 @@
 Never execute contents of the ZIP. Keep assets public and limited to model metadata,
 model.json and manifest-listed weight files.
 """
+
 from __future__ import annotations
 
 import json
@@ -17,7 +18,11 @@ def prepare_vision_model(frontend_dir: Path) -> dict:
     directory = Path(frontend_dir).resolve() / "models" / "vision"
     archive = directory / "tm-my-image-model.zip"
     if not archive.is_file():
-        return {"available": False, "reason": "No se encontró tm-my-image-model.zip", "classes": []}
+        return {
+            "available": False,
+            "reason": "No se encontró tm-my-image-model.zip",
+            "classes": [],
+        }
 
     try:
         with ZipFile(archive) as bundle:
@@ -32,15 +37,25 @@ def prepare_vision_model(frontend_dir: Path) -> dict:
                     raise ValueError("Ruta insegura dentro del ZIP")
 
             def pick(basename: str):
-                matches = [member for member in members if PurePosixPath(member.filename).name == basename]
+                matches = [
+                    member
+                    for member in members
+                    if PurePosixPath(member.filename).name == basename
+                ]
                 if len(matches) != 1:
-                    raise ValueError(f"Se esperaba exactamente un archivo {basename} en el ZIP")
+                    raise ValueError(
+                        f"Se esperaba exactamente un archivo {basename} en el ZIP"
+                    )
                 return matches[0]
 
             model = json.loads(bundle.read(pick("model.json")))
             metadata = json.loads(bundle.read(pick("metadata.json")))
             labels = metadata.get("labels", [])
-            if not isinstance(labels, list) or not labels or not all(isinstance(v, str) and v.strip() for v in labels):
+            if (
+                not isinstance(labels, list)
+                or not labels
+                or not all(isinstance(v, str) and v.strip() for v in labels)
+            ):
                 raise ValueError("metadata.json no contiene etiquetas válidas")
             manifests = model.get("weightsManifest")
             if not isinstance(manifests, list) or not manifests:
@@ -52,7 +67,9 @@ def prepare_vision_model(frontend_dir: Path) -> dict:
                     if source_path.is_absolute() or ".." in source_path.parts:
                         raise ValueError("Ruta insegura de pesos")
                     if source_path.suffix != ".bin" or len(source_path.parts) != 1:
-                        raise ValueError("Ruta de pesos no admitida; exporta TensorFlow.js desde Teachable Machine")
+                        raise ValueError(
+                            "Ruta de pesos no admitida; exporta TensorFlow.js desde Teachable Machine"
+                        )
                     weights.append(relative)
             if not weights:
                 raise ValueError("No hay archivos de pesos")
@@ -77,12 +94,20 @@ def prepare_vision_model(frontend_dir: Path) -> dict:
             "automatic_alerts_enabled": False,
             "inference_location": "navegador",
         }
-    except (ValueError, KeyError, TypeError, OSError, BadZipFile, json.JSONDecodeError) as error:
+    except (
+        ValueError,
+        KeyError,
+        TypeError,
+        OSError,
+        BadZipFile,
+        json.JSONDecodeError,
+    ) as error:
         return {"available": False, "reason": str(error), "classes": []}
 
 
 if __name__ == "__main__":
     from .server import ROOT
+
     info = prepare_vision_model(ROOT / "frontend")
     print(json.dumps(info, ensure_ascii=False, indent=2))
     if not info["available"]:

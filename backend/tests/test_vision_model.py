@@ -15,12 +15,26 @@ class VisionModelTests(unittest.TestCase):
             target.mkdir(parents=True)
             archive = target / "tm-my-image-model.zip"
             with zipfile.ZipFile(archive, "w") as z:
-                z.writestr("tm-my-image-model/model.json", json.dumps({
-                    "weightsManifest": [{"paths": ["weights.bin"], "weights": []}]
-                }))
-                z.writestr("tm-my-image-model/metadata.json", json.dumps({
-                    "labels": ["NORMAL", "HUMO", "FUEGO", "NEBLINA_NUBES", "INDICIOS_TALA"]
-                }))
+                z.writestr(
+                    "tm-my-image-model/model.json",
+                    json.dumps(
+                        {"weightsManifest": [{"paths": ["weights.bin"], "weights": []}]}
+                    ),
+                )
+                z.writestr(
+                    "tm-my-image-model/metadata.json",
+                    json.dumps(
+                        {
+                            "labels": [
+                                "NORMAL",
+                                "HUMO",
+                                "FUEGO",
+                                "NEBLINA_NUBES",
+                                "INDICIOS_TALA",
+                            ]
+                        }
+                    ),
+                )
                 z.writestr("tm-my-image-model/weights.bin", b"\x00\x01")
             result = prepare_vision_model(root)
             self.assertTrue(result["available"], result)

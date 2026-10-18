@@ -3,6 +3,7 @@
 One administrator password comes exclusively from Railway environment variables.
 Secure, HttpOnly SameSite cookies represent short-lived in-memory sessions.
 """
+
 from __future__ import annotations
 
 import hmac
@@ -20,7 +21,9 @@ SESSION_SECONDS = 8 * 60 * 60
 class AdminAuth:
     def __init__(self, host: str):
         self.password = os.environ.get("BOSQYN_ADMIN_PASSWORD", "")
-        self.local_mode = host in ("127.0.0.1", "localhost", "::1") and not self.password
+        self.local_mode = (
+            host in ("127.0.0.1", "localhost", "::1") and not self.password
+        )
         self.enabled = len(self.password) >= 16
         self.sessions: dict[str, float] = {}
         self.failures: dict[str, list[float]] = {}
@@ -63,7 +66,7 @@ class AdminAuth:
             return False, "Acceso de administrador no configurado en Railway."
         now = time.monotonic()
         with self.lock:
-            attempts = [t for t in self.failures.get(identity, []) if now-t < 900]
+            attempts = [t for t in self.failures.get(identity, []) if now - t < 900]
             if len(attempts) >= 8:
                 self.failures[identity] = attempts
                 return False, "Demasiados intentos; espera 15 minutos."
@@ -78,23 +81,31 @@ class AdminAuth:
             token = secrets.token_urlsafe(32)
             self.sessions[token] = time.time() + SESSION_SECONDS
             if len(self.sessions) > 2000:
-                self.sessions = {k: v for k, v in self.sessions.items() if v > time.time()}
+                self.sessions = {
+                    k: v for k, v in self.sessions.items() if v > time.time()
+                }
             return True, token
 
     def role(self, headers, secure=True):
-        token=self.session(headers,secure)
-        if not token: return None
-        return "admin" if token=="local" else self.roles.get(token,"admin")
+        token = self.session(headers, secure)
+        if not token:
+            return None
+        return "admin" if token == "local" else self.roles.get(token, "admin")
 
     def create_guest(self):
-        now=time.time()
+        now = time.time()
         with self.lock:
-            self.sessions={key:expiry for key,expiry in self.sessions.items() if expiry>now}
-            self.roles={key:role for key,role in self.roles.items() if key in self.sessions}
-            if len(self.sessions)>=2000: raise ValueError("Demasiadas sesiones activas; vuelve a intentar")
-            token=secrets.token_urlsafe(32)
-            self.sessions[token]=now+SESSION_SECONDS
-            self.roles[token]="guest"
+            self.sessions = {
+                key: expiry for key, expiry in self.sessions.items() if expiry > now
+            }
+            self.roles = {
+                key: role for key, role in self.roles.items() if key in self.sessions
+            }
+            if len(self.sessions) >= 2000:
+                raise ValueError("Demasiadas sesiones activas; vuelve a intentar")
+            token = secrets.token_urlsafe(32)
+            self.sessions[token] = now + SESSION_SECONDS
+            self.roles[token] = "guest"
         return token
 
     def revoke(self, token: str | None):
@@ -105,16 +116,24 @@ class AdminAuth:
 
     def cookie_header(self, token: str, secure: bool) -> str:
         opts = [
-            f"{self.cookie_name(secure)}={token}", "Path=/",
-            "HttpOnly", "SameSite=Strict", f"Max-Age={SESSION_SECONDS}"
+            f"{self.cookie_name(secure)}={token}",
+            "Path=/",
+            "HttpOnly",
+            "SameSite=Strict",
+            f"Max-Age={SESSION_SECONDS}",
         ]
         if secure:
             opts.append("Secure")
         return "; ".join(opts)
 
     def clear_cookie_header(self, secure: bool) -> str:
-        return "; ".join([
-            f"{self.cookie_name(secure)}=", "Path=/",
-            "HttpOnly", "SameSite=Strict", "Max-Age=0",
-            "Secure" if secure else ""
-        ]).rstrip("; ")
+        return "; ".join(
+            [
+                f"{self.cookie_name(secure)}=",
+                "Path=/",
+                "HttpOnly",
+                "SameSite=Strict",
+                "Max-Age=0",
+                "Secure" if secure else "",
+            ]
+        ).rstrip("; ")

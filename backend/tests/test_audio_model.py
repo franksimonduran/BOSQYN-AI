@@ -1,4 +1,5 @@
 """No-TensorFlow smoke tests for the optional acoustic recognition adapter."""
+
 import json
 import os
 import tempfile
@@ -10,7 +11,15 @@ from unittest.mock import patch
 from backend.audio_model import AudioModel, inspect_archive, aggregate_audio_predictions
 
 GOOD = {
-    "classes": ["AMBIENTE_SELVA", "ANIMALES_SELVA", "CARRO", "MAQUINARIA_DEFORESTACION", "MOTOCICLETA", "MOTOSIERRA", "RUIDO_DRON"],
+    "classes": [
+        "AMBIENTE_SELVA",
+        "ANIMALES_SELVA",
+        "CARRO",
+        "MAQUINARIA_DEFORESTACION",
+        "MOTOCICLETA",
+        "MOTOSIERRA",
+        "RUIDO_DRON",
+    ],
     "sample_rate": 16000,
     "clip_seconds": 3,
     "n_mels": 64,
@@ -27,8 +36,12 @@ class AudioAssetsTests(unittest.TestCase):
     def create(self, directory, config=None):
         path = Path(directory) / "BOSQYN_IA_MODELO_KERAS.zip"
         with zipfile.ZipFile(path, "w") as archive:
-            archive.writestr("bosqyn_tensorflow.keras", b"sample placeholder for validation only")
-            archive.writestr("bosqyn_tensorflow_config.json", json.dumps(config or GOOD))
+            archive.writestr(
+                "bosqyn_tensorflow.keras", b"sample placeholder for validation only"
+            )
+            archive.writestr(
+                "bosqyn_tensorflow_config.json", json.dumps(config or GOOD)
+            )
         return path
 
     def test_missing_archive(self):
@@ -45,7 +58,10 @@ class AudioAssetsTests(unittest.TestCase):
             self.assertTrue(info["asset_present"])
             self.assertEqual(info["classes"], GOOD["classes"])
             self.assertEqual(info["display_classes"], ["Tala", "Normal"])
-            self.assertEqual(set(info["class_groups"]["Tala"]), {"MOTOSIERRA", "MAQUINARIA_DEFORESTACION"})
+            self.assertEqual(
+                set(info["class_groups"]["Tala"]),
+                {"MOTOSIERRA", "MAQUINARIA_DEFORESTACION"},
+            )
             self.assertEqual(len(info["class_groups"]["Normal"]), 5)
             self.assertFalse(info["available"])
             self.assertIn("BOSQYN_AUDIO_ENABLED", info["reason"])
@@ -75,60 +91,67 @@ class AudioAssetsTests(unittest.TestCase):
             self.assertIn("Error validando", info["reason"])
 
 
-
-
 class BinaryAudioClassificationTests(unittest.TestCase):
     def test_groups_seven_trained_classes_by_probability_sum(self):
         original = [
-            {"className": "AMBIENTE_SELVA", "probability": .1},
-            {"className": "ANIMALES_SELVA", "probability": .05},
-            {"className": "CARRO", "probability": .1},
-            {"className": "MAQUINARIA_DEFORESTACION", "probability": .3},
-            {"className": "MOTOCICLETA", "probability": .05},
-            {"className": "MOTOSIERRA", "probability": .35},
-            {"className": "RUIDO_DRON", "probability": .05},
+            {"className": "AMBIENTE_SELVA", "probability": 0.1},
+            {"className": "ANIMALES_SELVA", "probability": 0.05},
+            {"className": "CARRO", "probability": 0.1},
+            {"className": "MAQUINARIA_DEFORESTACION", "probability": 0.3},
+            {"className": "MOTOCICLETA", "probability": 0.05},
+            {"className": "MOTOSIERRA", "probability": 0.35},
+            {"className": "RUIDO_DRON", "probability": 0.05},
         ]
         result = aggregate_audio_predictions(original)
-        self.assertEqual([r["className"] for r in result["predictions"]], ["Tala", "Normal"])
-        self.assertAlmostEqual(result["predictions"][0]["probability"], .65)
-        self.assertAlmostEqual(result["predictions"][1]["probability"], .35)
+        self.assertEqual(
+            [r["className"] for r in result["predictions"]], ["Tala", "Normal"]
+        )
+        self.assertAlmostEqual(result["predictions"][0]["probability"], 0.65)
+        self.assertAlmostEqual(result["predictions"][1]["probability"], 0.35)
         self.assertEqual(result["top_class"], "Tala")
         self.assertEqual(result["original_top_class"], "MOTOSIERRA")
         self.assertEqual(result["original_predictions"], original)
 
     def test_aggregation_can_override_seven_class_argmax(self):
         original = [
-            {"className": "CARRO", "probability": .38},
-            {"className": "MOTOSIERRA", "probability": .32},
-            {"className": "MAQUINARIA_DEFORESTACION", "probability": .30},
+            {"className": "CARRO", "probability": 0.38},
+            {"className": "MOTOSIERRA", "probability": 0.32},
+            {"className": "MAQUINARIA_DEFORESTACION", "probability": 0.30},
         ]
         result = aggregate_audio_predictions(original)
         self.assertEqual(result["original_top_class"], "CARRO")
         self.assertEqual(result["top_class"], "Tala")
-        self.assertAlmostEqual(result["confidence"], .62)
+        self.assertAlmostEqual(result["confidence"], 0.62)
 
     def test_other_sounds_are_normal_not_tala(self):
         original = [
-            {"className": "MOTOSIERRA", "probability": .05},
-            {"className": "MAQUINARIA_DEFORESTACION", "probability": .01},
-            {"className": "AMBIENTE_SELVA", "probability": .94},
+            {"className": "MOTOSIERRA", "probability": 0.05},
+            {"className": "MAQUINARIA_DEFORESTACION", "probability": 0.01},
+            {"className": "AMBIENTE_SELVA", "probability": 0.94},
         ]
         result = aggregate_audio_predictions(original)
         self.assertEqual(result["top_class"], "Normal")
-        self.assertAlmostEqual(result["confidence"], .94)
+        self.assertAlmostEqual(result["confidence"], 0.94)
 
     def test_rejects_missing_positive_label_and_invalid_probabilities(self):
         with self.assertRaises(ValueError):
-            aggregate_audio_predictions([
-                {"className": "MOTOSIERRA", "probability": .5},
-                {"className": "CARRO", "probability": .5},
-            ])
+            aggregate_audio_predictions(
+                [
+                    {"className": "MOTOSIERRA", "probability": 0.5},
+                    {"className": "CARRO", "probability": 0.5},
+                ]
+            )
         with self.assertRaises(ValueError):
-            aggregate_audio_predictions([
-                {"className": "MOTOSIERRA", "probability": .6},
-                {"className": "MAQUINARIA_DEFORESTACION", "probability": float("nan")},
-                {"className": "CARRO", "probability": .4},
-            ])
+            aggregate_audio_predictions(
+                [
+                    {"className": "MOTOSIERRA", "probability": 0.6},
+                    {
+                        "className": "MAQUINARIA_DEFORESTACION",
+                        "probability": float("nan"),
+                    },
+                    {"className": "CARRO", "probability": 0.4},
+                ]
+            )
 
     def test_rejects_incompatible_audio_model_labels(self):
         with tempfile.TemporaryDirectory() as folder:

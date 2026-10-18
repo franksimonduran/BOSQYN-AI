@@ -4,6 +4,7 @@ Consumes signed PCM16 mono audio at 16 kHz, three-second windows.
 Audio is never persisted. The model is loaded from the committed model ZIP.
 Activation is opt-in: BOSQYN_AUDIO_ENABLED=1 and requirements-audio.txt.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -78,7 +79,6 @@ def aggregate_audio_predictions(original_predictions: list[dict]) -> dict:
     }
 
 
-
 def inspect_archive(path: Path = ARCHIVE) -> dict:
     result = {
         "available": False,
@@ -98,51 +98,89 @@ def inspect_archive(path: Path = ARCHIVE) -> dict:
     try:
         with zipfile.ZipFile(path) as bundle:
             entries = [entry for entry in bundle.infolist() if not entry.is_dir()]
-            if not entries or len(entries) > 80 or sum(entry.file_size for entry in entries) > MAX_ZIP_BYTES:
+            if (
+                not entries
+                or len(entries) > 80
+                or sum(entry.file_size for entry in entries) > MAX_ZIP_BYTES
+            ):
                 raise ValueError("ZIP vacío o demasiado grande")
             for entry in entries:
                 name = PurePosixPath(entry.filename)
                 if name.is_absolute() or ".." in name.parts:
                     raise ValueError("Ruta ZIP no permitida")
-            models = [e for e in entries if e.filename.lower().endswith((".keras", ".h5"))]
+            models = [
+                e for e in entries if e.filename.lower().endswith((".keras", ".h5"))
+            ]
             if len(models) != 1:
-                raise ValueError("Se requiere exactamente un modelo .keras o .h5 dentro del ZIP.")
+                raise ValueError(
+                    "Se requiere exactamente un modelo .keras o .h5 dentro del ZIP."
+                )
             if models[0].file_size > MAX_MODEL_BYTES:
                 raise ValueError("Modelo demasiado grande")
             candidates = []
             for entry in entries:
-                if not entry.filename.lower().endswith(".json") or entry.file_size > 100_000:
+                if (
+                    not entry.filename.lower().endswith(".json")
+                    or entry.file_size > 100_000
+                ):
                     continue
                 try:
                     parsed = json.loads(bundle.read(entry).decode("utf-8"))
-                    if isinstance(parsed, dict) and isinstance(parsed.get("classes"), list):
+                    if isinstance(parsed, dict) and isinstance(
+                        parsed.get("classes"), list
+                    ):
                         candidates.append(parsed)
                 except (ValueError, UnicodeDecodeError, TypeError):
                     continue
             if len(candidates) != 1:
-                raise ValueError("No se encontró un único archivo de configuración con la lista 'classes'.")
+                raise ValueError(
+                    "No se encontró un único archivo de configuración con la lista 'classes'."
+                )
             cfg = candidates[0]
             classes = cfg.get("classes")
-            if not 2 <= len(classes) <= 40 or not all(isinstance(c, str) and c.strip() for c in classes):
-                raise ValueError("Etiquetas acústicas no válidas: se requieren MOTOSIERRA y MAQUINARIA_DEFORESTACION")
+            if not 2 <= len(classes) <= 40 or not all(
+                isinstance(c, str) and c.strip() for c in classes
+            ):
+                raise ValueError(
+                    "Etiquetas acústicas no válidas: se requieren MOTOSIERRA y MAQUINARIA_DEFORESTACION"
+                )
             if len(set(classes)) != len(classes):
-                raise ValueError("La configuración contiene etiquetas acústicas duplicadas")
+                raise ValueError(
+                    "La configuración contiene etiquetas acústicas duplicadas"
+                )
             if not TALA_SOUNDS.issubset(set(classes)):
-                raise ValueError("El modelo requiere clases MOTOSIERRA y MAQUINARIA_DEFORESTACION para generar Tala")
-            required = ["sample_rate", "clip_seconds", "n_mels", "n_fft", "hop_length", "fmax", "mean", "std"]
+                raise ValueError(
+                    "El modelo requiere clases MOTOSIERRA y MAQUINARIA_DEFORESTACION para generar Tala"
+                )
+            required = [
+                "sample_rate",
+                "clip_seconds",
+                "n_mels",
+                "n_fft",
+                "hop_length",
+                "fmax",
+                "mean",
+                "std",
+            ]
             missing = [k for k in required if k not in cfg]
             if missing:
                 raise ValueError("Configuración incompleta: " + ", ".join(missing))
             if int(cfg["sample_rate"]) != 16000 or float(cfg["clip_seconds"]) != 3:
-                raise ValueError("El modelo requiere frecuencia de 16 kHz y ventanas de 3 segundos.")
+                raise ValueError(
+                    "El modelo requiere frecuencia de 16 kHz y ventanas de 3 segundos."
+                )
             if "frames" not in cfg:
-                cfg["frames"] = 1 + int(float(cfg["sample_rate"]) * float(cfg["clip_seconds"])) // int(cfg["hop_length"])
+                cfg["frames"] = 1 + int(
+                    float(cfg["sample_rate"]) * float(cfg["clip_seconds"])
+                ) // int(cfg["hop_length"])
             if not 10 <= int(cfg["frames"]) <= 3000:
                 raise ValueError("Número de fotogramas acústicos no válido")
             if float(cfg["std"]) <= 0:
                 raise ValueError("Normalización acústica inválida")
             result["classes"] = classes
-            result["class_groups"]["Normal"] = [name for name in classes if name not in TALA_SOUNDS]
+            result["class_groups"]["Normal"] = [
+                name for name in classes if name not in TALA_SOUNDS
+            ]
             result["model_file"] = PurePosixPath(models[0].filename).name
             result["sample_rate"] = 16000
             result["duration_seconds"] = 3
@@ -150,14 +188,24 @@ def inspect_archive(path: Path = ARCHIVE) -> dict:
         result["reason"] = "Error validando el ZIP de audio: " + str(exc)
         return result
     if not result["enabled"]:
-        result["reason"] = "El modelo está detectado. La inferencia de audio aún no está habilitada en este servidor (BOSQYN_AUDIO_ENABLED=1)."
+        result["reason"] = (
+            "El modelo está detectado. La inferencia de audio aún no está habilitada en este servidor (BOSQYN_AUDIO_ENABLED=1)."
+        )
         return result
-    missing_deps = [name for name in ("keras", "numpy", "librosa") if importlib.util.find_spec(name) is None]
+    missing_deps = [
+        name
+        for name in ("keras", "numpy", "librosa")
+        if importlib.util.find_spec(name) is None
+    ]
     if missing_deps:
-        result["reason"] = "Faltan dependencias de inferencia: " + ", ".join(missing_deps)
+        result["reason"] = "Faltan dependencias de inferencia: " + ", ".join(
+            missing_deps
+        )
         return result
     result["available"] = True
-    result["reason"] = "Motor acústico disponible; pendiente de comprobación con grabaciones independientes."
+    result["reason"] = (
+        "Motor acústico disponible; pendiente de comprobación con grabaciones independientes."
+    )
     return result
 
 
@@ -181,8 +229,13 @@ class AudioModel:
             return
         os.environ.setdefault("KERAS_BACKEND", "numpy")
         import keras
+
         with zipfile.ZipFile(self.path) as bundle:
-            model_entry = next(x for x in bundle.infolist() if x.filename.lower().endswith((".keras", ".h5")))
+            model_entry = next(
+                x
+                for x in bundle.infolist()
+                if x.filename.lower().endswith((".keras", ".h5"))
+            )
             cfg = next(
                 json.loads(bundle.read(x).decode("utf-8"))
                 for x in bundle.infolist()
@@ -191,17 +244,27 @@ class AudioModel:
                 and self._is_training_config(bundle, x)
             )
             if "frames" not in cfg:
-                cfg["frames"] = 1 + int(float(cfg["sample_rate"]) * float(cfg["clip_seconds"])) // int(cfg["hop_length"])
-            suffix = ".keras" if model_entry.filename.lower().endswith(".keras") else ".h5"
+                cfg["frames"] = 1 + int(
+                    float(cfg["sample_rate"]) * float(cfg["clip_seconds"])
+                ) // int(cfg["hop_length"])
+            suffix = (
+                ".keras" if model_entry.filename.lower().endswith(".keras") else ".h5"
+            )
             with tempfile.TemporaryDirectory(prefix="bosqyn_audio_") as folder:
                 filename = Path(folder) / ("classifier" + suffix)
                 filename.write_bytes(bundle.read(model_entry))
                 try:
-                    loaded = keras.models.load_model(str(filename), compile=False, safe_mode=True)
+                    loaded = keras.models.load_model(
+                        str(filename), compile=False, safe_mode=True
+                    )
                 except (OSError, ValueError, TypeError, zipfile.BadZipFile) as exc:
-                    raise RuntimeError("El archivo del modelo acústico es inválido o incompatible") from exc
+                    raise RuntimeError(
+                        "El archivo del modelo acústico es inválido o incompatible"
+                    ) from exc
         if int(loaded.output_shape[-1]) != len(cfg["classes"]):
-            raise RuntimeError("Número de clases incompatible entre configuración y modelo Keras")
+            raise RuntimeError(
+                "Número de clases incompatible entre configuración y modelo Keras"
+            )
         self._model = loaded
         self._config = cfg
 
@@ -224,7 +287,9 @@ class AudioModel:
             cfg = self._config
             y = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
             # Clip/pad to the same three-second duration used during training.
-            y = librosa.util.fix_length(y, size=int(cfg["sample_rate"] * cfg["clip_seconds"]))
+            y = librosa.util.fix_length(
+                y, size=int(cfg["sample_rate"] * cfg["clip_seconds"])
+            )
             mel = librosa.feature.melspectrogram(
                 y=y,
                 sr=int(cfg["sample_rate"]),

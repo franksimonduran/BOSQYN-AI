@@ -1,13 +1,14 @@
-window.Bosqyn=window.Bosqyn||{};Bosqyn.pages=Bosqyn.pages||{};
-Bosqyn.pages.monitoreo=function(root){
-/* Integración nativa: un menú Monitoreo, dos modos, un solo backend. */
-const livePanel=document.createElement('section');
-livePanel.id='bosqyn-live-panel';
-livePanel.hidden=true;
-while(root.firstChild)livePanel.appendChild(root.firstChild);
-const dashboard=document.createElement('div');
-dashboard.className='bosqyn-satellite-dashboard';
-dashboard.innerHTML=`
+window.Bosqyn = window.Bosqyn || {};
+Bosqyn.pages = Bosqyn.pages || {};
+Bosqyn.pages.monitoreo = function (root) {
+  /* Integración nativa: un menú Monitoreo, dos modos, un solo backend. */
+  const livePanel = document.createElement("section");
+  livePanel.id = "bosqyn-live-panel";
+  livePanel.hidden = true;
+  while (root.firstChild) livePanel.appendChild(root.firstChild);
+  const dashboard = document.createElement("div");
+  dashboard.className = "bosqyn-satellite-dashboard";
+  dashboard.innerHTML = `
 <style>
 .bosqyn-satellite-dashboard{color:#e5f7ec}
 .bosqyn-satellite-cards{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
@@ -44,162 +45,404 @@ dashboard.innerHTML=`
  </div>
  <p class="bosqyn-footnote">Observaciones periódicas, no detecciones confirmadas ni video en tiempo real. La ausencia de puntos no descarta incendios.</p>
 </section>`;
-root.append(dashboard,livePanel);
-const modeLive=dashboard.querySelector('#bosqyn-mode-live');
-const modeSat=dashboard.querySelector('#bosqyn-mode-satellite');
-const satCenter=dashboard.querySelector('#bosqyn-satellite-center');
-let satelliteMap=null,satelliteLayer=null,satelliteTimer=null,activeSatellite=true,disposed=false;
-function selectMode(live){
-  activeSatellite=!live;livePanel.hidden=!live;satCenter.hidden=live;
-  modeLive.setAttribute('aria-selected',String(live));modeSat.setAttribute('aria-selected',String(!live));
-  if(live&&typeof stop==='function'){} 
-  if(!live&&satelliteMap)setTimeout(()=>satelliteMap.invalidateSize(),50);
-}
-modeLive.addEventListener('click',()=>selectMode(true));
-modeSat.addEventListener('click',()=>{if(typeof stop==='function')stop();selectMode(false)});
-function loadLeaflet(){
- return new Promise((resolve,reject)=>{
-  if(window.L)return resolve();
-  if(!document.querySelector('#bosqyn-leaflet-css')){
-    const css=document.createElement('link');css.id='bosqyn-leaflet-css';css.rel='stylesheet';css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.append(css);
+  root.append(dashboard, livePanel);
+  const modeLive = dashboard.querySelector("#bosqyn-mode-live");
+  const modeSat = dashboard.querySelector("#bosqyn-mode-satellite");
+  const satCenter = dashboard.querySelector("#bosqyn-satellite-center");
+  let satelliteMap = null,
+    satelliteLayer = null,
+    satelliteTimer = null,
+    activeSatellite = true,
+    disposed = false;
+  function selectMode(live) {
+    activeSatellite = !live;
+    livePanel.hidden = !live;
+    satCenter.hidden = live;
+    modeLive.setAttribute("aria-selected", String(live));
+    modeSat.setAttribute("aria-selected", String(!live));
+    if (live && typeof stop === "function") {
+    }
+    if (!live && satelliteMap)
+      setTimeout(() => satelliteMap.invalidateSize(), 50);
   }
-  const present=document.querySelector('#bosqyn-leaflet-js');
-  if(present){present.addEventListener('load',resolve,{once:true});present.addEventListener('error',reject,{once:true});return;}
-  const script=document.createElement('script');script.id='bosqyn-leaflet-js';script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';script.onload=resolve;script.onerror=reject;document.head.append(script);
- });
-}
-async function refreshSatellite(){
- if(disposed)return;
- try{
-  const [statusResponse,eventResponse]=await Promise.all([fetch('/api/satellite/status'),fetch('/api/satellite/events')]);
-  if(!statusResponse.ok||!eventResponse.ok)throw Error('Servicio satelital no disponible');
-  const state=await statusResponse.json(),data=await eventResponse.json();
-  if(disposed)return;
-  dashboard.querySelector('#bosqyn-nasa-status').textContent=state.feeds?.NASA?.status||'sin datos';
-  dashboard.querySelector('#bosqyn-noaa-status').textContent=state.feeds?.NOAA?.status||'sin datos';
-  dashboard.querySelector('#bosqyn-events-count').textContent=String(data.events?.length||0);
-  const coverage=dashboard.querySelector('.bosqyn-footnote');
-  coverage.textContent='Cobertura consultada (oeste, sur, este, norte): '+(state.bbox||[]).join(', ')+'. Puede desplazarse el mapa fuera de esta cobertura sin ampliar la consulta. Ventana: últimas 24 h; consulta cada 30 min. Sin puntos no significa ausencia de incendios. NASA y NOAA usan códigos de calidad diferentes.';
-  if(!satelliteMap)return;
-  satelliteLayer.clearLayers();
-  for(const e of (data.events||[])){
-   if(!Number.isFinite(Number(e.lat))||!Number.isFinite(Number(e.lon)))continue;
-   const nasa=e.source==='NASA FIRMS';
-   const point=window.L.circleMarker([+e.lat,+e.lon],{radius:6,weight:2,color:nasa?'#fc7b49':'#f6d16b',fillOpacity:.7}).addTo(satelliteLayer);
-   const detail=document.createElement('div');
-   const strong=document.createElement('b');strong.textContent=e.source;detail.append(strong,document.createElement('br'),document.createTextNode('Observado: '+(e.time||'sin fecha')),document.createElement('br'),document.createTextNode('Consultado: '+(e.fetched_at||'sin fecha')),document.createElement('br'),document.createTextNode('Producto: '+(e.product||'sin identificar')+' · Código de calidad: '+(e.confidence||'no informado')),document.createElement('br'),document.createTextNode('Referencia: '+(e.product_ref||e.id)));
-   point.bindPopup(detail);
+  modeLive.addEventListener("click", () => selectMode(true));
+  modeSat.addEventListener("click", () => {
+    if (typeof stop === "function") stop();
+    selectMode(false);
+  });
+  function loadLeaflet() {
+    return new Promise((resolve, reject) => {
+      if (window.L) return resolve();
+      if (!document.querySelector("#bosqyn-leaflet-css")) {
+        const css = document.createElement("link");
+        css.id = "bosqyn-leaflet-css";
+        css.rel = "stylesheet";
+        css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+        document.head.append(css);
+      }
+      const present = document.querySelector("#bosqyn-leaflet-js");
+      if (present) {
+        present.addEventListener("load", resolve, { once: true });
+        present.addEventListener("error", reject, { once: true });
+        return;
+      }
+      const script = document.createElement("script");
+      script.id = "bosqyn-leaflet-js";
+      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.append(script);
+    });
   }
- }catch(err){
-  if(disposed)return;
-  dashboard.querySelector('#bosqyn-nasa-status').textContent='sin conexión';
-  dashboard.querySelector('#bosqyn-noaa-status').textContent='sin conexión';
- }
-}
-loadLeaflet().then(()=>{
- if(disposed)return;
- const mapNode=dashboard.querySelector('#bosqyn-satellite-map');
- mapNode.textContent='';
- satelliteMap=window.L.map(mapNode).setView([-9.5,-76.1],8);
- // Esri World Topographic Map no usa una API key del cliente en esta capa pública.
- const tiles=window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{
-  maxZoom:17,
-  attribution:'Tiles &copy; Esri, HERE, Garmin, FAO, NOAA, USGS'
- }).addTo(satelliteMap);
- // Si el proveedor bloquea la carga, conservar el mapa y los marcadores;
- // evita mosaicos de error que cubren las observaciones.
- let tileErrors=0;
- tiles.on('tileerror',()=>{
-  tileErrors++;
-  if(tileErrors===3){
-   satelliteMap.removeLayer(tiles);
-   mapNode.style.background='repeating-linear-gradient(0deg,transparent,transparent 69px,#255344 70px),repeating-linear-gradient(90deg,transparent,transparent 69px,#255344 70px),#123c2d';
-   const info=document.createElement('div');
-   info.textContent='Mapa base temporalmente no disponible. Las ubicaciones satelitales siguen visibles.';
-   info.style.cssText='position:absolute;top:8px;right:8px;z-index:500;color:#def5e4;background:#0a241bcc;border-radius:6px;padding:7px;font-size:11px;max-width:240px';
-   mapNode.append(info);
+  async function refreshSatellite() {
+    if (disposed) return;
+    try {
+      const [statusResponse, eventResponse] = await Promise.all([
+        fetch("/api/satellite/status"),
+        fetch("/api/satellite/events"),
+      ]);
+      if (!statusResponse.ok || !eventResponse.ok)
+        throw Error("Servicio satelital no disponible");
+      const state = await statusResponse.json(),
+        data = await eventResponse.json();
+      if (disposed) return;
+      dashboard.querySelector("#bosqyn-nasa-status").textContent =
+        state.feeds?.NASA?.status || "sin datos";
+      dashboard.querySelector("#bosqyn-noaa-status").textContent =
+        state.feeds?.NOAA?.status || "sin datos";
+      dashboard.querySelector("#bosqyn-events-count").textContent = String(
+        data.events?.length || 0,
+      );
+      const coverage = dashboard.querySelector(".bosqyn-footnote");
+      coverage.textContent =
+        "Cobertura consultada (oeste, sur, este, norte): " +
+        (state.bbox || []).join(", ") +
+        ". Puede desplazarse el mapa fuera de esta cobertura sin ampliar la consulta. Ventana: últimas 24 h; consulta cada 30 min. Sin puntos no significa ausencia de incendios. NASA y NOAA usan códigos de calidad diferentes.";
+      if (!satelliteMap) return;
+      satelliteLayer.clearLayers();
+      for (const e of data.events || []) {
+        if (!Number.isFinite(Number(e.lat)) || !Number.isFinite(Number(e.lon)))
+          continue;
+        const nasa = e.source === "NASA FIRMS";
+        const point = window.L.circleMarker([+e.lat, +e.lon], {
+          radius: 6,
+          weight: 2,
+          color: nasa ? "#fc7b49" : "#f6d16b",
+          fillOpacity: 0.7,
+        }).addTo(satelliteLayer);
+        const detail = document.createElement("div");
+        const strong = document.createElement("b");
+        strong.textContent = e.source;
+        detail.append(
+          strong,
+          document.createElement("br"),
+          document.createTextNode("Observado: " + (e.time || "sin fecha")),
+          document.createElement("br"),
+          document.createTextNode(
+            "Consultado: " + (e.fetched_at || "sin fecha"),
+          ),
+          document.createElement("br"),
+          document.createTextNode(
+            "Producto: " +
+              (e.product || "sin identificar") +
+              " · Código de calidad: " +
+              (e.confidence || "no informado"),
+          ),
+          document.createElement("br"),
+          document.createTextNode("Referencia: " + (e.product_ref || e.id)),
+        );
+        point.bindPopup(detail);
+      }
+    } catch (err) {
+      if (disposed) return;
+      dashboard.querySelector("#bosqyn-nasa-status").textContent =
+        "sin conexión";
+      dashboard.querySelector("#bosqyn-noaa-status").textContent =
+        "sin conexión";
+    }
   }
- });
- satelliteLayer=window.L.layerGroup().addTo(satelliteMap);
- refreshSatellite();
-}).catch(()=>{
- const target=dashboard.querySelector('#bosqyn-satellite-map');
- if(!disposed)target.textContent='No se pudo cargar el mapa. Revisa la conexión de internet.';
-});
-refreshSatellite();
-satelliteTimer=setInterval(refreshSatellite,60000);
+  loadLeaflet()
+    .then(() => {
+      if (disposed) return;
+      const mapNode = dashboard.querySelector("#bosqyn-satellite-map");
+      mapNode.textContent = "";
+      satelliteMap = window.L.map(mapNode).setView([-9.5, -76.1], 8);
+      // Esri World Topographic Map no usa una API key del cliente en esta capa pública.
+      const tiles = window.L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+        {
+          maxZoom: 17,
+          attribution: "Tiles &copy; Esri, HERE, Garmin, FAO, NOAA, USGS",
+        },
+      ).addTo(satelliteMap);
+      // Si el proveedor bloquea la carga, conservar el mapa y los marcadores;
+      // evita mosaicos de error que cubren las observaciones.
+      let tileErrors = 0;
+      tiles.on("tileerror", () => {
+        tileErrors++;
+        if (tileErrors === 3) {
+          satelliteMap.removeLayer(tiles);
+          mapNode.style.background =
+            "repeating-linear-gradient(0deg,transparent,transparent 69px,#255344 70px),repeating-linear-gradient(90deg,transparent,transparent 69px,#255344 70px),#123c2d";
+          const info = document.createElement("div");
+          info.textContent =
+            "Mapa base temporalmente no disponible. Las ubicaciones satelitales siguen visibles.";
+          info.style.cssText =
+            "position:absolute;top:8px;right:8px;z-index:500;color:#def5e4;background:#0a241bcc;border-radius:6px;padding:7px;font-size:11px;max-width:240px";
+          mapNode.append(info);
+        }
+      });
+      satelliteLayer = window.L.layerGroup().addTo(satelliteMap);
+      refreshSatellite();
+    })
+    .catch(() => {
+      const target = dashboard.querySelector("#bosqyn-satellite-map");
+      if (!disposed)
+        target.textContent =
+          "No se pudo cargar el mapa. Revisa la conexión de internet.";
+    });
+  refreshSatellite();
+  satelliteTimer = setInterval(refreshSatellite, 60000);
 
-const button=root.querySelector('#btn-live'),image=root.querySelector('#live-img'),badge=root.querySelector('#live-badge'),soundButton=root.querySelector('#btn-sound');
-const status=document.createElement('div');status.className='bosqyn-camera-status';status.setAttribute('role','status');status.textContent='Un solo botón inicia la webcam y su micrófono disponible. Las detecciones requieren verificación.';root.prepend(status);
-const audioController=Bosqyn.audio && typeof Bosqyn.audio.mount==='function' ? Bosqyn.audio.mount(root) : null;
-const mediaSource=root.querySelector('#combined-source');
-const fused=root.querySelector('#multimodal-insight');
-let lastVisual=null,lastAudio=null;
-function updateJointState(){
-  if(!fused)return;
-  const recent=Date.now()-10000;
-  if(lastVisual?.className?.toLowerCase()==='tala' &&
-     lastAudio?.className?.toLowerCase()==='tala' &&
-     lastVisual.probability>=.8 && lastAudio.probability>=.8 &&
-     lastVisual.timestamp>=recent && lastAudio.timestamp>=recent){
-    fused.textContent='Coincidencia de indicios de tala en cámara y audio: priorizar revisión humana. No confirma ilegalidad.';
-    fused.classList.add('bosqyn-multimodal-warning');
-  }else{
-    fused.textContent='Predicciones independientes de cámara y micrófono. Una coincidencia de tala se destacará aquí.';
-    fused.classList.remove('bosqyn-multimodal-warning');
+  const button = root.querySelector("#btn-live"),
+    image = root.querySelector("#live-img"),
+    badge = root.querySelector("#live-badge"),
+    soundButton = root.querySelector("#btn-sound");
+  const status = document.createElement("div");
+  status.className = "bosqyn-camera-status";
+  status.setAttribute("role", "status");
+  status.textContent =
+    "Un solo botón inicia la webcam y su micrófono disponible. Las detecciones requieren verificación.";
+  root.prepend(status);
+  const audioController =
+    Bosqyn.audio && typeof Bosqyn.audio.mount === "function"
+      ? Bosqyn.audio.mount(root)
+      : null;
+  const mediaSource = root.querySelector("#combined-source");
+  const fused = root.querySelector("#multimodal-insight");
+  let lastVisual = null,
+    lastAudio = null;
+  function updateJointState() {
+    if (!fused) return;
+    const recent = Date.now() - 10000;
+    if (
+      lastVisual?.className?.toLowerCase() === "tala" &&
+      lastAudio?.className?.toLowerCase() === "tala" &&
+      lastVisual.probability >= 0.8 &&
+      lastAudio.probability >= 0.8 &&
+      lastVisual.timestamp >= recent &&
+      lastAudio.timestamp >= recent
+    ) {
+      fused.textContent =
+        "Coincidencia de indicios de tala en cámara y audio: priorizar revisión humana. No confirma ilegalidad.";
+      fused.classList.add("bosqyn-multimodal-warning");
+    } else {
+      fused.textContent =
+        "Predicciones independientes de cámara y micrófono. Una coincidencia de tala se destacará aquí.";
+      fused.classList.remove("bosqyn-multimodal-warning");
+    }
   }
-}
-root.addEventListener('bosqyn:visual-detection',event=>{lastVisual=event.detail;updateJointState();});
-root.addEventListener('bosqyn:audio-detection',event=>{lastAudio=event.detail;updateJointState();});
-root.addEventListener('bosqyn:audio-stopped',()=>{lastAudio=null;updateJointState();});
+  root.addEventListener("bosqyn:visual-detection", (event) => {
+    lastVisual = event.detail;
+    updateJointState();
+  });
+  root.addEventListener("bosqyn:audio-detection", (event) => {
+    lastAudio = event.detail;
+    updateJointState();
+  });
+  root.addEventListener("bosqyn:audio-stopped", () => {
+    lastAudio = null;
+    updateJointState();
+  });
 
-let stream=null,video=null,starting=false,sound=true,mediaSession=0;
-const cleanupOperations=Bosqyn.operations?.mount(root,()=>video);
-async function selectCameraMicrophone(opened){
-  const camera=opened.getVideoTracks()[0],mic=opened.getAudioTracks()[0];
-  if(!camera||!mic)return 'Solo cámara';
-  try{
-    const devices=await navigator.mediaDevices.enumerateDevices();
-    const videoInfo=devices.find(d=>d.kind==='videoinput'&&d.deviceId===camera.getSettings().deviceId);
-    const matched=videoInfo?.groupId && devices.find(d=>d.kind==='audioinput'&&d.groupId===videoInfo.groupId);
-    if(!matched)return 'Cámara + micrófono predeterminado';
-    if(matched.deviceId===mic.getSettings().deviceId)return 'Webcam con micrófono integrado';
-    const other=await navigator.mediaDevices.getUserMedia({video:false,audio:{deviceId:{exact:matched.deviceId},echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
-    const track=other.getAudioTracks()[0];
-    if(!track){other.getTracks().forEach(t=>t.stop());return 'Cámara + micrófono predeterminado';}
-    opened.removeTrack(mic);mic.stop();opened.addTrack(track);
-    return 'Webcam con micrófono integrado';
-  }catch(error){
-    console.info('Usando micrófono predeterminado:',error);
-    return 'Cámara + micrófono predeterminado';
+  let stream = null,
+    video = null,
+    starting = false,
+    sound = true,
+    mediaSession = 0;
+  const cleanupOperations = Bosqyn.operations?.mount(root, () => video);
+  async function selectCameraMicrophone(opened) {
+    const camera = opened.getVideoTracks()[0],
+      mic = opened.getAudioTracks()[0];
+    if (!camera || !mic) return "Solo cámara";
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInfo = devices.find(
+        (d) =>
+          d.kind === "videoinput" &&
+          d.deviceId === camera.getSettings().deviceId,
+      );
+      const matched =
+        videoInfo?.groupId &&
+        devices.find(
+          (d) => d.kind === "audioinput" && d.groupId === videoInfo.groupId,
+        );
+      if (!matched) return "Cámara + micrófono predeterminado";
+      if (matched.deviceId === mic.getSettings().deviceId)
+        return "Webcam con micrófono integrado";
+      const other = await navigator.mediaDevices.getUserMedia({
+        video: false,
+        audio: {
+          deviceId: { exact: matched.deviceId },
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        },
+      });
+      const track = other.getAudioTracks()[0];
+      if (!track) {
+        other.getTracks().forEach((t) => t.stop());
+        return "Cámara + micrófono predeterminado";
+      }
+      opened.removeTrack(mic);
+      mic.stop();
+      opened.addTrack(track);
+      return "Webcam con micrófono integrado";
+    } catch (error) {
+      console.info("Usando micrófono predeterminado:", error);
+      return "Cámara + micrófono predeterminado";
+    }
   }
-}
 
-function stop(){mediaSession++;if(Bosqyn.vision)Bosqyn.vision.reset(root);lastVisual=null;lastAudio=null;updateJointState();if(audioController?.stopAudio)audioController.stopAudio();if(Bosqyn.vision)Bosqyn.vision.stop();if(stream)stream.getTracks().forEach(track=>track.stop());stream=null;if(video){video.pause();video.srcObject=null;video.remove();video=null}if(image)image.style.display='';if(badge)badge.style.display='none';if(mediaSource)mediaSource.textContent='Cámara y micrófono inactivos';if(button)button.innerHTML=Bosqyn.icons.play+' Iniciar cámara y audio'}
-async function start(){if(starting||stream)return;if(!navigator.mediaDevices?.getUserMedia){status.textContent='La webcam requiere HTTPS o localhost.';status.classList.add('bosqyn-camera-error');return}
-starting=true;const session=++mediaSession;button.disabled=true;
-try{
-let opened=null,sourceLabel='Webcam + micrófono';
-try{
-  opened=await navigator.mediaDevices.getUserMedia({video:true,audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
-  sourceLabel=await selectCameraMicrophone(opened);
-}catch(micError){
-  if(opened)opened.getTracks().forEach(t=>t.stop());
-  opened=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
-  sourceLabel='Solo webcam · micrófono no disponible';
-}
-if(!root.isConnected||disposed||session!==mediaSession){opened.getTracks().forEach(track=>track.stop());return}
-stream=opened;video=document.createElement('video');video.className=image.className;video.autoplay=true;video.playsInline=true;video.muted=true;video.style.width='100%';video.style.height='100%';video.style.objectFit='cover';image.after(video);video.srcObject=stream;await video.play();image.style.display='none';if(badge)badge.style.display='';button.innerHTML=Bosqyn.icons.square+' Detener monitoreo';if(mediaSource)mediaSource.textContent=sourceLabel;status.classList.remove('bosqyn-camera-error');status.textContent='Webcam encendida. Iniciando el modelo de visión…';if(Bosqyn.vision)Bosqyn.vision.start(video,root,status);
-if(opened.getAudioTracks().some(t=>t.readyState==='live')&&audioController?.startWithStream){
-  audioController.startWithStream(opened).then(ok=>{
-    if(!ok&&stream===opened){opened.getAudioTracks().forEach(t=>t.stop());if(mediaSource)mediaSource.textContent='Solo webcam · micrófono no habilitado';}
-  }).catch(error=>console.error('Detector acústico:',error));
-}
-}catch(err){stop();status.textContent='No se pudo abrir la webcam. Revisa permisos.';status.classList.add('bosqyn-camera-error');console.error(err)}finally{starting=false;button.disabled=false}}
-if(button){button.innerHTML=Bosqyn.icons.play+' Iniciar cámara y audio';button.addEventListener('click',()=>{if(stream){stop();status.classList.remove('bosqyn-camera-error');status.textContent='Webcam y micrófono detenidos; inferencia interrumpida.';if(Bosqyn.vision)Bosqyn.vision.reset(root)}else start()})}
-if(badge)badge.style.display='none';
+  function stop() {
+    mediaSession++;
+    if (Bosqyn.vision) Bosqyn.vision.reset(root);
+    lastVisual = null;
+    lastAudio = null;
+    updateJointState();
+    if (audioController?.stopAudio) audioController.stopAudio();
+    if (Bosqyn.vision) Bosqyn.vision.stop();
+    if (stream) stream.getTracks().forEach((track) => track.stop());
+    stream = null;
+    if (video) {
+      video.pause();
+      video.srcObject = null;
+      video.remove();
+      video = null;
+    }
+    if (image) image.style.display = "";
+    if (badge) badge.style.display = "none";
+    if (mediaSource) mediaSource.textContent = "Cámara y micrófono inactivos";
+    if (button)
+      button.innerHTML = Bosqyn.icons.play + " Iniciar cámara y audio";
+  }
+  async function start() {
+    if (starting || stream) return;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      status.textContent = "La webcam requiere HTTPS o localhost.";
+      status.classList.add("bosqyn-camera-error");
+      return;
+    }
+    starting = true;
+    const session = ++mediaSession;
+    button.disabled = true;
+    try {
+      let opened = null,
+        sourceLabel = "Webcam + micrófono";
+      try {
+        opened = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          },
+        });
+        sourceLabel = await selectCameraMicrophone(opened);
+      } catch (micError) {
+        if (opened) opened.getTracks().forEach((t) => t.stop());
+        opened = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+        sourceLabel = "Solo webcam · micrófono no disponible";
+      }
+      if (!root.isConnected || disposed || session !== mediaSession) {
+        opened.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      stream = opened;
+      video = document.createElement("video");
+      video.className = image.className;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.muted = true;
+      video.style.width = "100%";
+      video.style.height = "100%";
+      video.style.objectFit = "cover";
+      image.after(video);
+      video.srcObject = stream;
+      await video.play();
+      image.style.display = "none";
+      if (badge) badge.style.display = "";
+      button.innerHTML = Bosqyn.icons.square + " Detener monitoreo";
+      if (mediaSource) mediaSource.textContent = sourceLabel;
+      status.classList.remove("bosqyn-camera-error");
+      status.textContent = "Webcam encendida. Iniciando el modelo de visión…";
+      if (Bosqyn.vision) Bosqyn.vision.start(video, root, status);
+      if (
+        opened.getAudioTracks().some((t) => t.readyState === "live") &&
+        audioController?.startWithStream
+      ) {
+        audioController
+          .startWithStream(opened)
+          .then((ok) => {
+            if (!ok && stream === opened) {
+              opened.getAudioTracks().forEach((t) => t.stop());
+              if (mediaSource)
+                mediaSource.textContent =
+                  "Solo webcam · micrófono no habilitado";
+            }
+          })
+          .catch((error) => console.error("Detector acústico:", error));
+      }
+    } catch (err) {
+      stop();
+      status.textContent = "No se pudo abrir la webcam. Revisa permisos.";
+      status.classList.add("bosqyn-camera-error");
+      console.error(err);
+    } finally {
+      starting = false;
+      button.disabled = false;
+    }
+  }
+  if (button) {
+    button.innerHTML = Bosqyn.icons.play + " Iniciar cámara y audio";
+    button.addEventListener("click", () => {
+      if (stream) {
+        stop();
+        status.classList.remove("bosqyn-camera-error");
+        status.textContent =
+          "Webcam y micrófono detenidos; inferencia interrumpida.";
+        if (Bosqyn.vision) Bosqyn.vision.reset(root);
+      } else start();
+    });
+  }
+  if (badge) badge.style.display = "none";
 
-if(soundButton)soundButton.addEventListener('click',()=>{sound=!sound;Bosqyn.operations?.setSound(sound);let knob=soundButton.firstElementChild;soundButton.classList.toggle('bg-[#22c55e]',sound);soundButton.classList.toggle('bg-white/15',!sound);if(knob){knob.classList.toggle('left-[14px]',sound);knob.classList.toggle('left-[2px]',!sound)}status.textContent='Sonido '+(sound?'activado':'desactivado')+'. Los avisos del navegador se configuran arriba.'});
-// Se limpian las pistas de video y audio al abandonar Monitoreo.
-return function(){disposed=true;if(satelliteTimer)clearInterval(satelliteTimer);if(satelliteMap)satelliteMap.remove();if(cleanupOperations)cleanupOperations();stop();if(typeof audioController==='function')audioController();};
+  if (soundButton)
+    soundButton.addEventListener("click", () => {
+      sound = !sound;
+      Bosqyn.operations?.setSound(sound);
+      let knob = soundButton.firstElementChild;
+      soundButton.classList.toggle("bg-[#22c55e]", sound);
+      soundButton.classList.toggle("bg-white/15", !sound);
+      if (knob) {
+        knob.classList.toggle("left-[14px]", sound);
+        knob.classList.toggle("left-[2px]", !sound);
+      }
+      status.textContent =
+        "Sonido " +
+        (sound ? "activado" : "desactivado") +
+        ". Los avisos del navegador se configuran arriba.";
+    });
+  // Se limpian las pistas de video y audio al abandonar Monitoreo.
+  return function () {
+    disposed = true;
+    if (satelliteTimer) clearInterval(satelliteTimer);
+    if (satelliteMap) satelliteMap.remove();
+    if (cleanupOperations) cleanupOperations();
+    stop();
+    if (typeof audioController === "function") audioController();
+  };
 };

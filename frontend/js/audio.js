@@ -2,18 +2,39 @@
 window.Bosqyn = window.Bosqyn || {};
 Bosqyn.audio = (() => {
   "use strict";
-  const iconByLabel = value => {
-    const s = String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (s === "tala" || /motosierra|chainsaw|maquinaria[_\s-]*(?:forestal|deforestacion)/.test(s)) return "Tala.png";
+  const iconByLabel = (value) => {
+    const s = String(value || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+    if (
+      s === "tala" ||
+      /motosierra|chainsaw|maquinaria[_\s-]*(?:forestal|deforestacion)/.test(s)
+    )
+      return "Tala.png";
     return "Bosque.png";
   };
-  const potentiallyLogging = value => {
-    const s = String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    return /motosierra|chainsaw|maquinaria[_\s-]*(?:forestal|deforestacion)|tala[_\s-]*mecanica|corte[_\s-]*de[_\s-]*arbol/.test(s);
+  const potentiallyLogging = (value) => {
+    const s = String(value || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+    return /motosierra|chainsaw|maquinaria[_\s-]*(?:forestal|deforestacion)|tala[_\s-]*mecanica|corte[_\s-]*de[_\s-]*arbol/.test(
+      s,
+    );
   };
-  const escape = value => String(value).replace(/[&<>"']/g, ch => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-  })[ch]);
+  const escape = (value) =>
+    String(value).replace(
+      /[&<>"']/g,
+      (ch) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[ch],
+    );
   const MODEL_URL = "/api/audio/model-info";
   const PREDICT_URL = "/api/audio/predict";
   const TARGET_RATE = 16000;
@@ -21,14 +42,16 @@ Bosqyn.audio = (() => {
   let activeCleanup = null;
 
   function downsample(source, sourceRate, targetRate = TARGET_RATE) {
-    if (sourceRate < targetRate) throw new Error("Micrófono con frecuencia insuficiente.");
-    const count = Math.round(source.length * targetRate / sourceRate);
+    if (sourceRate < targetRate)
+      throw new Error("Micrófono con frecuencia insuficiente.");
+    const count = Math.round((source.length * targetRate) / sourceRate);
     const result = new Int16Array(count);
     for (let i = 0; i < count; i++) {
-      const offset = i * sourceRate / targetRate;
+      const offset = (i * sourceRate) / targetRate;
       const left = Math.min(source.length - 1, Math.floor(offset));
       const right = Math.min(source.length - 1, left + 1);
-      const sample = source[left] * (1 - (offset - left)) + source[right] * (offset - left);
+      const sample =
+        source[left] * (1 - (offset - left)) + source[right] * (offset - left);
       const clipped = Math.max(-1, Math.min(1, sample));
       result[i] = clipped < 0 ? clipped * 32768 : clipped * 32767;
     }
@@ -36,11 +59,32 @@ Bosqyn.audio = (() => {
   }
 
   function wavBase64(pcm) {
-    const buffer=new ArrayBuffer(44+pcm.length*2),view=new DataView(buffer);
-    const text=(offset,value)=>{for(let i=0;i<value.length;i++)view.setUint8(offset+i,value.charCodeAt(i));};
-    text(0,'RIFF');view.setUint32(4,36+pcm.length*2,true);text(8,'WAVE');text(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);view.setUint32(24,16000,true);view.setUint32(28,32000,true);view.setUint16(32,2,true);view.setUint16(34,16,true);text(36,'data');view.setUint32(40,pcm.length*2,true);
-    for(let i=0;i<pcm.length;i++)view.setInt16(44+i*2,pcm[i],true);
-    const bytes=new Uint8Array(buffer);let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(binary);
+    const buffer = new ArrayBuffer(44 + pcm.length * 2),
+      view = new DataView(buffer);
+    const text = (offset, value) => {
+      for (let i = 0; i < value.length; i++)
+        view.setUint8(offset + i, value.charCodeAt(i));
+    };
+    text(0, "RIFF");
+    view.setUint32(4, 36 + pcm.length * 2, true);
+    text(8, "WAVE");
+    text(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, 16000, true);
+    view.setUint32(28, 32000, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    text(36, "data");
+    view.setUint32(40, pcm.length * 2, true);
+    for (let i = 0; i < pcm.length; i++)
+      view.setInt16(44 + i * 2, pcm[i], true);
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 8192)
+      binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+    return btoa(binary);
   }
 
   function mount(root) {
@@ -88,7 +132,9 @@ Bosqyn.audio = (() => {
     }
 
     function render(predictions) {
-      const ordered = [...predictions].sort((a, b) => b.probability - a.probability);
+      const ordered = [...predictions].sort(
+        (a, b) => b.probability - a.probability,
+      );
       bars.replaceChildren();
       // Mostrar solo la categoría con mayor probabilidad, sin cambiar el modelo.
       for (const item of ordered.slice(0, 1)) {
@@ -102,7 +148,10 @@ Bosqyn.audio = (() => {
         const progress = document.createElement("div");
         progress.className = "bosqyn-audio-progress";
         const fill = document.createElement("div");
-        fill.style.width = (100 * Math.max(0, Math.min(1, Number(item.probability) || 0))).toFixed(1) + "%";
+        fill.style.width =
+          (
+            100 * Math.max(0, Math.min(1, Number(item.probability) || 0))
+          ).toFixed(1) + "%";
         progress.append(fill);
         const number = document.createElement("strong");
         number.textContent = (100 * item.probability).toFixed(1) + "%";
@@ -111,26 +160,34 @@ Bosqyn.audio = (() => {
       }
       if (!ordered.length) return;
       const best = ordered[0];
-      root.dispatchEvent(new CustomEvent("bosqyn:audio-detection", {
-        detail: {className:best.className, probability:best.probability, timestamp:Date.now()}
-      }));
+      root.dispatchEvent(
+        new CustomEvent("bosqyn:audio-detection", {
+          detail: {
+            className: best.className,
+            probability: best.probability,
+            timestamp: Date.now(),
+          },
+        }),
+      );
       dominant.textContent = "Clase acústica predominante";
       sentCount++;
       if (observed) observed.textContent = String(sentCount);
       // El backend entrega únicamente Tala/Normal, agregando las 7 salidas originales.
-      if (best.className === "Tala" && best.probability >= .8) {
+      if (best.className === "Tala" && best.probability >= 0.8) {
         streak++;
         if (streak >= 2 && Date.now() - lastWarning > 12000) {
           lastWarning = Date.now();
           if (notice) {
-            notice.textContent = "Indicio acústico de Tala: posibles sonidos de motosierra o maquinaria de deforestación. Requiere verificación humana.";
+            notice.textContent =
+              "Indicio acústico de Tala: posibles sonidos de motosierra o maquinaria de deforestación. Requiere verificación humana.";
             notice.classList.add("risk");
           }
         }
       } else {
         streak = 0;
         if (notice) {
-          notice.textContent = "Sin detección persistente de sonidos asociados a Tala. Normal agrupa otras clases y no garantiza ausencia de riesgos.";
+          notice.textContent =
+            "Sin detección persistente de sonidos asociados a Tala. Normal agrupa otras clases y no garantiza ausencia de riesgos.";
           notice.classList.remove("risk");
         }
       }
@@ -146,21 +203,32 @@ Bosqyn.audio = (() => {
           method: "POST",
           headers: {
             "Content-Type": "application/octet-stream",
-            "X-Bosqyn-Sample-Rate": String(TARGET_RATE)
+            "X-Bosqyn-Sample-Rate": String(TARGET_RATE),
           },
           body: pcm.buffer,
           signal: abort.signal,
           credentials: "same-origin",
-          cache: "no-store"
+          cache: "no-store",
         });
         const payload = await result.json();
-        if (!result.ok) throw new Error(payload.error || "Servicio de audio no disponible");
+        if (!result.ok)
+          throw new Error(payload.error || "Servicio de audio no disponible");
         if (!running || !root.isConnected) return;
-        if (!Array.isArray(payload.predictions) || payload.predictions.length !== 2 ||
-            !["Tala", "Normal"].every(label => payload.predictions.some(p => p.className === label)))
-          throw new Error("El servidor no devuelve las clases acústicas Tala y Normal");
+        if (
+          !Array.isArray(payload.predictions) ||
+          payload.predictions.length !== 2 ||
+          !["Tala", "Normal"].every((label) =>
+            payload.predictions.some((p) => p.className === label),
+          )
+        )
+          throw new Error(
+            "El servidor no devuelve las clases acústicas Tala y Normal",
+          );
         render(payload.predictions);
-        setState("Micrófono activo: análisis acústico local + inferencia en Python. Solo se guardan clips vinculados a una alerta de amenaza.", "ready");
+        setState(
+          "Micrófono activo: análisis acústico local + inferencia en Python. Solo se guardan clips vinculados a una alerta de amenaza.",
+          "ready",
+        );
       } catch (error) {
         if (!running || error.name === "AbortError") return;
         setState("No se pudo clasificar audio: " + error.message, "error");
@@ -177,14 +245,18 @@ Bosqyn.audio = (() => {
       gathered = 0;
       streak = 0;
       abort?.abort();
-      if (processor) {processor.onaudioprocess = null; processor.disconnect();}
+      if (processor) {
+        processor.onaudioprocess = null;
+        processor.disconnect();
+      }
       if (source) source.disconnect();
       if (silence) silence.disconnect();
       // En modo compartido NO detenemos la pista de video. El audio sí se
       // detiene por privacidad al pulsar Detener o salir de Monitoreo.
-      stream?.getAudioTracks().forEach(track => track.stop());
+      stream?.getAudioTracks().forEach((track) => track.stop());
       const oldContext = context;
-      if (oldContext && oldContext.state !== "closed") oldContext.close().catch(() => {});
+      if (oldContext && oldContext.state !== "closed")
+        oldContext.close().catch(() => {});
       stream = null;
       sharedWithCamera = false;
       context = null;
@@ -197,21 +269,39 @@ Bosqyn.audio = (() => {
     }
 
     async function startMic(providedStream = null) {
-      if (startPending || running || (!available && !providedStream)) return false;
+      if (startPending || running || (!available && !providedStream))
+        return false;
       startPending = true;
       if (start) start.disabled = true;
       setState("Solicitando permiso al micrófono…");
       try {
         if (!navigator.mediaDevices?.getUserMedia)
-          throw new Error("Se requiere HTTPS o localhost para utilizar el micrófono.");
-        const sharing = !!(providedStream && typeof providedStream.getAudioTracks === "function");
-        const opened = sharing ? providedStream : await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
-          video: false
-        });
-        if (!opened.getAudioTracks().some(track => track.readyState === "live"))
-          throw new Error("La cámara no proporcionó audio. Activa un micrófono disponible.");
-        if (!root.isConnected) {opened.getTracks().forEach(t => t.stop()); return;}
+          throw new Error(
+            "Se requiere HTTPS o localhost para utilizar el micrófono.",
+          );
+        const sharing = !!(
+          providedStream && typeof providedStream.getAudioTracks === "function"
+        );
+        const opened = sharing
+          ? providedStream
+          : await navigator.mediaDevices.getUserMedia({
+              audio: {
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false,
+              },
+              video: false,
+            });
+        if (
+          !opened.getAudioTracks().some((track) => track.readyState === "live")
+        )
+          throw new Error(
+            "La cámara no proporcionó audio. Activa un micrófono disponible.",
+          );
+        if (!root.isConnected) {
+          opened.getTracks().forEach((t) => t.stop());
+          return;
+        }
         stream = opened;
         sharedWithCamera = sharing;
         const Context = window.AudioContext || window.webkitAudioContext;
@@ -219,7 +309,8 @@ Bosqyn.audio = (() => {
         context = new Context();
         await context.resume();
         source = context.createMediaStreamSource(stream);
-        if (!context.createScriptProcessor) throw new Error("Este navegador no admite la captura PCM requerida.");
+        if (!context.createScriptProcessor)
+          throw new Error("Este navegador no admite la captura PCM requerida.");
         processor = context.createScriptProcessor(4096, 1, 1);
         silence = context.createGain();
         silence.gain.value = 0;
@@ -229,7 +320,7 @@ Bosqyn.audio = (() => {
         chunks = [];
         gathered = 0;
         running = true;
-        processor.onaudioprocess = event => {
+        processor.onaudioprocess = (event) => {
           if (!running) return;
           const input = event.inputBuffer.getChannelData(0);
           const copy = new Float32Array(input);
@@ -238,18 +329,28 @@ Bosqyn.audio = (() => {
           if (gathered < context.sampleRate * DURATION) return;
           const whole = new Float32Array(gathered);
           let offset = 0;
-          for (const part of chunks) {whole.set(part, offset);offset += part.length;}
+          for (const part of chunks) {
+            whole.set(part, offset);
+            offset += part.length;
+          }
           chunks = [];
           gathered = 0;
           const pcm = downsample(whole, context.sampleRate);
-          root.dispatchEvent(new CustomEvent('bosqyn:audio-clip',{detail:{audio_data:wavBase64(pcm),timestamp:Date.now()}}));
+          root.dispatchEvent(
+            new CustomEvent("bosqyn:audio-clip", {
+              detail: { audio_data: wavBase64(pcm), timestamp: Date.now() },
+            }),
+          );
           if (available && !inflight) analyze(whole, context.sampleRate);
         };
         if (stop) stop.disabled = false;
         if (signal) signal.classList.add("on");
-        setState(sharing
-          ? "Imagen y sonido activados desde el monitoreo conjunto. El video no se envía al servidor."
-          : "Micrófono encendido. Analizando fragmentos de tres segundos.", "ready");
+        setState(
+          sharing
+            ? "Imagen y sonido activados desde el monitoreo conjunto. El video no se envía al servidor."
+            : "Micrófono encendido. Analizando fragmentos de tres segundos.",
+          "ready",
+        );
         return true;
       } catch (error) {
         stopMic();
@@ -263,39 +364,67 @@ Bosqyn.audio = (() => {
 
     async function checkModel() {
       try {
-        const response = await fetch(MODEL_URL, {cache:"no-store"});
+        const response = await fetch(MODEL_URL, { cache: "no-store" });
         const info = await response.json();
-        if (!response.ok) throw new Error("No se puede consultar el motor acústico");
+        if (!response.ok)
+          throw new Error("No se puede consultar el motor acústico");
         available = !!info.available;
-        availability.textContent = available ? "Modelo acústico listo" :
-          info.asset_present ? "Modelo detectado · configuración pendiente" : "Modelo acústico no encontrado";
-        availability.className = "bosqyn-audio-badge" + (available ? " ready" : "");
-        if (privacy) privacy.textContent = (info.reason || "Modelo acústico configurado.") + " Tala agrupa MOTOSIERRA y MAQUINARIA_DEFORESTACION. Normal agrupa las otras cinco clases; se trata de una reclasificación, no un entrenamiento nuevo.";
+        availability.textContent = available
+          ? "Modelo acústico listo"
+          : info.asset_present
+            ? "Modelo detectado · configuración pendiente"
+            : "Modelo acústico no encontrado";
+        availability.className =
+          "bosqyn-audio-badge" + (available ? " ready" : "");
+        if (privacy)
+          privacy.textContent =
+            (info.reason || "Modelo acústico configurado.") +
+            " Tala agrupa MOTOSIERRA y MAQUINARIA_DEFORESTACION. Normal agrupa las otras cinco clases; se trata de una reclasificación, no un entrenamiento nuevo.";
         if (start) start.disabled = !available;
         if (bars) {
           bars.replaceChildren();
           const waiting = document.createElement("p");
           waiting.className = "bosqyn-audio-placeholder";
-          waiting.textContent = "Esperando sonido para mostrar la detección principal…";
+          waiting.textContent =
+            "Esperando sonido para mostrar la detección principal…";
           bars.append(waiting);
         }
-        setState(available ? "Preparado. Pulsa «Iniciar micrófono»." : "Reconocimiento acústico no disponible: " + (info.reason || "Configuración pendiente"), available ? "ready" : "");
+        setState(
+          available
+            ? "Preparado. Pulsa «Iniciar micrófono»."
+            : "Reconocimiento acústico no disponible: " +
+                (info.reason || "Configuración pendiente"),
+          available ? "ready" : "",
+        );
       } catch (error) {
         available = false;
         if (start) start.disabled = true;
-        if (availability) availability.textContent = "Sin conexión al motor acústico";
+        if (availability)
+          availability.textContent = "Sin conexión al motor acústico";
         setState(error.message, "error");
       }
     }
     start?.addEventListener("click", () => startMic());
-    stop?.addEventListener("click", () => {stopMic();setState("Micrófono detenido.");});
+    stop?.addEventListener("click", () => {
+      stopMic();
+      setState("Micrófono detenido.");
+    });
     const ready = checkModel();
-    const cleanup = () => {stopMic();if(activeCleanup === cleanup) activeCleanup = null;};
+    const cleanup = () => {
+      stopMic();
+      if (activeCleanup === cleanup) activeCleanup = null;
+    };
     // Monitoreo usa UNA sola solicitud a getUserMedia para cámara + micrófono.
     // La sección Audio forestal puede seguir usándose por sí sola.
-    cleanup.startWithStream = async mediaStream => {
+    cleanup.startWithStream = async (mediaStream) => {
       await ready;
-      if (!root.isConnected || !mediaStream?.getAudioTracks()?.some(track => track.readyState === "live")) return false;
+      if (
+        !root.isConnected ||
+        !mediaStream
+          ?.getAudioTracks()
+          ?.some((track) => track.readyState === "live")
+      )
+        return false;
       return startMic(mediaStream);
     };
     cleanup.stopAudio = stopMic;
