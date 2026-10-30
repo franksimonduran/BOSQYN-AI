@@ -15,7 +15,8 @@ Bosqyn.pages.estadisticas = function (root) {
   let active = true,
     controller = null,
     sequence = 0,
-    demo = false;
+    demo = false,
+    initialized = false;
 
   function syncMode() {
     toggle.textContent = demo ? "Volver a datos reales" : "Ver demostración";
@@ -34,12 +35,9 @@ Bosqyn.pages.estadisticas = function (root) {
     const run = ++sequence;
     if (controller) controller.abort();
     controller = new AbortController();
-    const mode = demo;
     button.disabled = true;
     toggle.disabled = true;
-    message.textContent = mode
-      ? "Cargando el gráfico de demostración con datos simulados…"
-      : "Actualizando registros desde Python y el gráfico Matplotlib…";
+    message.textContent = "Consultando registros y preparando el gráfico Matplotlib…";
     try {
       // Siempre se leen los datos reales para los indicadores de cabecera.
       // Los valores ficticios jamás se escriben en SQLite.
@@ -51,6 +49,16 @@ Bosqyn.pages.estadisticas = function (root) {
         throw new Error("El servidor no pudo entregar estadísticas");
       const data = await response.json();
       if (!active || run !== sequence) return;
+      // Sin registros reales: el primer gráfico se muestra en modo demo,
+      // señalado explícitamente. Los contadores mantienen el valor real (cero).
+      if (!initialized) {
+        initialized = true;
+        if ((Number(data.total) || 0) === 0) {
+          demo = true;
+          syncMode();
+        }
+      }
+      const mode = demo;
       const counts = data.by_status || {};
       total.textContent = String(data.total || 0);
       pending.textContent = String(counts.PENDIENTE || 0);
