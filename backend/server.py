@@ -551,8 +551,8 @@ class BosqynHandler(SimpleHTTPRequestHandler):
                 if not 0 < len(image) <= MAX_IMAGE_BYTES:
                     raise ValueError("Imagen vacía o demasiado grande")
                 ext=extensions[prefix]
-                if not ((ext=="jpg" and image.startswith(b"\\xff\\xd8\\xff")) or
-                        (ext=="png" and image.startswith(b"\\x89PNG\\r\\n\\x1a\\n"))):
+                if not ((ext=="jpg" and image.startswith(b"\xff\xd8\xff")) or
+                        (ext=="png" and image.startswith(b"\x89PNG\r\n\x1a\n"))):
                     raise ValueError("Firma de imagen incorrecta")
                 evidence=self.store.add_drone_visual_incident(category,confidence,image,ext)
                 point=self.server.satellite_store.record_drone_detection(name,category,confidence,evidence["id"])
