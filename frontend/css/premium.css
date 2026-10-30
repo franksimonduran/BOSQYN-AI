@@ -40,3 +40,14 @@ nav[aria-label="Navegación principal"] button:focus-visible{outline-offset:1px}
 @media(max-width:900px){.bosqyn-unified-grid{grid-template-columns:minmax(0,1fr)}.bosqyn-live-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){#view{padding-left:11px;padding-right:11px}.bosqyn-brand-hero{border-radius:12px}.bosqyn-live-metrics{gap:8px}.bosqyn-detection-options{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.bosqyn-detection-options a{min-width:0;padding:10px}.bosqyn-unified-camera{min-height:190px}.bosqyn-unified-results{padding:13px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}button,a{transition:none}.bosqyn-detection-options a:hover{transform:none}}
+
+/* Estadísticas: conmutador de ejemplos sin confundir con el historial real */
+.bosqyn-stats-actions{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.bosqyn-stats-actions button{min-height:34px;white-space:nowrap}
+#stats-demo-toggle{background:rgba(195,132,45,.11);border-color:rgba(251,190,88,.48);color:#ffdda5}
+#stats-demo-toggle[aria-pressed="true"]{background:#6b451f;border-color:#e7b668;color:#fff1d3;box-shadow:0 0 0 1px rgba(239,190,106,.1)}
+.bosqyn-stats-demo-notice{border:1px solid rgba(246,190,104,.55);background:rgba(97,63,22,.26);color:#ffe0aa;font-size:11px;font-weight:700;line-height:1.55;padding:12px 14px;border-radius:10px;margin:8px 0 12px}
+.bosqyn-stats-demo-notice[hidden]{display:none!important}
+.bosqyn-stats-demo-active .bosqyn-stats-chart{border-color:rgba(245,181,91,.55)}
+.bosqyn-stats-demo-active #stats-period{color:#ffce82;font-weight:750}
+@media(max-width:630px){.bosqyn-stats-chart-header{flex-wrap:wrap;align-items:flex-start}.bosqyn-stats-actions{width:100%;justify-content:flex-start}.bosqyn-stats-actions button{flex:1;min-width:0;white-space:normal}}
