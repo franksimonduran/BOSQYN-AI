@@ -6,6 +6,7 @@ Uses BOSQYN AI's existing SQLite database, with independent additive tables.
 from __future__ import annotations
 import json
 import math
+from contextlib import contextmanager
 import sqlite3
 import threading
 from datetime import datetime, timedelta, timezone
@@ -97,11 +98,16 @@ class SatelliteStore:
                 c.execute("INSERT INTO forest_zones(name,west,south,east,north,created_at) VALUES(?,?,?,?,?,?)",
                           ("Cobertura inicial · Huánuco", *DEFAULT_BBOX, utcnow()))
 
+    @contextmanager
     def connect(self):
         c = sqlite3.connect(self.database, timeout=10)
         c.row_factory = sqlite3.Row
         c.execute("PRAGMA foreign_keys=ON")
-        return c
+        try:
+            with c:
+                yield c
+        finally:
+            c.close()
 
     def zones(self):
         with self.lock, self.connect() as c:
