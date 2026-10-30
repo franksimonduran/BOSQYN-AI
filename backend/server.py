@@ -168,8 +168,10 @@ class BosqynHandler(SimpleHTTPRequestHandler):
         target = urlsplit(self.path)
         route = target.path
         if route == "/api/satellite/status":
+            if not self.require_access(): return
             return self.json_response(200, satellite.status())
         if route == "/api/satellite/events":
+            if not self.require_access(): return
             return self.json_response(200, satellite.events())
         if route == "/api/satellite/zones":
             if not self.require_access(): return
