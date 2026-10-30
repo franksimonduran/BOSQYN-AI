@@ -109,26 +109,21 @@ class OperationsTests(unittest.TestCase):
         )
         self.assertEqual(len(self.store.list_alerts(limit=1, offset=1)["items"]), 1)
 
-    def test_satellite_window_removes_stale_and_invalid(self):
+    def test_satellite_window_filters_persisted_observations(self):
+        from backend.satellite_store import SatelliteStore
+        data = SatelliteStore(self.store.database)
         now = datetime.now(timezone.utc)
-        with satellite._lock:
-            previous = copy.deepcopy(satellite._events)
-            try:
-                satellite._events.clear()
-                satellite._events.update(
-                    {
-                        "old": {
-                            "id": "old",
-                            "time": (now - timedelta(days=2)).isoformat(),
-                        },
-                        "bad": {"id": "bad", "time": "invalid"},
-                        "new": {"id": "new", "time": now.isoformat()},
-                    }
-                )
-                self.assertEqual(
-                    [x["id"] for x in satellite.events()["events"]], ["new"]
-                )
-                self.assertEqual(satellite.status()["window_hours"], 24)
-            finally:
-                satellite._events.clear()
-                satellite._events.update(previous)
+        old = (now - timedelta(days=2)).isoformat()
+        recent = now.isoformat()
+        samples = [
+            {"id": "old", "source": "NASA FIRMS", "lat": -9.5, "lon": -76.0,
+             "time": old, "product": "VIIRS_NOAA20_NRT", "product_ref": "old"},
+            {"id": "recent", "source": "NASA FIRMS", "lat": -9.5, "lon": -76.0,
+             "time": recent, "product": "VIIRS_NOAA20_NRT", "product_ref": "recent"},
+        ]
+        self.assertEqual(data.upsert(samples), 2)
+        self.assertEqual(data.upsert(samples), 0)
+        cutoff = (now - timedelta(hours=24)).isoformat()
+        self.assertEqual([x["id"] for x in data.observations(since=cutoff)], ["recent"])
+        with self.assertRaises(ValueError):
+            data.upsert([{**samples[0], "id": "bad", "time": "invalid"}])
