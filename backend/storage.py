@@ -248,35 +248,6 @@ class EvidenceStore:
                 raise
         return {**self.to_public(row), "duplicate": False}
 
-    def add_drone_visual_incident(self, category, confidence, image_bytes, extension):
-        """Save real model frame as unverified drone evidence with DRON_VISUAL source."""
-        if category not in {"HUMO", "INCENDIO", "TALA"}:
-            raise ValueError("Categoría visual del dron no admitida")
-        if (isinstance(confidence, bool) or not isinstance(confidence, (int, float))
-                or not math.isfinite(confidence) or not 0.85 <= confidence <= 1.0):
-            raise ValueError("Confianza insuficiente o inválida")
-        if extension not in {"jpg", "png"}:
-            raise ValueError("Extensión de evidencia inválida")
-        now = datetime.now(timezone.utc)
-        filename = f"{uuid4().hex}.{extension}"
-        path = self.image_dir / filename
-        with self.connect() as conn:
-            conn.execute("BEGIN IMMEDIATE")
-            # A different drone must never inherit another drone's photo/GPS.
-            # Request-level cooldown is enforced per drone and category in the API.
-            path.write_bytes(image_bytes)
-            try:
-                cur = conn.execute(
-                    "INSERT INTO alerts(category,source,confidence,status,occurred_at,evidence_filename) "
-                    "VALUES (?, 'DRON_VISUAL', ?, 'PENDIENTE', ?, ?)",
-                    (category, confidence, now.isoformat(), filename),
-                )
-                row = conn.execute("SELECT * FROM alerts WHERE id=?", (cur.lastrowid,)).fetchone()
-            except Exception:
-                path.unlink(missing_ok=True)
-                raise
-        return {**self.to_public(row), "duplicate": False}
-
     def export_backup(self):
         records = []
         size = 0

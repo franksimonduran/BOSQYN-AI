@@ -21,7 +21,6 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from . import satellite
-from .satellite_store import SatelliteStore
 from .storage import EvidenceStore, validate_wav
 from .auth import AdminAuth
 from .audio_model import AudioModel
@@ -168,67 +167,9 @@ class BosqynHandler(SimpleHTTPRequestHandler):
         target = urlsplit(self.path)
         route = target.path
         if route == "/api/satellite/status":
-            if not self.require_access(): return
             return self.json_response(200, satellite.status())
         if route == "/api/satellite/events":
-            if not self.require_access(): return
             return self.json_response(200, satellite.events())
-        if route == "/api/satellite/zones":
-            if not self.require_access(): return
-            return self.json_response(200, {"zones":self.server.satellite_store.zones()})
-        if route == "/api/satellite/observations":
-            if not self.require_access(): return
-            query=parse_qs(target.query)
-            try:
-                rows=self.server.satellite_store.observations(
-                    limit=min(500,max(1,int(query.get("limit",["250"])[0]))),
-                    source=query.get("source",[""])[0] or None,
-                    since=query.get("since",[""])[0] or None)
-                return self.json_response(200,{"items":rows})
-            except (ValueError,TypeError):
-                return self.json_response(400,{"error":"Filtros de observaciones inválidos"})
-        if route == "/api/satellite/correlations":
-            if not self.require_access(): return
-            return self.json_response(200,{"items":self.server.satellite_store.correlated()})
-        if route.startswith("/api/drone/media/"):
-            # Local HLS gateway output, never an arbitrary URL/proxy (SSRF-safe).
-            if not self.require_access(): return
-            import re
-            name = route.split("/")[-1]
-            if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,110}",name) or ".." in name:
-                return self.json_response(404,{"error":"Nombre de segmento no permitido"})
-            allowed={".m3u8":"application/vnd.apple.mpegurl",
-                     ".ts":"video/mp2t",".m4s":"video/iso.segment",
-                     ".mp4":"video/mp4"}
-            ext=Path(name).suffix
-            if ext not in allowed:
-                return self.json_response(404,{"error":"Formato de video no admitido"})
-            directory=os.environ.get("BOSQYN_DRONE_MEDIA_DIR","").strip()
-            if not directory:
-                return self.json_response(503,{"error":"No hay pasarela HLS configurada"})
-            target_file=(Path(directory).resolve()/name).resolve()
-            root_dir=Path(directory).resolve()
-            if not target_file.is_relative_to(root_dir) or not target_file.is_file():
-                return self.json_response(404,{"error":"Video no encontrado"})
-            try:
-                size=target_file.stat().st_size
-                if size>20_000_000: return self.json_response(413,{"error":"Segmento demasiado grande"})
-                body=target_file.read_bytes()
-            except OSError:
-                return self.json_response(503,{"error":"No se pudo leer el segmento"})
-            self.send_response(200)
-            self.send_header("Content-Type",allowed[ext])
-            self.send_header("Content-Length",str(len(body)))
-            self.send_header("Cache-Control","no-store")
-            self.send_header("X-Content-Type-Options","nosniff")
-            self.end_headers()
-            return self.wfile.write(body)
-        if route == "/api/drone/telemetry":
-            if not self.require_access(): return
-            return self.json_response(200, {"items":self.server.satellite_store.latest_drone()})
-        if route == "/api/drone/detections":
-            if not self.require_access(): return
-            return self.json_response(200, {"items":self.server.satellite_store.drone_events()})
         if route == "/api/auth/status":
             auth = self.server.auth
             return self.json_response(
@@ -559,74 +500,6 @@ class BosqynHandler(SimpleHTTPRequestHandler):
             return self.logout()
         if route == "/api/audio/predict":
             return self.predict_audio()
-        if route == "/api/drone/detections":
-            if self.writes_forbidden(): return
-            if not self.require_admin(): return
-            try:
-                data = self.read_json()
-                category = str(data.get("category","")).upper().strip()
-                name = str(data.get("drone_name","")).strip()
-                confidence = data.get("confidence")
-                if category not in ("INCENDIO","HUMO","TALA"):
-                    raise ValueError("La detección requiere una clase visual de riesgo")
-                if isinstance(confidence, bool) or not isinstance(confidence,(int,float)) or not 0.85 <= confidence <= 1:
-                    raise ValueError("Confianza visual inválida o inferior al umbral")
-                candidate = next((d for d in self.server.satellite_store.latest_drone()
-                                  if d["drone_name"] == name), None)
-                if candidate is None or time.time() - __import__("datetime").datetime.fromisoformat(
-                    candidate["received_at"]).timestamp() > 180:
-                    raise ValueError("Se necesita GPS reciente del dron, no la ubicación del incendio")
-                uri = data.get("image_data")
-                if not isinstance(uri,str) or "," not in uri:
-                    raise ValueError("Se requiere una captura de video JPEG/PNG")
-                prefix,encoded=uri.split(",",1)
-                extensions={"data:image/jpeg;base64":"jpg","data:image/png;base64":"png"}
-                if prefix not in extensions: raise ValueError("Formato de imagen inválido")
-                image=base64.b64decode(encoded,validate=True)
-                if not 0 < len(image) <= MAX_IMAGE_BYTES:
-                    raise ValueError("Imagen vacía o demasiado grande")
-                ext=extensions[prefix]
-                if not ((ext=="jpg" and image.startswith(b"\xff\xd8\xff")) or
-                        (ext=="png" and image.startswith(b"\x89PNG\r\n\x1a\n"))):
-                    raise ValueError("Firma de imagen incorrecta")
-                with self.server.capture_lock:
-                    now=time.monotonic()
-                    cooldown_key=("drone",name,category)
-                    if now-self.server.capture_last.get(cooldown_key,-1000000)<60:
-                        return self.json_response(429,{"error":"Indicio reciente del mismo dron y categoría; espera 60 segundos"})
-                    self.server.capture_last[cooldown_key]=now
-                    if len(self.server.capture_last)>2000:
-                        self.server.capture_last={
-                            k:v for k,v in self.server.capture_last.items()
-                            if now-v<180
-                        }
-                evidence=self.store.add_drone_visual_incident(category,confidence,image,ext)
-                point=self.server.satellite_store.record_drone_detection(name,category,confidence,evidence["id"])
-                return self.json_response(200 if evidence.get("duplicate") else 201,
-                    {"evidence":evidence,"telemetry":point,"status":"PENDIENTE"})
-            except (ValueError,TypeError,binascii.Error) as exc:
-                return self.json_response(400,{"error":str(exc)})
-            except (OSError,sqlite3.Error):
-                return self.json_response(503,{"error":"No se pudo almacenar la evidencia del dron"})
-        if route in {"/api/satellite/zones", "/api/satellite/refresh", "/api/drone/telemetry"}:
-            if self.writes_forbidden(): return
-            if not self.require_admin(): return
-            try:
-                data=self.read_json()
-                if route == "/api/satellite/zones":
-                    result=self.server.satellite_store.save_zone(data)
-                    return self.json_response(201,result)
-                if route == "/api/drone/telemetry":
-                    result=self.server.satellite_store.record_drone(data)
-                    return self.json_response(201,result)
-                # Avoid background calls from HTTP worker; rate limiting is in satellite.poll.
-                import threading as _threading
-                _threading.Thread(target=satellite.poll,daemon=True,name="bosqyn-satellite-refresh").start()
-                return self.json_response(202,{"status":"Consulta programada si corresponde al intervalo mínimo."})
-            except (ValueError,TypeError) as error:
-                return self.json_response(400,{"error":str(error)})
-            except (OSError,sqlite3.Error):
-                return self.json_response(503,{"error":"Almacenamiento satelital temporalmente no disponible"})
         if self.writes_forbidden():
             return
         if route in {"/api/backup/restore", "/api/retention"}:
@@ -754,10 +627,9 @@ def make_server(
     server = ThreadingHTTPServer(
         (host, port), partial(BosqynHandler, directory=str(frontend_dir))
     )
+    satellite.start()
     server.started_at = time.monotonic()
     server.store = EvidenceStore(data_dir)
-    server.satellite_store = SatelliteStore(server.store.database)
-    satellite.start(server.satellite_store)
     server.auth = AdminAuth(host)
     server.persistent_storage = str(Path(data_dir).resolve()) == "/data" or str(
         Path(data_dir).resolve()
