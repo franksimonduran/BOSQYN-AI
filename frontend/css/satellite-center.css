@@ -1,0 +1,13 @@
+/* Controls for BOSQYN's existing satellite and drone panel. */
+.bosqyn-satellite-tools{margin:12px 0;padding:12px;border-radius:12px;border:1px solid #315942;background:#08281c;color:#e7f9ed}
+.bosqyn-sat-filter,.bosqyn-sat-form{display:flex;align-items:end;gap:9px;flex-wrap:wrap;margin:8px 0}
+.bosqyn-sat-filter label,.bosqyn-sat-stream{display:flex;flex-direction:column;gap:4px;font-size:11px;color:#bce4cc}
+.bosqyn-satellite-tools select,.bosqyn-satellite-tools input{background:#071d16;color:#e5ffed;border:1px solid #345c45;border-radius:7px;padding:8px;font-size:11px;max-width:220px}
+.bosqyn-satellite-tools button{border-radius:7px;border:1px solid #3e9968;background:#0b5836;color:#f0fff3;padding:8px 11px;font-size:11px;cursor:pointer}
+.bosqyn-satellite-tools button:hover{background:#117344}
+.bosqyn-satellite-tools button:focus-visible{outline:2px solid #67ec9d}
+.bosqyn-sat-caption{font-size:10px;color:#b4d1c0;margin:7px 0;line-height:1.5}
+.bosqyn-satellite-tools details{padding:9px 0;margin-top:8px;border-top:1px solid #2b513a;font-size:11px}
+.bosqyn-satellite-tools summary{cursor:pointer;color:#ddf8e8;font-weight:700}
+#sat-video{display:block;width:100%;max-width:720px;max-height:360px;border-radius:9px;margin:12px 0;background:#020805}
+@media(max-width:640px){.bosqyn-sat-filter label{width:calc(50% - 7px)}.bosqyn-sat-filter select,.bosqyn-sat-form input{width:100%;max-width:none}.bosqyn-sat-form{display:grid;grid-template-columns:1fr 1fr}.bosqyn-sat-form input:first-child,.bosqyn-sat-form button{grid-column:1/-1}}
