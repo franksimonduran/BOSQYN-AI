@@ -2,7 +2,7 @@
 window.Bosqyn=window.Bosqyn||{};
 Bosqyn.satelliteCenter=(()=>{
 "use strict";
-let panel=null,map=null,heat=null,dronesLayer=null,cleanup=null,records=[],zones=[],drones=[],active=false;
+let panel=null,map=null,heat=null,dronesLayer=null,cleanup=null,records=[],zones=[],drones=[],active=false,analyzing=false,lastPrediction=null,lastSaved=0,repeatCount=0,lastClass="";
 const $=(id)=>panel?.querySelector("#"+id);
 const asTime=v=>{const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleString("es-PE",{timeZone:"UTC"})+" UTC":"sin dato";};
 async function json(url){const r=await fetch(url,{cache:"no-store",credentials:"same-origin"});if(!r.ok)throw Error("HTTP "+r.status);return r.json();}
@@ -102,7 +102,17 @@ function mount(dashboard,refresh){
  '<label class="bosqyn-sat-stream">Ruta HLS/MP4 del mismo servidor<input id="sat-drone-src" placeholder="/media/dron/live.m3u8" /></label>'+
  '<button type="button" id="sat-play">Abrir video</button> <button type="button" id="sat-stop">Desconectar</button>'+
  '<video id="sat-video" controls muted autoplay playsinline></video>'+
- '<p class="bosqyn-sat-caption">Se necesita una pasarela HLS autorizada; RTSP/WebRTC no se reproducen directamente. Sin señal real no hay IA activa del dron.</p></details>'+
+ '<div id="sat-vision" class="bosqyn-sat-ai">'+
+ '<strong>IA visual del video del dron</strong> <span data-vision-confidence>--</span>'+
+ '<p data-vision-class>ESPERANDO VIDEO REAL</p>'+
+ '<img data-vision-logo src="img/deteccion/Bosque.png" alt="" width="35" height="35"/>'+
+ '<span data-vision-detail>Sin análisis</span> <span data-vision-warning>SIN ANÁLISIS</span>'+
+ '<div class="bosqyn-dominant-progress"><span data-vision-progress></span></div>'+
+ '<p id="sat-vision-status" role="status">La IA solo se inicia con video reproducible.</p></div>'+
+ '<button type="button" id="sat-start-vision">Analizar video con IA</button> '+
+ '<button type="button" id="sat-save-frame">Guardar evidencia con GPS del dron</button>'+
+ '<label class="bosqyn-sat-caption"><input id="sat-auto-detect" type="checkbox" /> Registrar automáticamente indicios repetidos ≥85 % (solo administrador)</label>'+
+ '<p class="bosqyn-sat-caption">El GPS almacenado corresponde al dron, no a la ubicación del incendio. Se necesita una pasarela HLS autorizada; RTSP/WebRTC no se reproducen directamente.</p></details>'+
  '<p id="sat-action" role="status" class="bosqyn-sat-caption"></p>';
  center.insertBefore(section,center.querySelector("#bosqyn-satellite-map"));
  section.querySelectorAll("select").forEach(el=>el.addEventListener("change",render));
@@ -137,12 +147,61 @@ function mount(dashboard,refresh){
    const video=$("sat-video");video.src=url.pathname+url.search;
    video.play().catch(()=>status("El navegador no puede reproducir el flujo; comprueba la pasarela."));
  };
- $("sat-stop").onclick=()=>{const video=$("sat-video");video.pause();video.removeAttribute("src");video.load();status("Video desconectado.");};
+ async function saveFrame(auto=false){
+   const video=$("sat-video"),event=lastPrediction;
+   const klass=String(event?.className||"").trim().toUpperCase();
+   const current=Date.now();
+   if(!video||video.readyState<2||!event||!["HUMO","INCENDIO","TALA"].includes(klass)
+      ||event.probability<0.85||current-event.timestamp>6000){
+     if(!auto)status("No hay una detección visual reciente con confianza ≥85 % y video activo.");
+     return;
+   }
+   const name=$("sat-drone-form").elements.namedItem("drone_name")?.value.trim();
+   const gps=drones.find(d=>d.drone_name===name && current-new Date(d.received_at).getTime()<180000);
+   if(!gps){if(!auto)status("Primero registra GPS reciente para el mismo dron.");return;}
+   if(auto){
+     if(Bosqyn.auth?.role()!=="admin"||current-lastSaved<60000||repeatCount<3)return;
+   }else if(!await Bosqyn.auth?.ensureAdmin("Solo un administrador puede archivar evidencia del dron."))return;
+   try{
+     const canvas=document.createElement("canvas");
+     canvas.width=Math.min(video.videoWidth||0,1280);
+     canvas.height=Math.round((video.videoHeight||0)*(canvas.width/(video.videoWidth||1)));
+     if(!canvas.width||!canvas.height)throw Error("El video aún no tiene fotogramas disponibles");
+     canvas.getContext("2d").drawImage(video,0,0,canvas.width,canvas.height);
+     const frame=canvas.toDataURL("image/jpeg",0.78);
+     const saved=await post("/api/drone/detections",{drone_name:name,category:klass,
+       confidence:event.probability,image_data:frame});
+     lastSaved=current;
+     status("Evidencia "+saved.evidence.id+" guardada como pendiente. Coordenada: GPS del dron, no del incendio.");
+   }catch(err){status("No se guardó evidencia: "+err.message);}
+ }
+ const visionRoot=$("sat-vision");
+ visionRoot.addEventListener("bosqyn:visual-detection",e=>{
+   const item=e.detail;lastPrediction=item;
+   if(lastClass===item.className&&item.probability>=0.85)repeatCount++;
+   else repeatCount=item.probability>=0.85?1:0;
+   lastClass=item.className;
+   if($("sat-auto-detect").checked)saveFrame(true);
+ });
+ function stopVision(){
+   if(analyzing){Bosqyn.vision?.stop();analyzing=false;}
+   lastPrediction=null;repeatCount=0;lastClass="";
+ }
+ $("sat-start-vision").onclick=()=>{
+   const video=$("sat-video");
+   if(analyzing){stopVision();status("Análisis visual del dron detenido.");return;}
+   if(video.readyState<2){status("Conecta primero un video real y reproducible.");return;}
+   if(!Bosqyn.vision?.start){status("Modelo visual no disponible.");return;}
+   Bosqyn.vision.start(video,visionRoot,$("sat-vision-status"));
+   analyzing=true;status("Modelo visual conectado al video. Los porcentajes son predicciones, no precisión.");
+ };
+ $("sat-save-frame").onclick=()=>saveFrame(false);
+ $("sat-stop").onclick=()=>{stopVision();const video=$("sat-video");video.pause();video.removeAttribute("src");video.load();status("Video desconectado.");};
  load();
- cleanup=()=>{active=false;const v=$("sat-video");v?.pause();v?.removeAttribute("src");panel=null;map=null;heat=null;dronesLayer=null;};
+ cleanup=()=>{active=false;stopVision();const v=$("sat-video");v?.pause();v?.removeAttribute("src");panel=null;map=null;heat=null;dronesLayer=null;};
  return cleanup;
 }
 function onMapReady(m){map=m;heat=window.L.layerGroup().addTo(map);dronesLayer=window.L.layerGroup().addTo(map);render();load();}
 function updateEvents(items){records=Array.isArray(items)?items:[];render();}
-return {mount,onMapReady,updateEvents,load};
+return {mount,onMapReady,updateEvents,load,stopVision:()=>{if(analyzing){Bosqyn.vision?.stop();analyzing=false;}}};
 })();
