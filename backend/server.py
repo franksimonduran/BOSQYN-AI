@@ -21,6 +21,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from . import satellite
+from .satellite_store import SatelliteStore
 from .storage import EvidenceStore, validate_wav
 from .auth import AdminAuth
 from .audio_model import AudioModel
@@ -170,6 +171,26 @@ class BosqynHandler(SimpleHTTPRequestHandler):
             return self.json_response(200, satellite.status())
         if route == "/api/satellite/events":
             return self.json_response(200, satellite.events())
+        if route == "/api/satellite/zones":
+            if not self.require_access(): return
+            return self.json_response(200, {"zones":self.server.satellite_store.zones()})
+        if route == "/api/satellite/observations":
+            if not self.require_access(): return
+            query=parse_qs(target.query)
+            try:
+                rows=self.server.satellite_store.observations(
+                    limit=min(500,max(1,int(query.get("limit",["250"])[0]))),
+                    source=query.get("source",[""])[0] or None,
+                    since=query.get("since",[""])[0] or None)
+                return self.json_response(200,{"items":rows})
+            except (ValueError,TypeError):
+                return self.json_response(400,{"error":"Filtros de observaciones inválidos"})
+        if route == "/api/satellite/correlations":
+            if not self.require_access(): return
+            return self.json_response(200,{"items":self.server.satellite_store.correlated()})
+        if route == "/api/drone/telemetry":
+            if not self.require_access(): return
+            return self.json_response(200, {"items":self.server.satellite_store.latest_drone()})
         if route == "/api/auth/status":
             auth = self.server.auth
             return self.json_response(
@@ -500,6 +521,25 @@ class BosqynHandler(SimpleHTTPRequestHandler):
             return self.logout()
         if route == "/api/audio/predict":
             return self.predict_audio()
+        if route in {"/api/satellite/zones", "/api/satellite/refresh", "/api/drone/telemetry"}:
+            if self.writes_forbidden(): return
+            if not self.require_admin(): return
+            try:
+                data=self.read_json()
+                if route == "/api/satellite/zones":
+                    result=self.server.satellite_store.save_zone(data)
+                    return self.json_response(201,result)
+                if route == "/api/drone/telemetry":
+                    result=self.server.satellite_store.record_drone(data)
+                    return self.json_response(201,result)
+                # Avoid background calls from HTTP worker; rate limiting is in satellite.poll.
+                import threading as _threading
+                _threading.Thread(target=satellite.poll,daemon=True,name="bosqyn-satellite-refresh").start()
+                return self.json_response(202,{"status":"Consulta programada si corresponde al intervalo mínimo."})
+            except (ValueError,TypeError) as error:
+                return self.json_response(400,{"error":str(error)})
+            except (OSError,sqlite3.Error):
+                return self.json_response(503,{"error":"Almacenamiento satelital temporalmente no disponible"})
         if self.writes_forbidden():
             return
         if route in {"/api/backup/restore", "/api/retention"}:
@@ -627,9 +667,10 @@ def make_server(
     server = ThreadingHTTPServer(
         (host, port), partial(BosqynHandler, directory=str(frontend_dir))
     )
-    satellite.start()
     server.started_at = time.monotonic()
     server.store = EvidenceStore(data_dir)
+    server.satellite_store = SatelliteStore(server.store.database)
+    satellite.start(server.satellite_store)
     server.auth = AdminAuth(host)
     server.persistent_storage = str(Path(data_dir).resolve()) == "/data" or str(
         Path(data_dir).resolve()
