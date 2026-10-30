@@ -280,12 +280,17 @@ class BosqynHandler(SimpleHTTPRequestHandler):
             result["activity_by_day"] = self.store.activity_by_day(7)
             return self.json_response(200, result)
         if route == "/api/statistics/chart.png":
-            # Matplotlib genera el gráfico únicamente desde SQLite; nunca usa cifras de ejemplo.
+            # Modo demo aislado: no almacena ni altera datos reales en SQLite.
             try:
-                from .charts import render_activity_png
+                from .charts import demonstration_activity_by_day, render_activity_png
 
-                daily = self.store.activity_by_day(7)
-                key = tuple(
+                demo = parse_qs(target.query).get("demo", ["0"])[0] == "1"
+                daily = (
+                    demonstration_activity_by_day()
+                    if demo
+                    else self.store.activity_by_day(7)
+                )
+                key = (demo,) + tuple(
                     (x["date"], x["PENDIENTE"], x["CONFIRMADA"], x["DESCARTADA"])
                     for x in daily
                 )
@@ -294,7 +299,7 @@ class BosqynHandler(SimpleHTTPRequestHandler):
                     if cached and cached[0] == key:
                         png = cached[1]
                     else:
-                        png = render_activity_png(daily)
+                        png = render_activity_png(daily, demo=demo)
                         self.server.stats_chart_cache = (key, png)
             except Exception as error:
                 print(
