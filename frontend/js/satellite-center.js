@@ -2,7 +2,7 @@
 window.Bosqyn=window.Bosqyn||{};
 Bosqyn.satelliteCenter=(()=>{
 "use strict";
-let panel=null,map=null,heat=null,dronesLayer=null,cleanup=null,records=[],zones=[],drones=[],active=false,analyzing=false,lastPrediction=null,lastSaved=0,repeatCount=0,lastClass="",saving=false,hls=null;
+let panel=null,map=null,heat=null,dronesLayer=null,cleanup=null,records=[],zones=[],drones=[],droneEvents=[],correlations=[],active=false,analyzing=false,lastPrediction=null,lastSaved=0,repeatCount=0,lastClass="",saving=false,hls=null;
 const $=(id)=>panel?.querySelector("#"+id);
 const asTime=v=>{const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleString("es-PE",{timeZone:"UTC"})+" UTC":"sin dato";};
 async function json(url){const r=await fetch(url,{cache:"no-store",credentials:"same-origin"});if(!r.ok)throw Error("HTTP "+r.status);return r.json();}
@@ -48,11 +48,41 @@ function render(){
    window.L.circleMarker([Number(d.lat),Number(d.lon)],{radius:8,color:"#65dcff",weight:3})
      .bindPopup(div).addTo(dronesLayer);
  }
+ for(const item of droneEvents){
+   if(!Number.isFinite(+item.lat)||!Number.isFinite(+item.lon))continue;
+   if($("sat-detection-status")?.value!=="all"&&$("sat-detection-status").value!==item.status)continue;
+   const label=document.createElement("div");
+   label.textContent=item.drone_name+" · "+item.category+" "+Math.round(item.confidence*100)+
+     "% · "+asTime(item.observed_at)+" · Estado: "+item.status+
+     ". GPS del dron, NO ubicación exacta del incendio.";
+   window.L.circleMarker([+item.lat,+item.lon],{
+      radius:7,color:item.category==="TALA"?"#eab308":"#fb923c",weight:2,fillOpacity:.3
+   }).bindPopup(label).addTo(dronesLayer);
+ }
  if($("sat-visible"))$("sat-visible").textContent=items.length+" observaciones visibles; ausencia de puntos no descarta incendios.";
+ const history=$("sat-history");if(history){
+   history.replaceChildren();
+   for(const e of items.slice(0,12)){
+     const row=document.createElement("p");
+     row.textContent=e.source+" · "+asTime(e.time)+" · "+e.product+
+       " · calidad "+e.confidence+" · FRP "+(e.frp??"sin dato");
+     history.append(row);
+   }
+   if(!items.length)history.textContent="Sin observaciones en el filtro seleccionado.";
+ }
+ const context=$("sat-correlations");
+ if(context){
+   context.textContent=correlations.filter(c=>c.source_count>=2).length+
+      " coincidencias aproximadas NASA/NOAA entre "+correlations.length+
+      " grupos. No equivalen a incendios confirmados.";
+ }
 }
 async function load(){
  if(!active)return;
- const results=await Promise.allSettled([json("/api/satellite/zones"),json("/api/drone/telemetry"),json("/api/satellite/status")]);
+ const results=await Promise.allSettled([
+   json("/api/satellite/zones"),json("/api/drone/telemetry"),json("/api/satellite/status"),
+   json("/api/drone/detections"),json("/api/satellite/correlations")
+ ]);
  if(!active)return;
  if(results[0].status==="fulfilled"){
    zones=results[0].value.zones||[];
@@ -70,6 +100,8 @@ async function load(){
    $("sat-last").textContent="Última consulta exitosa — NASA: "+asTime(feeds.NASA?.last_success)+
     " | NOAA: "+asTime(feeds.NOAA?.last_success);
  }
+ if(results[3].status==="fulfilled")droneEvents=results[3].value.items||[];
+ if(results[4].status==="fulfilled")correlations=results[4].value.items||[];
  render();
 }
 function mount(dashboard,refresh){
@@ -81,8 +113,11 @@ function mount(dashboard,refresh){
  '<label>Periodo<select id="sat-age"><option value="24">24 horas</option><option value="72">72 horas</option><option value="168">7 días</option></select></label>'+
  '<label>Confianza<select id="sat-quality"><option value="all">Todas</option><option value="high">Alta</option></select></label>'+
  '<label>Zona<select id="sat-zone"><option value="all">Todas</option></select></label>'+
+ '<label>Estado dron<select id="sat-detection-status"><option value="all">Todos</option><option>PENDIENTE</option><option>CONFIRMADA</option><option>DESCARTADA</option></select></label>'+
  '<button type="button" id="sat-refresh">Actualizar fuentes</button></div>'+
  '<p id="sat-visible" class="bosqyn-sat-caption">Esperando observaciones</p><p id="sat-last" class="bosqyn-sat-caption">Última actualización pendiente</p>'+
+ '<details><summary>Historial de observaciones y coincidencias</summary><div id="sat-history" class="bosqyn-sat-history"></div>'+
+ '<p id="sat-correlations" class="bosqyn-sat-caption">Correlaciones no disponibles</p></details>'+
  '<details><summary>Guardar zona forestal</summary><form id="sat-zone-form" class="bosqyn-sat-form">'+
  '<input name="name" placeholder="Nombre" maxlength="80" required />'+
  '<input name="west" type="number" step="any" placeholder="Oeste" required />'+
