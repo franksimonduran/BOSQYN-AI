@@ -191,6 +191,9 @@ class BosqynHandler(SimpleHTTPRequestHandler):
         if route == "/api/drone/telemetry":
             if not self.require_access(): return
             return self.json_response(200, {"items":self.server.satellite_store.latest_drone()})
+        if route == "/api/drone/detections":
+            if not self.require_access(): return
+            return self.json_response(200, {"items":self.server.satellite_store.drone_events()})
         if route == "/api/auth/status":
             auth = self.server.auth
             return self.json_response(
@@ -521,6 +524,44 @@ class BosqynHandler(SimpleHTTPRequestHandler):
             return self.logout()
         if route == "/api/audio/predict":
             return self.predict_audio()
+        if route == "/api/drone/detections":
+            if self.writes_forbidden(): return
+            if not self.require_admin(): return
+            try:
+                data = self.read_json()
+                category = str(data.get("category","")).upper().strip()
+                name = str(data.get("drone_name","")).strip()
+                confidence = data.get("confidence")
+                if category not in ("INCENDIO","HUMO","TALA"):
+                    raise ValueError("La detección requiere una clase visual de riesgo")
+                if isinstance(confidence, bool) or not isinstance(confidence,(int,float)) or not 0.85 <= confidence <= 1:
+                    raise ValueError("Confianza visual inválida o inferior al umbral")
+                candidate = next((d for d in self.server.satellite_store.latest_drone()
+                                  if d["drone_name"] == name), None)
+                if candidate is None or time.time() - __import__("datetime").datetime.fromisoformat(
+                    candidate["received_at"]).timestamp() > 180:
+                    raise ValueError("Se necesita GPS reciente del dron, no la ubicación del incendio")
+                uri = data.get("image_data")
+                if not isinstance(uri,str) or "," not in uri:
+                    raise ValueError("Se requiere una captura de video JPEG/PNG")
+                prefix,encoded=uri.split(",",1)
+                extensions={"data:image/jpeg;base64":"jpg","data:image/png;base64":"png"}
+                if prefix not in extensions: raise ValueError("Formato de imagen inválido")
+                image=base64.b64decode(encoded,validate=True)
+                if not 0 < len(image) <= MAX_IMAGE_BYTES:
+                    raise ValueError("Imagen vacía o demasiado grande")
+                ext=extensions[prefix]
+                if not ((ext=="jpg" and image.startswith(b"\\xff\\xd8\\xff")) or
+                        (ext=="png" and image.startswith(b"\\x89PNG\\r\\n\\x1a\\n"))):
+                    raise ValueError("Firma de imagen incorrecta")
+                evidence=self.store.add_drone_visual_incident(category,confidence,image,ext)
+                point=self.server.satellite_store.record_drone_detection(name,category,confidence,evidence["id"])
+                return self.json_response(200 if evidence.get("duplicate") else 201,
+                    {"evidence":evidence,"telemetry":point,"status":"PENDIENTE"})
+            except (ValueError,TypeError,binascii.Error) as exc:
+                return self.json_response(400,{"error":str(exc)})
+            except (OSError,sqlite3.Error):
+                return self.json_response(503,{"error":"No se pudo almacenar la evidencia del dron"})
         if route in {"/api/satellite/zones", "/api/satellite/refresh", "/api/drone/telemetry"}:
             if self.writes_forbidden(): return
             if not self.require_admin(): return
