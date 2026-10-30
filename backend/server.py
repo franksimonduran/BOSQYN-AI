@@ -190,6 +190,39 @@ class BosqynHandler(SimpleHTTPRequestHandler):
         if route == "/api/satellite/correlations":
             if not self.require_access(): return
             return self.json_response(200,{"items":self.server.satellite_store.correlated()})
+        if route.startswith("/api/drone/media/"):
+            # Local HLS gateway output, never an arbitrary URL/proxy (SSRF-safe).
+            if not self.require_access(): return
+            import re
+            name = route.split("/")[-1]
+            if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,110}",name) or ".." in name:
+                return self.json_response(404,{"error":"Nombre de segmento no permitido"})
+            allowed={".m3u8":"application/vnd.apple.mpegurl",
+                     ".ts":"video/mp2t",".m4s":"video/iso.segment",
+                     ".mp4":"video/mp4"}
+            ext=Path(name).suffix
+            if ext not in allowed:
+                return self.json_response(404,{"error":"Formato de video no admitido"})
+            directory=os.environ.get("BOSQYN_DRONE_MEDIA_DIR","").strip()
+            if not directory:
+                return self.json_response(503,{"error":"No hay pasarela HLS configurada"})
+            target_file=(Path(directory).resolve()/name).resolve()
+            root_dir=Path(directory).resolve()
+            if not target_file.is_relative_to(root_dir) or not target_file.is_file():
+                return self.json_response(404,{"error":"Video no encontrado"})
+            try:
+                size=target_file.stat().st_size
+                if size>20_000_000: return self.json_response(413,{"error":"Segmento demasiado grande"})
+                body=target_file.read_bytes()
+            except OSError:
+                return self.json_response(503,{"error":"No se pudo leer el segmento"})
+            self.send_response(200)
+            self.send_header("Content-Type",allowed[ext])
+            self.send_header("Content-Length",str(len(body)))
+            self.send_header("Cache-Control","no-store")
+            self.send_header("X-Content-Type-Options","nosniff")
+            self.end_headers()
+            return self.wfile.write(body)
         if route == "/api/drone/telemetry":
             if not self.require_access(): return
             return self.json_response(200, {"items":self.server.satellite_store.latest_drone()})
