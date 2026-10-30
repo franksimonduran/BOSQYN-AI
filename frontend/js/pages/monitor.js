@@ -57,6 +57,7 @@ Bosqyn.pages.monitoreo = function (root) {
     disposed = false;
   function selectMode(live) {
     activeSatellite = !live;
+    if (live) satelliteAddon?.stopVision();
     livePanel.hidden = !live;
     satCenter.hidden = live;
     modeLive.setAttribute("aria-selected", String(live));
