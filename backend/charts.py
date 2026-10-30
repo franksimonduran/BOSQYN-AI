@@ -1,18 +1,42 @@
-"""Gráfico Matplotlib del historial real guardado en SQLite.
+"""Gráfico Matplotlib: modo real SQLite y modo demo con datos ficticios explícitos.
 
-No utiliza datos simulados ni registra información; produce PNG en memoria.
+La serie de demostración solo existe en memoria; jamás modifica evidencias.
 """
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from threading import Lock
 
 _CHART_LOCK = Lock()
 
 
-def render_activity_png(daily: list[dict]) -> bytes:
-    """Renderiza capturas manuales de los últimos días por estado (UTC)."""
+def demonstration_activity_by_day() -> list[dict]:
+    """Serie sintética reproducible. Nunca se escribe en SQLite."""
+    samples = [
+        (3, 1, 0),
+        (5, 2, 1),
+        (4, 3, 1),
+        (6, 4, 2),
+        (7, 3, 1),
+        (10, 5, 2),
+        (8, 6, 3),
+    ]
+    today = datetime.now(timezone.utc).date()
+    return [
+        {
+            "date": (today - timedelta(days=6 - index)).isoformat(),
+            "PENDIENTE": pending,
+            "CONFIRMADA": confirmed,
+            "DESCARTADA": discarded,
+        }
+        for index, (pending, confirmed, discarded) in enumerate(samples)
+    ]
+
+
+def render_activity_png(daily: list[dict], *, demo: bool = False) -> bytes:
+    """Renderiza datos reales o, cuando demo=True, datos sintéticos identificados."""
     import matplotlib
 
     matplotlib.use("Agg")
@@ -63,13 +87,21 @@ def render_activity_png(daily: list[dict]) -> bytes:
                 bbox_to_anchor=(0, 1.10),
             )
             ax.set_title(
-                "Actividad real del historial · últimos 7 días (UTC)",
+                ("DATOS SIMULADOS · actividad ficticia · 7 días (UTC)"
+                 if demo else "Actividad real del historial · últimos 7 días (UTC)"),
                 fontsize=13,
                 fontweight="bold",
                 color="#F4FFF8",
                 loc="left",
                 pad=42,
             )
+            if demo:
+                ax.text(
+                    0.98, 0.94, "DEMO · NO SON DETECCIONES REALES",
+                    transform=ax.transAxes, ha="right", va="top",
+                    color="#FFD49A", fontsize=8, fontweight="bold",
+                    bbox={"facecolor": "#583719", "edgecolor": "#8F662A", "boxstyle": "round,pad=0.35"},
+                )
             if highest == 0:
                 ax.text(
                     0.5,
