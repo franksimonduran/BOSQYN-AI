@@ -148,7 +148,9 @@ def _noaa():
         if not latest:raise ValueError("No hay archivos GOES-19 recientes disponibles")
         last_sync=_store.statuses().get("NOAA") or {}
         if latest["Key"]==last_sync.get("last_product_ref"):
-            _store.sync("NOAA","ok",0,ref=latest["Key"])
+            old_time=last_sync.get("last_observed")
+            age=(dt.datetime.now(dt.timezone.utc)-dt.datetime.fromisoformat(old_time)).total_seconds() if old_time else float("inf")
+            _store.sync("NOAA","desactualizado" if age>7200 else "ok",0,ref=latest["Key"])
             return
         found=[]
         with tempfile.TemporaryDirectory() as dirname:
@@ -185,8 +187,12 @@ def _noaa():
                     code=int(mask[row,col])
                     dqf=int(quality[row,col]) if quality is not None else None
                     if dqf not in (None,0):continue
-                    frp=float(power[row,col]) if power is not None else None
-                    if frp is not None and not np.isfinite(frp):frp=None
+                    frp=None
+                    if power is not None:
+                        raw_power=float(power[row,col])
+                        frp=(raw_power*float(np.asarray(power.attrs.get("scale_factor",1)).flat[0])
+                             +float(np.asarray(power.attrs.get("add_offset",0)).flat[0]))
+                        if not np.isfinite(frp) or frp<0:frp=None
                     token=f'{latest["Key"]}:{row}:{col}'
                     found.append({"id":hashlib.sha256(token.encode()).hexdigest()[:24],
                                   "source":"NOAA GOES-19","lat":lat,"lon":lon,"time":observed,
