@@ -32,8 +32,17 @@
           >Últimos siete días · hora UTC</p
         ></div
       >
-      <button type="button" id="stats-refresh">Actualizar gráfico</button>
+      <div class="bosqyn-stats-actions">
+        <button type="button" id="stats-demo-toggle" aria-pressed="false">
+          Ver demostración
+        </button>
+        <button type="button" id="stats-refresh">Actualizar gráfico</button>
+      </div>
     </div>
+    <p class="bosqyn-stats-demo-notice" id="stats-demo-notice" hidden>
+      DEMOSTRACIÓN — DATOS SIMULADOS. No representan alertas reales ni resultados
+      medidos de BOSQYN AI. Los indicadores superiores siguen mostrando SQLite.
+    </p>
     <img
       id="stats-chart"
       alt="Gráfico de evidencias manuales y automáticas por día y estado"
