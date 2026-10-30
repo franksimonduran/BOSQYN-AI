@@ -173,6 +173,11 @@ Bosqyn.pages.monitoreo = function (root) {
           "No se pudo cargar el mapa. Revisa la conexión de internet.";
     });
   refreshSatellite();
+  const onSatelliteLogin = () => {
+    refreshSatellite();
+    satelliteAddon?.load();
+  };
+  window.addEventListener("bosqyn:auth-changed", onSatelliteLogin);
   satelliteTimer = setInterval(refreshSatellite, 60000);
 
   const button = root.querySelector("#btn-live"),
@@ -411,6 +416,7 @@ Bosqyn.pages.monitoreo = function (root) {
   return function () {
     disposed = true;
     if (satelliteTimer) clearInterval(satelliteTimer);
+    window.removeEventListener("bosqyn:auth-changed", onSatelliteLogin);
     satelliteAddon?.();
     if (satelliteMap) satelliteMap.remove();
     if (cleanupOperations) cleanupOperations();
