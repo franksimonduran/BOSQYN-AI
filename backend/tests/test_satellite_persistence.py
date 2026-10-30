@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
+from backend.storage import EvidenceStore
 from backend.satellite_store import SatelliteStore, bbox_valid, haversine_km, normalized_time
 from backend import satellite
 
@@ -62,6 +63,20 @@ class SatelliteStoreTests(unittest.TestCase):
         self.assertEqual(len(self.store.correlated()),0)
         with self.assertRaises(ValueError):
             self.store.record_drone({"drone_name":"Prueba","lat":-9.5,"lon":-76,"observed_at":now})
+
+    def test_visual_drone_capture_links_unverified_alert_and_drone_gps(self):
+        store = EvidenceStore(Path(self.folder.name))
+        now = datetime.now(timezone.utc).isoformat()
+        self.store.record_drone({"drone_name":"Dron de prueba","lat":-9.5,"lon":-76,
+                                 "observed_at":now,"altitude_m":100})
+        saved = store.add_drone_visual_incident(
+            "HUMO",0.91,b"\xff\xd8\xff imagen real de prueba","jpg")
+        point = self.store.record_drone_detection("Dron de prueba","HUMO",0.91,saved["id"])
+        self.assertEqual(point["position_type"],"DRONE_GPS")
+        self.assertEqual(store.get_alert(saved["id"])["source"],"DRON_VISUAL")
+        self.assertEqual(self.store.drone_events()[0]["alert_id"],saved["id"])
+        store.update_status(saved["id"],"DESCARTADA")
+        self.assertEqual(self.store.drone_events()[0]["status"],"DESCARTADA")
 
     def test_utc_validation(self):
         with self.assertRaises(ValueError): normalized_time("2026-10-30T12:00:00")
