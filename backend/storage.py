@@ -262,12 +262,8 @@ class EvidenceStore:
         path = self.image_dir / filename
         with self.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
-            prior = conn.execute(
-                "SELECT * FROM alerts WHERE source='DRON_VISUAL' AND category=? AND occurred_at>=? ORDER BY id DESC LIMIT 1",
-                (category, (now - timedelta(seconds=60)).isoformat()),
-            ).fetchone()
-            if prior:
-                return {**self.to_public(prior), "duplicate": True}
+            # A different drone must never inherit another drone's photo/GPS.
+            # Request-level cooldown is enforced per drone and category in the API.
             path.write_bytes(image_bytes)
             try:
                 cur = conn.execute(
