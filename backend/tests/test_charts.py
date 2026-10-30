@@ -87,7 +87,7 @@ class DailyStatisticsTests(unittest.TestCase):
             store = EvidenceStore(Path(directory))
             actual = render_activity_png(store.activity_by_day())
             example = render_activity_png(demonstration_activity_by_day(), demo=True)
-            self.assertTrue(example.startswith(b"\\x89PNG\\r\\n\\x1a\\n"))
+            self.assertTrue(example.startswith(b"\x89PNG\r\n\x1a\n"))
             self.assertNotEqual(actual, example)
             self.assertEqual(store.statistics()["total"], 0)
 
