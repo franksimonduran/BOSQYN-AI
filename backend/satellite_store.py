@@ -90,7 +90,7 @@ class SatelliteStore:
                     id INTEGER PRIMARY KEY AUTOINCREMENT, drone_name TEXT NOT NULL,
                     category TEXT NOT NULL, confidence REAL NOT NULL, observed_at TEXT NOT NULL,
                     lat REAL NOT NULL, lon REAL NOT NULL, position_type TEXT NOT NULL DEFAULT 'DRONE_GPS',
-                    evidence_filename TEXT, status TEXT NOT NULL DEFAULT 'PENDIENTE',
+                    alert_id INTEGER REFERENCES alerts(id) ON DELETE CASCADE,
                     UNIQUE(drone_name, category, observed_at, lat, lon));
                 """)
             exists = c.execute("SELECT count(*) FROM forest_zones").fetchone()[0]
@@ -218,6 +218,48 @@ class SatelliteStore:
                            VALUES(?,?,?,?,?,?,?,?,?)""", (name,stamp,now,lat,lon,alt,yaw,cy,cp))
             return {"id":cur.lastrowid,"drone_name":name,"lat":lat,"lon":lon,"observed_at":stamp,
                     "position_type":"DRONE_GPS","message":"Ubicación del dron, NO ubicación georreferenciada del objetivo"}
+
+    def record_drone_detection(self, name, category, confidence, alert_id):
+        """Attach unverified model evidence to the drone's last real GPS sample."""
+        name = str(name).strip()
+        if not 1 <= len(name) <= 80:
+            raise ValueError("Nombre de dron inválido")
+        if category not in ("HUMO", "INCENDIO", "TALA"):
+            raise ValueError("Categoría de dron no válida")
+        if isinstance(confidence, bool) or not isinstance(confidence, (float, int)) or not math.isfinite(confidence):
+            raise ValueError("Probabilidad no válida")
+        if not 0.85 <= confidence <= 1:
+            raise ValueError("La confianza debe ser al menos 85 %")
+        with self.lock, self.connect() as c:
+            drone = c.execute(
+                "SELECT * FROM drone_telemetry WHERE drone_name=? ORDER BY id DESC LIMIT 1",
+                (name,),
+            ).fetchone()
+            if drone is None:
+                raise ValueError("No existe telemetría GPS de este dron")
+            last_seen = datetime.fromisoformat(drone["received_at"])
+            if datetime.now(timezone.utc) - last_seen > timedelta(seconds=180):
+                raise ValueError("Telemetría GPS vencida; espera una posición reciente")
+            timestamp=utcnow()
+            c.execute(
+                "INSERT OR IGNORE INTO drone_observations"
+                "(drone_name,category,confidence,observed_at,lat,lon,alert_id)"
+                " VALUES(?,?,?,?,?,?,?)",
+                (name,category,float(confidence),timestamp,drone["lat"],drone["lon"],alert_id),
+            )
+        return {"drone_name":name,"category":category,"confidence":confidence,
+                "lat":drone["lat"],"lon":drone["lon"],"position_type":"DRONE_GPS",
+                "alert_id":alert_id, "observed_at":timestamp,
+                "warning":"La ubicación corresponde al dron, no al incendio"}
+
+    def drone_events(self,limit=100):
+        with self.lock, self.connect() as c:
+            return [dict(row) for row in c.execute(
+                "SELECT d.id,d.drone_name,d.category,d.confidence,d.observed_at,"
+                "d.lat,d.lon,d.position_type,d.alert_id,a.status "
+                "FROM drone_observations d LEFT JOIN alerts a ON a.id=d.alert_id "
+                "ORDER BY d.id DESC LIMIT ?",(min(200,max(1,int(limit))),)
+            )]
 
     def correlated(self, max_distance_km=4, hours=3):
         """Groups distinct satellite sources; drone GPS is never the target location."""
