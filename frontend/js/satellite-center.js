@@ -19,7 +19,7 @@ function filtered(){
    if(zone&&(e.lon<zone.west||e.lon>zone.east||e.lat<zone.south||e.lat>zone.north))return false;
    if(quality==="high"){
      if(e.source==="NOAA GOES-19"&&![10,11,30,31].includes(Number(e.confidence)))return false;
-     if(e.source==="NASA FIRMS"&&!["h","n"].includes(String(e.confidence).toLowerCase()))return false;
+     if(e.source==="NASA FIRMS"&&String(e.confidence).toLowerCase()!=="h")return false;
    }
    return true;
  });
