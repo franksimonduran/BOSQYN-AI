@@ -46,6 +46,7 @@ Bosqyn.pages.monitoreo = function (root) {
  <p class="bosqyn-footnote">Observaciones periódicas, no detecciones confirmadas ni video en tiempo real. La ausencia de puntos no descarta incendios.</p>
 </section>`;
   root.append(dashboard, livePanel);
+  const satelliteAddon = Bosqyn.satelliteCenter?.mount(dashboard, () => refreshSatellite());
   const modeLive = dashboard.querySelector("#bosqyn-mode-live");
   const modeSat = dashboard.querySelector("#bosqyn-mode-satellite");
   const satCenter = dashboard.querySelector("#bosqyn-satellite-center");
@@ -119,40 +120,8 @@ Bosqyn.pages.monitoreo = function (root) {
         (state.bbox || []).join(", ") +
         ". Puede desplazarse el mapa fuera de esta cobertura sin ampliar la consulta. Ventana: últimas 24 h; consulta cada 30 min. Sin puntos no significa ausencia de incendios. NASA y NOAA usan códigos de calidad diferentes.";
       if (!satelliteMap) return;
-      satelliteLayer.clearLayers();
-      for (const e of data.events || []) {
-        if (!Number.isFinite(Number(e.lat)) || !Number.isFinite(Number(e.lon)))
-          continue;
-        const nasa = e.source === "NASA FIRMS";
-        const point = window.L.circleMarker([+e.lat, +e.lon], {
-          radius: 6,
-          weight: 2,
-          color: nasa ? "#fc7b49" : "#f6d16b",
-          fillOpacity: 0.7,
-        }).addTo(satelliteLayer);
-        const detail = document.createElement("div");
-        const strong = document.createElement("b");
-        strong.textContent = e.source;
-        detail.append(
-          strong,
-          document.createElement("br"),
-          document.createTextNode("Observado: " + (e.time || "sin fecha")),
-          document.createElement("br"),
-          document.createTextNode(
-            "Consultado: " + (e.fetched_at || "sin fecha"),
-          ),
-          document.createElement("br"),
-          document.createTextNode(
-            "Producto: " +
-              (e.product || "sin identificar") +
-              " · Código de calidad: " +
-              (e.confidence || "no informado"),
-          ),
-          document.createElement("br"),
-          document.createTextNode("Referencia: " + (e.product_ref || e.id)),
-        );
-        point.bindPopup(detail);
-      }
+      satelliteAddon?.updateEvents(data.events || []);
+      satelliteAddon?.load();
     } catch (err) {
       if (disposed) return;
       dashboard.querySelector("#bosqyn-nasa-status").textContent =
@@ -193,6 +162,7 @@ Bosqyn.pages.monitoreo = function (root) {
         }
       });
       satelliteLayer = window.L.layerGroup().addTo(satelliteMap);
+      satelliteAddon?.onMapReady(satelliteMap);
       refreshSatellite();
     })
     .catch(() => {
@@ -440,6 +410,7 @@ Bosqyn.pages.monitoreo = function (root) {
   return function () {
     disposed = true;
     if (satelliteTimer) clearInterval(satelliteTimer);
+    satelliteAddon?.();
     if (satelliteMap) satelliteMap.remove();
     if (cleanupOperations) cleanupOperations();
     stop();
