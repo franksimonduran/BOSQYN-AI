@@ -2,7 +2,7 @@
 window.Bosqyn=window.Bosqyn||{};
 Bosqyn.satelliteCenter=(()=>{
 "use strict";
-let panel=null,map=null,heat=null,dronesLayer=null,cleanup=null,records=[],zones=[],drones=[],active=false,analyzing=false,lastPrediction=null,lastSaved=0,repeatCount=0,lastClass="";
+let panel=null,map=null,heat=null,dronesLayer=null,cleanup=null,records=[],zones=[],drones=[],active=false,analyzing=false,lastPrediction=null,lastSaved=0,repeatCount=0,lastClass="",saving=false,hls=null;
 const $=(id)=>panel?.querySelector("#"+id);
 const asTime=v=>{const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleString("es-PE",{timeZone:"UTC"})+" UTC":"sin dato";};
 async function json(url){const r=await fetch(url,{cache:"no-store",credentials:"same-origin"});if(!r.ok)throw Error("HTTP "+r.status);return r.json();}
@@ -99,7 +99,7 @@ function mount(dashboard,refresh){
  '<input name="lon" type="number" step="any" placeholder="Longitud GPS" required />'+
  '<input name="altitude_m" type="number" step="any" placeholder="Altitud (m)" />'+
  '<button type="submit">Registrar GPS</button></form>'+
- '<label class="bosqyn-sat-stream">Ruta HLS/MP4 del mismo servidor<input id="sat-drone-src" placeholder="/media/dron/live.m3u8" /></label>'+
+ '<label class="bosqyn-sat-stream">Ruta HLS/MP4 protegida del servidor<input id="sat-drone-src" placeholder="/api/drone/media/live.m3u8" /></label>'+
  '<button type="button" id="sat-play">Abrir video</button> <button type="button" id="sat-stop">Desconectar</button>'+
  '<video id="sat-video" controls muted autoplay playsinline></video>'+
  '<div id="sat-vision" class="bosqyn-sat-ai">'+
@@ -137,15 +137,42 @@ function mount(dashboard,refresh){
    try{await post("/api/drone/telemetry",payload);status("GPS registrado: ubicación del dron.");await load();}
    catch(err){status(err.message);}
  };
- $("sat-play").onclick=()=>{
+ async function ensureHls(){
+   if(window.Hls)return;
+   await new Promise((resolve,reject)=>{
+     const script=document.createElement("script");
+     script.src="https://cdn.jsdelivr.net/npm/hls.js@1.5.21/dist/hls.min.js";
+     script.onload=resolve;script.onerror=()=>reject(Error("No fue posible cargar HLS.js"));
+     document.head.appendChild(script);
+   });
+ }
+ function clearHls(){if(hls){hls.destroy();hls=null;}}
+ $("sat-play").onclick=async()=>{
    let url;try{url=new URL($("sat-drone-src").value.trim(),location.origin);}
    catch{status("URL de video no válida.");return;}
-   if(url.origin!==location.origin||!/^\/(media|stream)\//.test(url.pathname)||
-      !/\.(mp4|m3u8)$/.test(url.pathname)||url.username||url.password){
-      status("Solo rutas de video autorizadas en el mismo origen (/media/ o /stream/).");return;
+   if(url.origin!==location.origin||!/^\/api\/drone\/media\/[A-Za-z0-9_.-]+\.(mp4|m3u8)$/.test(url.pathname)||
+      url.username||url.password||url.search){
+      status("Solo rutas autorizadas /api/drone/media/ sin credenciales ni parámetros.");return;
    }
-   const video=$("sat-video");video.src=url.pathname+url.search;
-   video.play().catch(()=>status("El navegador no puede reproducir el flujo; comprueba la pasarela."));
+   const video=$("sat-video");
+   clearHls();video.pause();video.removeAttribute("src");video.load();
+   if(url.pathname.endsWith(".m3u8")&&!video.canPlayType("application/vnd.apple.mpegurl")){
+     try{
+       await ensureHls();
+       if(!window.Hls?.isSupported())throw Error("HLS no compatible con este navegador");
+       hls=new window.Hls({enableWorker:true});
+       hls.loadSource(url.pathname);hls.attachMedia(video);
+       hls.on(window.Hls.Events.MANIFEST_PARSED,()=>{
+         video.play().catch(()=>status("El navegador bloqueó el inicio del video."));
+       });
+       hls.on(window.Hls.Events.ERROR,(event,data)=>{
+         if(data?.fatal)status("Error de HLS; revisa el origen de la transmisión.");
+       });
+     }catch(err){status(err.message);}
+   }else{
+     video.src=url.pathname;
+     video.play().catch(()=>status("El navegador no pudo reproducir la señal autorizada."));
+   }
  };
  async function saveFrame(auto=false){
    const video=$("sat-video"),event=lastPrediction;
@@ -162,6 +189,8 @@ function mount(dashboard,refresh){
    if(auto){
      if(Bosqyn.auth?.role()!=="admin"||current-lastSaved<60000||repeatCount<3)return;
    }else if(!await Bosqyn.auth?.ensureAdmin("Solo un administrador puede archivar evidencia del dron."))return;
+   if(saving)return;
+   saving=true;
    try{
      const canvas=document.createElement("canvas");
      canvas.width=Math.min(video.videoWidth||0,1280);
@@ -174,6 +203,7 @@ function mount(dashboard,refresh){
      lastSaved=current;
      status("Evidencia "+saved.evidence.id+" guardada como pendiente. Coordenada: GPS del dron, no del incendio.");
    }catch(err){status("No se guardó evidencia: "+err.message);}
+   finally{saving=false;}
  }
  const visionRoot=$("sat-vision");
  visionRoot.addEventListener("bosqyn:visual-detection",e=>{
@@ -196,9 +226,9 @@ function mount(dashboard,refresh){
    analyzing=true;status("Modelo visual conectado al video. Los porcentajes son predicciones, no precisión.");
  };
  $("sat-save-frame").onclick=()=>saveFrame(false);
- $("sat-stop").onclick=()=>{stopVision();const video=$("sat-video");video.pause();video.removeAttribute("src");video.load();status("Video desconectado.");};
+ $("sat-stop").onclick=()=>{stopVision();clearHls();const video=$("sat-video");video.pause();video.removeAttribute("src");video.load();status("Video desconectado.");};
  load();
- cleanup=()=>{active=false;stopVision();const v=$("sat-video");v?.pause();v?.removeAttribute("src");panel=null;map=null;heat=null;dronesLayer=null;};
+ cleanup=()=>{active=false;stopVision();clearHls();const v=$("sat-video");v?.pause();v?.removeAttribute("src");panel=null;map=null;heat=null;dronesLayer=null;};
  return cleanup;
 }
 function onMapReady(m){map=m;heat=window.L.layerGroup().addTo(map);dronesLayer=window.L.layerGroup().addTo(map);render();load();}
