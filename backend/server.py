@@ -589,6 +589,17 @@ class BosqynHandler(SimpleHTTPRequestHandler):
                 if not ((ext=="jpg" and image.startswith(b"\xff\xd8\xff")) or
                         (ext=="png" and image.startswith(b"\x89PNG\r\n\x1a\n"))):
                     raise ValueError("Firma de imagen incorrecta")
+                with self.server.capture_lock:
+                    now=time.monotonic()
+                    cooldown_key=("drone",name,category)
+                    if now-self.server.capture_last.get(cooldown_key,-1000000)<60:
+                        return self.json_response(429,{"error":"Indicio reciente del mismo dron y categoría; espera 60 segundos"})
+                    self.server.capture_last[cooldown_key]=now
+                    if len(self.server.capture_last)>2000:
+                        self.server.capture_last={
+                            k:v for k,v in self.server.capture_last.items()
+                            if now-v<180
+                        }
                 evidence=self.store.add_drone_visual_incident(category,confidence,image,ext)
                 point=self.server.satellite_store.record_drone_detection(name,category,confidence,evidence["id"])
                 return self.json_response(200 if evidence.get("duplicate") else 201,
