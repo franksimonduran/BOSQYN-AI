@@ -201,6 +201,8 @@ class SatelliteStore:
         if not (1 <= len(name) <= 80): raise ValueError("Nombre de dron inválido")
         lat,lon = coordinates(data.get("lat"),data.get("lon"))
         stamp = normalized_time(data.get("observed_at"))
+        if abs((datetime.now(timezone.utc) - datetime.fromisoformat(stamp)).total_seconds()) > 300:
+            raise ValueError("Telemetría fuera de ventana: sincroniza el reloj UTC del dron")
         def angle(key, low, high):
             val = data.get(key)
             if val is None: return None
@@ -213,7 +215,7 @@ class SatelliteStore:
         now = utcnow()
         with self.lock, self.connect() as c:
             last = c.execute("SELECT observed_at FROM drone_telemetry WHERE drone_name=? ORDER BY id DESC LIMIT 1",(name,)).fetchone()
-            if last and last[0]==stamp: raise ValueError("Telemetría duplicada")
+            if last and last[0]>=stamp: raise ValueError("Telemetría duplicada o anterior a la última registrada")
             cur=c.execute("""INSERT INTO drone_telemetry(drone_name,observed_at,received_at,lat,lon,altitude_m,yaw_deg,camera_yaw_deg,camera_pitch_deg)
                            VALUES(?,?,?,?,?,?,?,?,?)""", (name,stamp,now,lat,lon,alt,yaw,cy,cp))
             return {"id":cur.lastrowid,"drone_name":name,"lat":lat,"lon":lon,"observed_at":stamp,
