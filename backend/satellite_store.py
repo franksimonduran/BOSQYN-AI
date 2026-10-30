@@ -37,7 +37,7 @@ def normalized_time(value):
     parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     if parsed.tzinfo is None:
         raise ValueError("La observación debe incluir la zona horaria UTC")
-    return parsed.astimezone(timezone.utc).isoformat(timespec="seconds")
+    return parsed.astimezone(timezone.utc).isoformat(timespec="milliseconds")
 
 
 def coordinates(lat, lon):
