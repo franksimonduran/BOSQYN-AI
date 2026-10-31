@@ -437,10 +437,16 @@ Bosqyn.pages.monitoreo = function (root) {
         (sound ? "activado" : "desactivado") +
         ". Los avisos del navegador se configuran arriba.";
     });
+  // Vista ejecutiva: reordena módulos existentes sin cambiar la capa Esri ni los modelos.
+  const execCleanup = Bosqyn.monitorExecutive?.mount({
+    root, dashboard, livePanel, satCenter, modeLive, modeSat,
+    getMap: () => satelliteMap,
+  });
   // Se limpian las pistas de video y audio al abandonar Monitoreo.
   return function () {
     disposed = true;
     if (satelliteTimer) clearInterval(satelliteTimer);
+    execCleanup?.();
     ipCameraCleanup?.();
     if (satelliteMap) satelliteMap.remove();
     if (cleanupOperations) cleanupOperations();
