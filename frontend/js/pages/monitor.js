@@ -46,6 +46,7 @@ Bosqyn.pages.monitoreo = function (root) {
  <p class="bosqyn-footnote">Observaciones periódicas, no detecciones confirmadas ni video en tiempo real. La ausencia de puntos no descarta incendios.</p>
 </section>`;
   root.append(dashboard, livePanel);
+  const ipCameraCleanup = Bosqyn.ipCameras?.mount(dashboard, () => stop());
   const modeLive = dashboard.querySelector("#bosqyn-mode-live");
   const modeSat = dashboard.querySelector("#bosqyn-mode-satellite");
   const satCenter = dashboard.querySelector("#bosqyn-satellite-center");
@@ -440,6 +441,7 @@ Bosqyn.pages.monitoreo = function (root) {
   return function () {
     disposed = true;
     if (satelliteTimer) clearInterval(satelliteTimer);
+    ipCameraCleanup?.();
     if (satelliteMap) satelliteMap.remove();
     if (cleanupOperations) cleanupOperations();
     stop();
