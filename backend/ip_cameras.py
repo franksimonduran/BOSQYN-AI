@@ -108,12 +108,15 @@ class CameraRegistry:
         now=time.monotonic()
         for row in rows:
             item=self.latest.get(row["id"],{})
-            age=now-item.get("at",-1e9)
+            age=now-item.get("frame_at",-1e9)
             row["connected"]=row["desired"]=="on" and age<12
+            if row["desired"]=="on" and age>=12 and "frame_at" in item and not item.get("lost_logged"):
+                item["lost_logged"]=True
+                self.event(row["id"],"CONEXION_PERDIDA")
             row["last_frame_at"]=item.get("time") if age<7200 else None
             row["last_test"]=item.get("test")
             row["audio_result"]=item.get("audio") if age<120 else None
-            row["bridge_online"]=age<40
+            row["bridge_online"]=now-item.get("at",-1e9)<40
         return rows
     def get(self,id):
         return next((x for x in self.list() if x["id"]==id),None)
@@ -199,16 +202,16 @@ class CameraRegistry:
             raise ValueError("Fotograma JPEG inválido")
         with self.lock:
             was=self.latest.get(id,{})
-            recently=was.get("at",-1e9)>time.monotonic()-12
-            self.latest[id]={**was,"at":time.monotonic(),"frame":raw,"time":stamp()}
+            recently=was.get("frame_at",-1e9)>time.monotonic()-12
+            self.latest[id]={**was,"at":time.monotonic(),"frame_at":time.monotonic(),"frame":raw,"time":stamp(),"lost_logged":False}
         if not recently:self.event(id,"CONEXION_RECUPERADA")
     def snapshot(self,id):
         row=self.get(id)
         if row is None:raise KeyError(id)
         value=self.latest.get(id,{})
-        if row["desired"]=="on" and time.monotonic()-value.get("at",-1e9)<12:
+        if row["desired"]=="on" and time.monotonic()-value.get("frame_at",-1e9)<12:
             return value.get("frame")
-        if row["desired"]=="on" and value.get("at") is not None:
+        if row["desired"]=="on" and value.get("frame_at") is not None:
             self.event(id,"CONEXION_PERDIDA")
         return None
     def set_audio(self,id,prediction):
