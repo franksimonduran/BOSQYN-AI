@@ -21,6 +21,8 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from . import satellite
+from .ip_cameras import CameraRegistry
+from .ip_camera_http import CameraAPI
 from .storage import EvidenceStore, validate_wav
 from .auth import AdminAuth
 from .audio_model import AudioModel
@@ -31,7 +33,7 @@ MAX_BODY_BYTES = 4_000_000
 MAX_IMAGE_BYTES = 2_500_000
 
 
-class BosqynHandler(SimpleHTTPRequestHandler):
+class BosqynHandler(CameraAPI, SimpleHTTPRequestHandler):
     """Same-origin static frontend plus a small JSON API for local use only."""
 
     def end_headers(self):
@@ -166,6 +168,8 @@ class BosqynHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         target = urlsplit(self.path)
         route = target.path
+        if route.startswith("/api/ip-cameras"):
+            return self.camera_get(route)
         if route == "/api/satellite/status":
             return self.json_response(200, satellite.status())
         if route == "/api/satellite/events":
@@ -492,6 +496,8 @@ class BosqynHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         route = urlsplit(self.path).path
+        if route.startswith("/api/ip-cameras"):
+            return self.camera_post(route)
         if route == "/api/auth/guest":
             return self.guest_login()
         if route == "/api/auth/login":
@@ -608,6 +614,8 @@ class BosqynHandler(SimpleHTTPRequestHandler):
         return self.json_response(200, item)
 
     def do_DELETE(self):
+        if urlsplit(self.path).path.startswith("/api/ip-cameras/"):
+            return self.camera_delete(urlsplit(self.path).path)
         if self.writes_forbidden():
             return
         alert_id = self.alert_id(urlsplit(self.path).path)
@@ -630,6 +638,7 @@ def make_server(
     satellite.start()
     server.started_at = time.monotonic()
     server.store = EvidenceStore(data_dir)
+    server.cameras = CameraRegistry(server.store.database)
     server.auth = AdminAuth(host)
     server.persistent_storage = str(Path(data_dir).resolve()) == "/data" or str(
         Path(data_dir).resolve()
