@@ -101,7 +101,7 @@ function card(camera){
    }
    if(action==="record"){
      if(recorder?.state==="recording"){stopRecording();button.textContent="Grabar video";return;}
-     if(!current?.connected||!canvas.captureStream||!window.MediaRecorder){
+     if(!current?.connected||!canvas.captureStream||!window.MediaRecorder||!canvas.width){
        status("Grabación no disponible sin cámara conectada y MediaRecorder.");return;
      }
      try{
@@ -148,6 +148,8 @@ function card(camera){
    title.textContent=c.name;
    tag.textContent=c.connected?"Conectada":c.desired==="on"?"Sin señal / reconectando":"Desconectada";
    tag.classList.toggle("is-online",!!c.connected);
+   meta.textContent=c.protocol+" · "+c.kind+" · Puerto "+c.port+
+     " · Última imagen: "+fmt(c.last_frame_at);
    test.textContent="Prueba: "+(c.last_test?.status||"no realizada");
    audio.textContent=c.audio_result?
      "Audio "+c.audio_result.class+" "+Math.round(Number(c.audio_result.confidence||0)*100)+
