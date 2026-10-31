@@ -66,14 +66,14 @@ def media_uri(camera):
         url=urlunsplit((p.scheme,auth+p.netloc,p.path,p.query,""))
     return url
 
-def ffmpeg_cmd(source,fps=1):
+def ffmpeg_cmd(source,fps=1,single=False):
     cmd=["ffmpeg","-hide_banner","-loglevel","error","-nostdin","-rw_timeout","8000000"]
     if source.startswith("rtsp://"):cmd.extend(["-rtsp_transport","tcp"])
-    return cmd+["-i",source,"-an","-vf",f"fps={fps}","-q:v","7","-f","image2pipe","-vcodec","mjpeg","pipe:1"]
+    return cmd+["-i",source,"-an","-vf",f"fps={fps}"]+ (["-frames:v","1"] if single else []) + ["-q:v","7","-f","image2pipe","-vcodec","mjpeg","pipe:1"]
 
 def one_frame(source):
     try:
-        result=subprocess.run(ffmpeg_cmd(source),stdin=subprocess.DEVNULL,
+        result=subprocess.run(ffmpeg_cmd(source,single=True),stdin=subprocess.DEVNULL,
                               stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,
                               timeout=14,check=False)
     except subprocess.TimeoutExpired:
