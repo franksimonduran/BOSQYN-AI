@@ -11,3 +11,6 @@ matplotlib>=3.9,<4
 boto3>=1.35,<2
 h5py>=3.10,<4
 pyproj>=3.6,<4
+
+# Encrypt camera URLs and credentials at rest (Fernet)
+cryptography>=43,<47
