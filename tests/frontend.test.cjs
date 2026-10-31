@@ -190,3 +190,55 @@ test("Guest and administrator are distinct entry options", async () => {
   assert.equal(w.document.getElementById("bosqyn-auth-overlay").hidden, true);
   dom.window.close();
 });
+
+test("Executive monitor keeps existing satellite map and displays real API counts", async () => {
+  const dom = new JSDOM(
+    '<div id="root"><div class="bosqyn-camera-status">Cámara inactiva</div>'+
+    '<div class="bosqyn-satellite-dashboard">'+
+    '<div class="bosqyn-satellite-cards"><button id="bosqyn-mode-live"></button>'+
+    '<button id="bosqyn-mode-satellite"></button><button id="bosqyn-mode-ip"></button></div>'+
+    '<section id="bosqyn-satellite-center"><div id="bosqyn-satellite-map">MAPA ORIGINAL</div></section>'+
+    '<section id="bosqyn-ip-panel" hidden></section></div>'+
+    '<section id="bosqyn-live-panel" hidden><div class="bosqyn-unified-grid">MODELO ORIGINAL</div></section></div>',
+    {url:"https://bosqyn.example",runScripts:"outside-only"}
+  );
+  const w=dom.window, root=w.document.getElementById("root");
+  w.Bosqyn={auth:{role:()=> "admin"}};
+  w.fetch=async url=>({
+    ok:true,
+    json:async()=>url.includes("/api/statistics")?
+      {total:5,by_status:{PENDIENTE:2}}:
+      url.includes("/api/alerts")?
+      {items:[{id:1,category:"HUMO",status:"PENDIENTE",confidence:.86,
+        occurred_at:"2026-10-29T12:00:00Z"},{id:2,category:"<script>X</script>",status:"PENDIENTE"}]}:
+      url.includes("/api/ip-cameras")?
+      {items:[{id:1,connected:true},{id:2,connected:false}]}:
+      url.includes("/api/satellite/events")?
+      {events:[{id:1},{id:2},{id:3}]}:
+      {feeds:{NASA:{status:"ok"},NOAA:{status:"sin datos"}}}
+  });
+  w.eval(fs.readFileSync("frontend/js/monitor-executive.js","utf8"));
+  const dash=root.querySelector(".bosqyn-satellite-dashboard");
+  const map=dash.querySelector("#bosqyn-satellite-map");
+  const live=root.querySelector("#bosqyn-live-panel");
+  const cleanup=w.Bosqyn.monitorExecutive.mount({
+    root,dashboard:dash,livePanel:live,
+    satCenter:dash.querySelector("#bosqyn-satellite-center"),
+    modeLive:dash.querySelector("#bosqyn-mode-live"),
+    modeSat:dash.querySelector("#bosqyn-mode-satellite"),getMap:()=>null
+  });
+  await wait();
+  assert.equal(dash.querySelector("#bx-total").textContent,"5");
+  assert.equal(dash.querySelector("#bx-pending").textContent,"2");
+  assert.equal(dash.querySelector("#bx-cameras").textContent,"1 / 2");
+  assert.equal(dash.querySelector("#bx-sat-count").textContent,"3");
+  assert.equal(map.textContent,"MAPA ORIGINAL");
+  assert.equal(dash.querySelector("#bosqyn-satellite-center").hidden,false);
+  assert.equal(live.hidden,false);
+  assert.equal(dash.querySelectorAll(".bx-alert-row").length,2);
+  assert.equal(dash.querySelectorAll("script").length,0);
+  assert.equal(dash.querySelector("#bx-chart").getAttribute("src"),"/api/statistics/chart.png?demo=0");
+  assert.equal(dash.dataset.executiveMode,"overview");
+  cleanup();
+  dom.window.close();
+});
