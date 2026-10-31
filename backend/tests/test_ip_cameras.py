@@ -3,6 +3,7 @@ import json
 import os
 import tempfile
 import threading
+import time
 import unittest
 from pathlib import Path
 from urllib.error import HTTPError
@@ -67,6 +68,24 @@ class CameraRegistryTests(unittest.TestCase):
         self.assertNotIn(b"192.168.1.100",database)
         self.assertFalse(self.store.bridge_ok("incorrect"))
         self.assertTrue(self.store.bridge_ok(TOKEN))
+
+    def test_wifi_loss_and_reconnection_are_not_duplicated(self):
+        camera=self.store.register({"name":"Reconexion","kind":"camara_ip","protocol":"RTSP",
+            "url":"rtsp://10.0.0.55:554/ch1"})
+        id=camera["id"]
+        self.store.action(id,"connect")
+        self.store.frame(id,JPEG)
+        self.assertEqual(self.store.events(id)[0]["category"],"CONEXION_RECUPERADA")
+        with self.store.lock:
+            self.store.latest[id]["frame_at"]=time.monotonic()-15
+        self.assertFalse(self.store.get(id)["connected"])
+        self.assertEqual(self.store.events(id)[0]["category"],"CONEXION_PERDIDA")
+        n=len(self.store.events(id))
+        self.store.get(id)
+        self.assertEqual(len(self.store.events(id)),n)
+        self.store.frame(id,JPEG)
+        self.assertTrue(self.store.get(id)["connected"])
+        self.assertEqual(self.store.events(id)[0]["category"],"CONEXION_RECUPERADA")
 
     def test_connect_disconnect_recovery_snapshot_and_history(self):
         camera=self.store.register({"name":"Bosque","kind":"seguridad","protocol":"RTSP",
