@@ -205,238 +205,292 @@ Bosqyn.pages.monitoreo = function (root) {
   refreshSatellite();
   satelliteTimer = setInterval(refreshSatellite, 60000);
 
+  // Fuente de Monitoreo en tiempo real: únicamente cámaras IP registradas.
+  // Nunca se solicita acceso a la webcam ni al micrófono del navegador.
   const button = root.querySelector("#btn-live"),
     image = root.querySelector("#live-img"),
     badge = root.querySelector("#live-badge"),
-    soundButton = root.querySelector("#btn-sound");
+    soundButton = root.querySelector("#btn-sound"),
+    mediaSource = root.querySelector("#combined-source"),
+    fused = root.querySelector("#multimodal-insight"),
+    visualGrid = root.querySelector(".bosqyn-unified-grid");
   const status = document.createElement("div");
   status.className = "bosqyn-camera-status";
   status.setAttribute("role", "status");
-  status.textContent =
-    "Un solo botón inicia la webcam y su micrófono disponible. Las detecciones requieren verificación.";
+  status.textContent = "Selecciona una cámara IP guardada. No se usa la cámara ni el micrófono de este dispositivo.";
   root.prepend(status);
-  const audioController =
-    Bosqyn.audio && typeof Bosqyn.audio.mount === "function"
-      ? Bosqyn.audio.mount(root)
-      : null;
-  const mediaSource = root.querySelector("#combined-source");
-  const fused = root.querySelector("#multimodal-insight");
-  let lastVisual = null,
-    lastAudio = null;
+  const controls = document.createElement("div");
+  controls.className = "bosqyn-ip-live-controls";
+  controls.innerHTML =
+    '<label for="bosqyn-live-ip-select">Cámara IP</label>' +
+    '<select id="bosqyn-live-ip-select" aria-label="Seleccionar cámara IP">' +
+    '<option value="">Consultando cámaras registradas…</option></select>' +
+    '<button type="button" id="bosqyn-live-ip-reload">Actualizar cámaras</button>';
+  visualGrid?.before(controls);
+  const select = controls.querySelector("#bosqyn-live-ip-select");
+  const audioController = Bosqyn.audio?.mount?.(root);
+  const audioStatus = root.querySelector("#audio-model-status"),
+    audioTop = root.querySelector("#audio-top"),
+    audioBars = root.querySelector("#audio-bars");
+  let selectedId = null, activeCamera = null, active = false, starting = false,
+    monitorTimer = null, frameTime = 0, lastFrame = 0, lastAudioStamp = "",
+    lastVisual = null, lastAudio = null, sound = true, video = null, stream = null,
+    canvas = null, captureTimer = null, lastFrameUrl = null, mediaSession = 0;
+  const cleanupOperations = Bosqyn.operations?.mount(root, () => video);
+
   function updateJointState() {
     if (!fused) return;
     const recent = Date.now() - 10000;
-    if (
-      lastVisual?.className?.toLowerCase() === "tala" &&
-      lastAudio?.className?.toLowerCase() === "tala" &&
-      lastVisual.probability >= 0.8 &&
-      lastAudio.probability >= 0.8 &&
-      lastVisual.timestamp >= recent &&
-      lastAudio.timestamp >= recent
-    ) {
-      fused.textContent =
-        "Coincidencia de indicios de tala en cámara y audio: priorizar revisión humana. No confirma ilegalidad.";
+    if (lastVisual?.className?.toLowerCase() === "tala" &&
+        lastAudio?.className?.toLowerCase() === "tala" &&
+        lastVisual.probability >= .8 && lastAudio.probability >= .8 &&
+        lastVisual.timestamp >= recent && lastAudio.timestamp >= recent) {
+      fused.textContent = "Coincidencia de indicios visuales y acústicos de tala en la cámara IP. Requiere revisión humana.";
       fused.classList.add("bosqyn-multimodal-warning");
     } else {
-      fused.textContent =
-        "Predicciones independientes de cámara y micrófono. Una coincidencia de tala se destacará aquí.";
+      fused.textContent = "Detecciones independientes de video y audio de la cámara IP; no confirman actividades ilegales.";
       fused.classList.remove("bosqyn-multimodal-warning");
     }
   }
-  root.addEventListener("bosqyn:visual-detection", (event) => {
-    lastVisual = event.detail;
-    updateJointState();
-  });
-  root.addEventListener("bosqyn:audio-detection", (event) => {
-    lastAudio = event.detail;
-    updateJointState();
-  });
-  root.addEventListener("bosqyn:audio-stopped", () => {
+  const onVisual = event => { lastVisual = event.detail; updateJointState(); };
+  root.addEventListener("bosqyn:visual-detection", onVisual);
+  function clearAudio() {
     lastAudio = null;
+    lastAudioStamp = "";
+    audioTop.textContent = "Esperando audio de la cámara IP";
+    audioBars.replaceChildren();
+    const hint = document.createElement("p");
+    hint.className = "bosqyn-audio-placeholder";
+    hint.textContent = "El micrófono del dispositivo no se utiliza. El audio depende de la cámara IP y su pasarela.";
+    audioBars.append(hint);
+    if (audioStatus) audioStatus.textContent = "Sin audio de cámara IP";
     updateJointState();
-  });
-
-  let stream = null,
-    video = null,
-    starting = false,
-    sound = true,
-    mediaSession = 0;
-  const cleanupOperations = Bosqyn.operations?.mount(root, () => video);
-  async function selectCameraMicrophone(opened) {
-    const camera = opened.getVideoTracks()[0],
-      mic = opened.getAudioTracks()[0];
-    if (!camera || !mic) return "Solo cámara";
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoInfo = devices.find(
-        (d) =>
-          d.kind === "videoinput" &&
-          d.deviceId === camera.getSettings().deviceId,
-      );
-      const matched =
-        videoInfo?.groupId &&
-        devices.find(
-          (d) => d.kind === "audioinput" && d.groupId === videoInfo.groupId,
-        );
-      if (!matched) return "Cámara + micrófono predeterminado";
-      if (matched.deviceId === mic.getSettings().deviceId)
-        return "Webcam con micrófono integrado";
-      const other = await navigator.mediaDevices.getUserMedia({
-        video: false,
-        audio: {
-          deviceId: { exact: matched.deviceId },
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-        },
-      });
-      const track = other.getAudioTracks()[0];
-      if (!track) {
-        other.getTracks().forEach((t) => t.stop());
-        return "Cámara + micrófono predeterminado";
-      }
-      opened.removeTrack(mic);
-      mic.stop();
-      opened.addTrack(track);
-      return "Webcam con micrófono integrado";
-    } catch (error) {
-      console.info("Usando micrófono predeterminado:", error);
-      return "Cámara + micrófono predeterminado";
-    }
   }
-
-  function stop() {
-    mediaSession++;
-    if (Bosqyn.vision) Bosqyn.vision.reset(root);
-    lastVisual = null;
-    lastAudio = null;
-    updateJointState();
-    if (audioController?.stopAudio) audioController.stopAudio();
-    if (Bosqyn.vision) Bosqyn.vision.stop();
-    if (stream) stream.getTracks().forEach((track) => track.stop());
-    stream = null;
-    if (video) {
-      video.pause();
-      video.srcObject = null;
-      video.remove();
-      video = null;
-    }
-    if (image) image.style.display = "";
-    if (badge) badge.style.display = "none";
-    if (mediaSource) mediaSource.textContent = "Cámara y micrófono inactivos";
-    if (button)
-      button.innerHTML = Bosqyn.icons.play + " Iniciar cámara y audio";
-  }
-  async function start() {
-    if (starting || stream) return;
-    if (!navigator.mediaDevices?.getUserMedia) {
-      status.textContent = "La webcam requiere HTTPS o localhost.";
-      status.classList.add("bosqyn-camera-error");
+  function renderAudio(camera) {
+    const result = camera.audio_result;
+    if (!result || !camera.connected || !camera.audio_enabled) {
+      if (lastAudio) clearAudio();
       return;
     }
-    starting = true;
-    const session = ++mediaSession;
-    button.disabled = true;
+    if (!result.time || result.time === lastAudioStamp) return;
+    lastAudioStamp = result.time;
+    const name = result.class === "Tala" ? "Tala" : "Normal";
+    const probability = Number(result.confidence);
+    if (!Number.isFinite(probability)) return;
+    const safe = Math.max(0, Math.min(1, probability));
+    audioBars.replaceChildren();
+    const row = document.createElement("div");
+    row.className = "bosqyn-audio-row";
+    const icon = document.createElement("img");
+    icon.src = name === "Tala" ? "img/deteccion/Tala.png" : "img/deteccion/Bosque.png";
+    icon.alt = "";
+    const label = document.createElement("span"); label.textContent = name;
+    const progress = document.createElement("div"); progress.className = "bosqyn-audio-progress";
+    const fill = document.createElement("div"); fill.style.width = (100 * safe).toFixed(1) + "%";
+    progress.append(fill);
+    const score = document.createElement("strong"); score.textContent = (100 * safe).toFixed(1) + "%";
+    row.append(icon, label, progress, score);
+    audioBars.append(row);
+    audioTop.textContent = "Clase acústica predominante · " + (result.original_class || "sin clase original");
+    if (audioStatus) audioStatus.textContent = "Audio de cámara IP";
+    lastAudio = { className: name, probability: safe, timestamp: Date.now() };
+    root.dispatchEvent(new CustomEvent("bosqyn:audio-detection", { detail: lastAudio }));
+    updateJointState();
+  }
+  function resetVideo() {
+    Bosqyn.vision?.stop();
+    Bosqyn.vision?.reset(root);
+    if (captureTimer) { clearTimeout(captureTimer); captureTimer = null; }
+    if (stream) stream.getTracks().forEach(track => track.stop());
+    stream = null;
+    if (video) { video.pause(); video.srcObject = null; video.remove(); video = null; }
+    canvas = null;
+    lastVisual = null;
+    updateJointState();
+    if (badge) badge.style.display = "none";
+  }
+  function stop() {
+    mediaSession++;
+    active = false; starting = false;
+    if (monitorTimer) { clearInterval(monitorTimer); monitorTimer = null; }
+    resetVideo(); clearAudio();
+    if (lastFrameUrl) { URL.revokeObjectURL(lastFrameUrl); lastFrameUrl = null; }
+    image.src = "img/live.jpg";
+    image.style.display = "";
+    if (mediaSource) mediaSource.textContent = "Cámara IP sin conexión";
+    if (button) { button.disabled = false; button.textContent = "Conectar cámara IP"; }
+  }
+  async function cameras() {
     try {
-      let opened = null,
-        sourceLabel = "Webcam + micrófono";
-      try {
-        opened = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: {
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false,
-          },
-        });
-        sourceLabel = await selectCameraMicrophone(opened);
-      } catch (micError) {
-        if (opened) opened.getTracks().forEach((t) => t.stop());
-        opened = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: false,
-        });
-        sourceLabel = "Solo webcam · micrófono no disponible";
-      }
-      if (!root.isConnected || disposed || session !== mediaSession) {
-        opened.getTracks().forEach((track) => track.stop());
-        return;
-      }
-      stream = opened;
-      video = document.createElement("video");
-      video.className = image.className;
-      video.autoplay = true;
-      video.playsInline = true;
-      video.muted = true;
-      video.style.width = "100%";
-      video.style.height = "100%";
-      video.style.objectFit = "cover";
-      image.after(video);
-      video.srcObject = stream;
-      await video.play();
-      image.style.display = "none";
-      if (badge) badge.style.display = "";
-      button.innerHTML = Bosqyn.icons.square + " Detener monitoreo";
-      if (mediaSource) mediaSource.textContent = sourceLabel;
-      status.classList.remove("bosqyn-camera-error");
-      status.textContent = "Webcam encendida. Iniciando el modelo de visión…";
-      if (Bosqyn.vision) Bosqyn.vision.start(video, root, status);
-      if (
-        opened.getAudioTracks().some((t) => t.readyState === "live") &&
-        audioController?.startWithStream
-      ) {
-        audioController
-          .startWithStream(opened)
-          .then((ok) => {
-            if (!ok && stream === opened) {
-              opened.getAudioTracks().forEach((t) => t.stop());
-              if (mediaSource)
-                mediaSource.textContent =
-                  "Solo webcam · micrófono no habilitado";
-            }
-          })
-          .catch((error) => console.error("Detector acústico:", error));
-      }
+      const response = await fetch("/api/ip-cameras", { cache: "no-store", credentials: "same-origin" });
+      if (!response.ok) throw new Error("Inicia sesión como administrador para elegir una cámara IP.");
+      const payload = await response.json();
+      return payload.items || [];
     } catch (err) {
-      stop();
-      status.textContent = "No se pudo abrir la webcam. Revisa permisos.";
-      status.classList.add("bosqyn-camera-error");
-      console.error(err);
-    } finally {
-      starting = false;
-      button.disabled = false;
+      status.textContent = err.message;
+      return [];
     }
   }
-  if (button) {
-    button.innerHTML = Bosqyn.icons.play + " Iniciar cámara y audio";
-    button.addEventListener("click", () => {
-      if (stream) {
-        stop();
-        status.classList.remove("bosqyn-camera-error");
-        status.textContent =
-          "Webcam y micrófono detenidos; inferencia interrumpida.";
-        if (Bosqyn.vision) Bosqyn.vision.reset(root);
-      } else start();
-    });
+  async function loadCameras() {
+    const items = await cameras();
+    if (disposed) return;
+    const previous = select.value || String(selectedId || "");
+    select.replaceChildren();
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = items.length ? "Selecciona una cámara IP" : "No hay cámaras IP disponibles";
+    select.append(placeholder);
+    for (const item of items) {
+      const option = document.createElement("option");
+      option.value = String(item.id);
+      option.textContent = item.name + " · " + (item.connected ? "Conectada" : "Sin señal");
+      select.append(option);
+    }
+    if (items.some(item => String(item.id) === previous)) select.value = previous;
+    if (!items.length && !active)
+      status.textContent = "Guarda una cámara en el formulario Cámaras IP de esta misma pantalla e inicia su pasarela local.";
+    return items;
   }
-  if (badge) badge.style.display = "none";
-
-  if (soundButton)
-    soundButton.addEventListener("click", () => {
-      sound = !sound;
-      Bosqyn.operations?.setSound(sound);
-      let knob = soundButton.firstElementChild;
-      soundButton.classList.toggle("bg-[#22c55e]", sound);
-      soundButton.classList.toggle("bg-white/15", !sound);
-      if (knob) {
-        knob.classList.toggle("left-[14px]", sound);
-        knob.classList.toggle("left-[2px]", !sound);
-      }
-      status.textContent =
-        "Sonido " +
-        (sound ? "activado" : "desactivado") +
-        ". Los avisos del navegador se configuran arriba.";
+  async function action(id, actionName) {
+    const response = await fetch("/api/ip-cameras/" + id + "/action", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "X-Bosqyn-Action": "1" },
+      body: JSON.stringify({ action: actionName })
     });
+    const data = await response.json();
+    if (!response.ok) throw Error(data.error || "No se pudo cambiar el estado de la cámara");
+    return data.camera;
+  }
+  async function ensureVisualStream() {
+    if (video) return;
+    // Canvas streams copy authorized IP JPEG frames. No navigator.mediaDevices call.
+    canvas = document.createElement("canvas");
+    canvas.width = 640; canvas.height = 360;
+    canvas.className = "bosqyn-ip-vision-canvas";
+    stream = canvas.captureStream ? canvas.captureStream(2) : null;
+    if (!stream) {
+      status.textContent = "Este navegador no admite el análisis visual de fotogramas IP.";
+      return;
+    }
+    video = document.createElement("video");
+    video.muted = true; video.playsInline = true; video.autoplay = true;
+    video.className = "bosqyn-ip-vision-source";
+    video.setAttribute("aria-hidden", "true");
+    image.after(video);
+    video.srcObject = stream;
+    try {
+      await video.play();
+      if (active) Bosqyn.vision?.start(video, root, status);
+    } catch {
+      status.textContent = "Fotogramas disponibles, pero la IA visual no pudo iniciar en este navegador.";
+    }
+  }
+  async function receiveFrame(session, id) {
+    if (!active || session !== mediaSession) return;
+    try {
+      const response = await fetch("/api/ip-cameras/" + id + "/snapshot?t=" + Date.now(), {
+        cache: "no-store", credentials: "same-origin"
+      });
+      if (!response.ok) throw Error("Sin imagen reciente");
+      const jpeg = await response.blob();
+      if (!active || session !== mediaSession) return;
+      const url = URL.createObjectURL(jpeg);
+      const frame = new Image();
+      frame.onload = async () => {
+        if (!active || session !== mediaSession) { URL.revokeObjectURL(url); return; }
+        image.src = url;
+        if (lastFrameUrl) URL.revokeObjectURL(lastFrameUrl);
+        lastFrameUrl = url;
+        if (badge) badge.style.display = "";
+        if (canvas) {
+          canvas.getContext("2d").drawImage(frame, 0, 0, canvas.width, canvas.height);
+        } else {
+          await ensureVisualStream();
+          if (canvas) canvas.getContext("2d").drawImage(frame, 0, 0, canvas.width, canvas.height);
+        }
+        status.classList.remove("bosqyn-camera-error");
+        status.textContent = "Fotogramas de cámara IP recibidos · inferencia visual en el navegador";
+        if (mediaSource) mediaSource.textContent = "Cámara IP: " + (activeCamera?.name || id);
+        lastFrame = Date.now();
+      };
+      frame.onerror = () => { URL.revokeObjectURL(url); };
+      frame.src = url;
+    } catch {
+      if (lastFrame && Date.now() - lastFrame > 12000) {
+        resetVideo();
+        if (badge) badge.style.display = "none";
+        if (mediaSource) mediaSource.textContent = "Cámara IP sin señal · reconectando";
+        status.textContent = "Esperando señal desde la pasarela IP local.";
+      }
+    }
+  }
+  async function refresh(session, id) {
+    if (!active || session !== mediaSession) return;
+    try {
+      const items = await cameras();
+      if (!active || session !== mediaSession) return;
+      const camera = items.find(item => item.id === id);
+      if (!camera) { status.textContent = "La cámara IP seleccionada ya no está registrada."; stop(); return; }
+      activeCamera = camera;
+      renderAudio(camera);
+      if (camera.connected) {
+        await receiveFrame(session, id);
+      } else {
+        if (mediaSource) mediaSource.textContent = "Cámara IP sin señal · reconectando";
+        if (lastFrame && Date.now() - lastFrame > 12000) resetVideo();
+      }
+    } catch {
+      status.textContent = "Sin conexión con el servidor de cámaras IP.";
+    }
+  }
+  async function start() {
+    if (starting || active) return;
+    const id = Number(select.value);
+    if (!Number.isSafeInteger(id) || id < 1) {
+      status.textContent = "Selecciona primero una cámara IP registrada en esta pantalla.";
+      return;
+    }
+    if (!await Bosqyn.auth?.ensureAdmin("Inicia sesión como administrador para conectar cámaras IP.")) return;
+    starting = true; button.disabled = true;
+    try {
+      await action(id, "connect");
+      selectedId = id; active = true; activeCamera = null; lastFrame = 0;
+      const session = ++mediaSession;
+      button.textContent = "Desconectar cámara IP";
+      status.textContent = "Conexión solicitada. Esperando fotogramas desde la pasarela de la red local.";
+      await refresh(session, id);
+      monitorTimer = setInterval(() => refresh(session, id), 1700);
+    } catch (err) {
+      status.textContent = err.message; status.classList.add("bosqyn-camera-error");
+    } finally { starting = false; button.disabled = false; }
+  }
+  if (button) button.addEventListener("click", async () => {
+    if (active) {
+      const id = selectedId; stop();
+      if (id) {
+        try { await action(id, "disconnect"); } catch (err) { status.textContent = err.message; }
+      }
+      status.textContent = "Cámara IP desconectada. Puedes conectar otra cámara guardada.";
+    } else start();
+  });
+  controls.querySelector("#bosqyn-live-ip-reload").addEventListener("click", loadCameras);
+  select.addEventListener("change", () => {
+    if (!active) selectedId = Number(select.value) || null;
+  });
+  if (badge) badge.style.display = "none";
+  if (soundButton) soundButton.addEventListener("click", () => {
+    sound = !sound;
+    Bosqyn.operations?.setSound(sound);
+    const knob = soundButton.firstElementChild;
+    soundButton.classList.toggle("bg-[#22c55e]", sound);
+    soundButton.classList.toggle("bg-white/15", !sound);
+    knob?.classList.toggle("left-[14px]", sound);
+    knob?.classList.toggle("left-[2px]", !sound);
+    status.textContent = "Sonido de alerta " + (sound ? "activado" : "desactivado") + ".";
+  });
+  const onAuth = () => loadCameras();
+  window.addEventListener("bosqyn:auth-changed", onAuth);
+  loadCameras();
   // Vista ejecutiva: reordena módulos existentes sin cambiar la capa Esri ni los modelos.
   const execCleanup = Bosqyn.monitorExecutive?.mount({
     root, dashboard, livePanel, satCenter, modeLive, modeSat,
@@ -451,6 +505,8 @@ Bosqyn.pages.monitoreo = function (root) {
     if (satelliteMap) satelliteMap.remove();
     if (cleanupOperations) cleanupOperations();
     stop();
+    root.removeEventListener("bosqyn:visual-detection", onVisual);
+    window.removeEventListener("bosqyn:auth-changed", onAuth);
     if (typeof audioController === "function") audioController();
   };
 };
