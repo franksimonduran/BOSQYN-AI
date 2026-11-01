@@ -37,7 +37,7 @@ Bosqyn.pages.estadisticas = function (root) {
     controller = new AbortController();
     button.disabled = true;
     toggle.disabled = true;
-    message.textContent = "Consultando registros y preparando el gráfico Matplotlib…";
+    message.textContent = "Actualizando estadísticas…";
     try {
       // Siempre se leen los datos reales para los indicadores de cabecera.
       // Los valores ficticios jamás se escriben en SQLite.
@@ -84,10 +84,10 @@ Bosqyn.pages.estadisticas = function (root) {
       if (old) URL.revokeObjectURL(old);
       const amount = Number(data.total) || 0;
       message.textContent = mode
-        ? "Gráfico de demostración: cifras inventadas para mostrar la interfaz. Los cuatro indicadores superiores siguen siendo datos reales."
+        ? "DEMOSTRACIÓN · Datos simulados. Indicadores: reales."
         : amount === 0
-          ? "Sin evidencias registradas. El gráfico muestra valores reales en cero."
-          : "Gráfico actualizado desde SQLite. Los conteos no miden precisión.";
+          ? "Sin evidencias registradas."
+          : "Gráfico actualizado · Datos reales.";
     } catch (error) {
       if (error.name === "AbortError" || !active || run !== sequence) return;
       message.textContent = "No se pudo actualizar el gráfico: " + error.message;
