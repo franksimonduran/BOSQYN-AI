@@ -42,13 +42,12 @@ Bosqyn.operations = (function () {
   }
   function mount(root, getVideo) {
     const panel = document.createElement("section");
-    panel.className = "bosqyn-operations";
-    panel.innerHTML =
-      '<div class="bosqyn-monitor-settings"><label><input type="checkbox" data-auto> Capturar amenazas automáticamente</label><button class="bosqyn-action" data-notifications>Activar avisos del navegador</button><button class="bosqyn-action" data-system>Comprobar sistema</button></div><p data-operation-status role="status" aria-live="polite">Las alertas requieren sesión de invitado o administrador, confianza ≥85 % y tres predicciones consecutivas. Se guarda una foto y un clip de sonido de unos 3 segundos si hay micrófono disponible.</p>';
+    // Los controles técnicos se retiran del diseño; se conserva intacta la
+    // captura de amenazas y la preferencia actual del usuario.
+    panel.className = "bosqyn-operations sr-only";
+    panel.innerHTML = '<p data-operation-status role="status" aria-live="polite"></p>';
     root.prepend(panel);
-    const message = panel.querySelector("[data-operation-status]"),
-      auto = panel.querySelector("[data-auto]");
-    auto.checked = prefs.automatic;
+    const message = panel.querySelector("[data-operation-status]");
     let active = true,
       busy = false,
       label = "",
@@ -64,53 +63,6 @@ Bosqyn.operations = (function () {
     root.addEventListener("bosqyn:audio-clip", onClip);
     root.addEventListener("bosqyn:audio-stopped", onAudioStop);
     const saved = new Map();
-    auto.onchange = async () => {
-      soundReady();
-      if (
-        auto.checked &&
-        !(await Bosqyn.auth.ensure(
-          "Elige Invitado o Administrador para guardar las detecciones.",
-        ))
-      )
-        auto.checked = false;
-      prefs.automatic = auto.checked;
-      save();
-    };
-    panel.querySelector("[data-notifications]").onclick = async () => {
-      try {
-        if (!("Notification" in window))
-          throw Error("Este navegador no admite avisos");
-        const permission = await Notification.requestPermission();
-        prefs.notifications = permission === "granted";
-        save();
-        message.textContent = prefs.notifications
-          ? "Avisos activados mientras esta página esté abierta."
-          : "Avisos no autorizados; revisa los permisos del navegador.";
-      } catch (e) {
-        message.textContent = e.message;
-      }
-    };
-    panel.querySelector("[data-system]").onclick = async () => {
-      try {
-        if (!(await Bosqyn.auth.ensureAdmin())) return;
-        const response = await fetch("/api/operations", { cache: "no-store" }),
-          data = await response.json();
-        if (!response.ok) throw Error(data.error);
-        message.textContent =
-          (data.persistent_storage
-            ? "Volumen persistente"
-            : "Almacenamiento local") +
-          " · Escritura " +
-          (data.writes_enabled ? "habilitada" : "deshabilitada") +
-          " · Libre " +
-          Math.round(data.disk_free_bytes / 1048576) +
-          " MB · Servidor activo " +
-          data.uptime_seconds +
-          " s";
-      } catch (e) {
-        message.textContent = e.message;
-      }
-    };
     async function clipForIncident(video) {
       if (lastClip && Date.now() - lastClip.timestamp < 5000)
         return lastClip.audio_data;
