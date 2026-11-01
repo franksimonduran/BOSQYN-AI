@@ -17,10 +17,10 @@
       ></path>
       <path d="M12 22v-3"></path></svg
     ><h1 class="text-[17px] font-extrabold leading-none text-white"
-      >Monitoreo en tiempo real</h1
+      >Monitoreo por cámaras IP</h1
     ></div
   ><p class="mt-[7px] text-[10px] text-mute"
-    >Visualiza la transmisión de la cámara y las predicciones de la IA</p
+    >Visualiza fotogramas de una cámara IP y sus predicciones de IA</p
   ></div
 ><div class="bosqyn-unified-grid mt-[14px]"
   ><div
@@ -38,7 +38,7 @@
       class="absolute right-[10px] top-[12px] text-[9.5px] text-white"
       >16/10/2026 10:26:47</span
     ><span class="absolute bottom-[12px] left-[12px] text-[9.5px] text-white"
-      ><span id="combined-source">Cámara y micrófono inactivos</span></span
+      ><span id="combined-source">Cámara IP sin conexión</span></span
     ><svg
       xmlns="http://www.w3.org/2000/svg"
       width="14"
@@ -75,7 +75,7 @@
           data-vision-class
           >ESPERANDO IA</div
         ><div class="mt-[5px] text-[8px] text-[#cbd8d1]" data-vision-detail
-          >Conecta la webcam para iniciar la clasificación</div
+          >Conecta una cámara IP para iniciar la clasificación</div
         ><span
           class="mt-[7px] inline-block rounded-[4px] bg-[#f97316] px-[8px] py-[3px] text-[7.5px] font-extrabold text-[#2a1200]"
           data-vision-warning
@@ -99,7 +99,7 @@
       <p id="audio-top" class="bosqyn-audio-top">Sin predicciones de audio</p>
       <div id="audio-bars" class="bosqyn-audio-bars" aria-live="polite">
         <p class="bosqyn-audio-placeholder"
-          >Activa el monitoreo para iniciar el análisis acústico.</p
+          >Esperando audio proporcionado por la cámara IP.</p
         >
       </div>
     </section></div
@@ -121,7 +121,7 @@
       stroke-linejoin="round"
     >
       <rect width="18" height="18" x="3" y="3" rx="2"></rect></svg
-    >Iniciar cámara y audio</button
+    >Conectar cámara IP</button
   ><div
     class="card flex h-[44px] items-center justify-between !rounded-[9px] px-[14px] text-[10px] font-semibold text-white"
     >Sonido de alerta
@@ -133,12 +133,12 @@
       ></span></button></div
 ></div>
 <div class="bosqyn-multimodal-state" id="multimodal-insight" role="status">
-  Resultados de imagen y audio independientes. Las coincidencias de tala
+  Predicciones visuales y acústicas de la cámara IP. Las coincidencias de tala
   requieren verificación humana.
 </div>
 <p class="bosqyn-unified-note"
-  >Imagen: inferencia de Teachable Machine en tu navegador. Sonido: modelo Keras
-  en Python; solo se conservan clips de sonido asociados a amenazas detectadas.
-  Si tu webcam no tiene micrófono, BOSQYN AI puede usar uno disponible en la
-  computadora.</p
+  >Imagen: fotogramas de cámara IP transmitidos mediante la pasarela local, con
+  inferencia visual de Teachable Machine en tu navegador. Sonido: análisis
+  acústico Keras en Python si la cámara IP tiene audio habilitado. No se utiliza
+  la webcam ni el micrófono de este dispositivo.</p
 >
