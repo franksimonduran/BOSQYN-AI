@@ -135,7 +135,7 @@ function card(camera){
      }else{
        const result=await api("/api/ip-cameras/"+id+"/action","POST",{action});
        status(action==="test"?"Prueba solicitada a la pasarela local.":action==="connect"?
-          "Conexión solicitada. La pasarela local enviará fotogramas si puede acceder al dispositivo.":
+          "Conexión solicitada. Esperando señal IP.":
           "Cámara desconectada.");
        if(action==="disconnect"){if(visionId===id)stopVision();stopRecording();}
        update(result.camera);
@@ -181,7 +181,7 @@ function render(items){
    node.update(camera);
  }
  if(!items.length&& !area.querySelector("[data-ip-empty]")){
-   const hint=mk("p","Todavía no hay cámaras guardadas. Agrega una dirección IP privada y ejecuta la pasarela local.","bosqyn-ip-muted");
+   const hint=mk("p","Sin cámaras registradas. Añade una cámara IP para comenzar.","bosqyn-ip-muted");
    hint.dataset.ipEmpty="1";area.append(hint);
  }else if(items.length)area.querySelector("[data-ip-empty]")?.remove();
 }
@@ -199,7 +199,7 @@ async function refresh(){
      events.append(line);
    }
  }catch(err){
-   if(active)status("Para consultar cámaras IP, inicia sesión como administrador. "+err.message);
+   if(active)status("Acceso administrador requerido. "+err.message);
  }
 }
 function mount(dashboard,stopWebcam){
@@ -221,7 +221,7 @@ function mount(dashboard,stopWebcam){
  panel.hidden=true;panel.id="bosqyn-ip-panel";
  panel.innerHTML=
   '<h2>Cámaras IP · monitoreo forestal</h2>'+
-  '<p class="bosqyn-ip-muted">Las IP privadas funcionan mediante la pasarela en tu Wi-Fi. Railway nunca accede directamente a la cámara.</p>'+
+  '<p class="bosqyn-ip-muted">Conexión segura mediante pasarela local.</p>'+
   '<form id="ip-form" class="bosqyn-ip-form">'+
    '<label>Nombre<input name="name" required maxlength="80" placeholder="Cámara forestal 01"></label>'+
    '<label>Dispositivo<select name="kind"><option value="telefono">Teléfono Android</option><option value="camara_ip">Cámara IP</option><option value="seguridad">Seguridad</option></select></label>'+
@@ -236,7 +236,7 @@ function mount(dashboard,stopWebcam){
   '<p id="ip-status" class="bosqyn-ip-muted" role="status">Accede como administrador para añadir cámaras.</p>'+
   '<div id="ip-grid" class="bosqyn-ip-grid"></div>'+
   '<details><summary>Historial de conexiones y eventos</summary><div id="ip-events" class="bosqyn-ip-events"></div></details>'+
-  '<p class="bosqyn-ip-muted">Cámara IP, detección visual y acústica y mapa satelital se presentan en una sola pantalla. La motosierra es un indicio acústico, no prueba de tala ilegal. La pasarela procesa aproximadamente un fotograma por segundo.</p>';
+  '<p class="bosqyn-ip-muted">Detecciones sujetas a verificación humana.</p>';
  satellite.after(panel);
  const onEnter=()=>{
    stopWebcam?.();
@@ -263,7 +263,7 @@ function mount(dashboard,stopWebcam){
    try{
      const saved=await api("/api/ip-cameras","POST",fields);
      form.elements.password.value="";form.elements.username.value="";
-     status("Cámara "+saved.camera.name+" guardada. Inicia la pasarela local y pulsa Probar conexión.");
+     status("Cámara "+saved.camera.name+" guardada. Prueba su conexión.");
      await refresh();
    }catch(err){status(err.message);}
  });
