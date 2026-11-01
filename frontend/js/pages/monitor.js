@@ -228,6 +228,11 @@ Bosqyn.pages.monitoreo = function (root) {
     '<button type="button" id="bosqyn-live-ip-reload">Actualizar cámaras</button>';
   visualGrid?.before(controls);
   const select = controls.querySelector("#bosqyn-live-ip-select");
+  const noFeed = document.createElement("p");
+  noFeed.className = "bosqyn-ip-feed-empty";
+  noFeed.textContent = "SIN SEÑAL IP · Selecciona y conecta una cámara autorizada";
+  image.after(noFeed);
+  image.style.display = "none";
   const audioController = Bosqyn.audio?.mount?.(root);
   const audioStatus = root.querySelector("#audio-model-status"),
     audioTop = root.querySelector("#audio-top"),
@@ -300,6 +305,8 @@ Bosqyn.pages.monitoreo = function (root) {
   function resetVideo() {
     Bosqyn.vision?.stop();
     Bosqyn.vision?.reset(root);
+    const tip = root.querySelector("[data-vision-detail]");
+    if (tip) tip.textContent = "Conecta una cámara IP para iniciar la clasificación";
     if (captureTimer) { clearTimeout(captureTimer); captureTimer = null; }
     if (stream) stream.getTracks().forEach(track => track.stop());
     stream = null;
@@ -315,8 +322,9 @@ Bosqyn.pages.monitoreo = function (root) {
     if (monitorTimer) { clearInterval(monitorTimer); monitorTimer = null; }
     resetVideo(); clearAudio();
     if (lastFrameUrl) { URL.revokeObjectURL(lastFrameUrl); lastFrameUrl = null; }
-    image.src = "img/live.jpg";
-    image.style.display = "";
+    image.removeAttribute("src");
+    image.style.display = "none";
+    noFeed.hidden = false;
     if (mediaSource) mediaSource.textContent = "Cámara IP sin conexión";
     if (button) { button.disabled = false; button.textContent = "Conectar cámara IP"; }
   }
@@ -399,6 +407,8 @@ Bosqyn.pages.monitoreo = function (root) {
       frame.onload = async () => {
         if (!active || session !== mediaSession) { URL.revokeObjectURL(url); return; }
         image.src = url;
+        image.style.display = "";
+        noFeed.hidden = true;
         if (lastFrameUrl) URL.revokeObjectURL(lastFrameUrl);
         lastFrameUrl = url;
         if (badge) badge.style.display = "";
@@ -419,6 +429,7 @@ Bosqyn.pages.monitoreo = function (root) {
       if (lastFrame && Date.now() - lastFrame > 12000) {
         resetVideo();
         if (badge) badge.style.display = "none";
+        image.style.display = "none"; noFeed.hidden = false;
         if (mediaSource) mediaSource.textContent = "Cámara IP sin señal · reconectando";
         status.textContent = "Esperando señal desde la pasarela IP local.";
       }
@@ -437,7 +448,9 @@ Bosqyn.pages.monitoreo = function (root) {
         await receiveFrame(session, id);
       } else {
         if (mediaSource) mediaSource.textContent = "Cámara IP sin señal · reconectando";
-        if (lastFrame && Date.now() - lastFrame > 12000) resetVideo();
+        if (lastFrame && Date.now() - lastFrame > 12000) {
+          resetVideo(); image.style.display = "none"; noFeed.hidden = false;
+        }
       }
     } catch {
       status.textContent = "Sin conexión con el servidor de cámaras IP.";
@@ -490,6 +503,7 @@ Bosqyn.pages.monitoreo = function (root) {
   });
   const onAuth = () => loadCameras();
   window.addEventListener("bosqyn:auth-changed", onAuth);
+  clearAudio();
   loadCameras();
   // Vista ejecutiva: reordena módulos existentes sin cambiar la capa Esri ni los modelos.
   const execCleanup = Bosqyn.monitorExecutive?.mount({
@@ -508,5 +522,6 @@ Bosqyn.pages.monitoreo = function (root) {
     root.removeEventListener("bosqyn:visual-detection", onVisual);
     window.removeEventListener("bosqyn:auth-changed", onAuth);
     if (typeof audioController === "function") audioController();
+    noFeed.remove();
   };
 };
