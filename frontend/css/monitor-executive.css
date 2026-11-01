@@ -232,3 +232,25 @@ body.bosqyn-monitor-page #header{
     grid-template-columns:1fr;align-items:stretch
   }
 }
+
+/* Al estar en Monitoreo no reservamos una fila vacía para la cabecera global.
+   Sus botones y reloj conservan identidad, eventos y accesibilidad en el hero. */
+body.bosqyn-monitor-page .bosqyn-exec-hero #header.bosqyn-exec-integrated-header {
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end;
+  position:relative; width:auto; height:auto!important; min-height:0!important;
+  margin:0; padding:0!important; gap:12px!important;
+  background:transparent!important; border:0!important;
+  box-shadow:none!important; backdrop-filter:none!important;
+}
+body.bosqyn-monitor-page .bosqyn-exec-hero #header.bosqyn-exec-integrated-header button,
+body.bosqyn-monitor-page .bosqyn-exec-hero #header.bosqyn-exec-integrated-header [data-clock] {
+  position:relative; flex-shrink:0;
+}
+@media(max-width:650px) {
+  body.bosqyn-monitor-page .bosqyn-exec-hero #header.bosqyn-exec-integrated-header {
+    width:100%; justify-content:flex-start; gap:9px!important;
+  }
+  body.bosqyn-monitor-page .bosqyn-exec-hero .bx-hero-status {
+    width:100%; white-space:normal;
+  }
+}
