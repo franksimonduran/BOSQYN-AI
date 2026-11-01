@@ -280,3 +280,25 @@ test("Live monitor uses authorized IP camera instead of device webcam",()=>{
   assert.ok(overview.includes("tabs.remove()"));
   assert.ok(overview.includes("ipPanel.hidden=false"));
 });
+
+test("Executive copy is concise while functional controls and caveats remain", () => {
+  const monitor = fs.readFileSync("frontend/views/monitoreo.html","utf8");
+  const alerts = fs.readFileSync("frontend/views/alertas.html","utf8");
+  const stats = fs.readFileSync("frontend/views/estadisticas.html","utf8");
+  const ip = fs.readFileSync("frontend/js/pages/ip-cameras.js","utf8");
+  const controller = fs.readFileSync("frontend/js/pages/monitor.js","utf8");
+  const statistics = fs.readFileSync("frontend/js/pages/statistics.js","utf8");
+  assert.ok(monitor.includes('id="btn-live"'), "IP camera connect control remains");
+  assert.ok(monitor.includes('id="audio-bars"'), "Audio classification remains");
+  assert.ok(monitor.includes('data-vision-confidence'), "Visual confidence remains");
+  assert.ok(!monitor.includes("Imagen: fotogramas de cámara IP transmitidos"));
+  assert.match(monitor, /no precisión validada/);
+  assert.ok(controller.includes('id="bosqyn-satellite-map"'), "Satellite map remains");
+  assert.ok(controller.includes('"/api/satellite/events"'), "Satellite feed remains");
+  assert.ok(!controller.includes("Cobertura consultada (oeste"));
+  assert.ok(ip.includes('id="ip-form"'), "IP camera registration remains");
+  assert.ok(ip.includes('id="ip-grid"'), "IP camera preview remains");
+  assert.ok(alerts.includes("Guarda una copia antes de aplicar retención"));
+  assert.ok(stats.includes("DATOS SIMULADOS"), "Demo data still clearly labeled");
+  assert.ok(statistics.includes("DEMOSTRACIÓN · Datos simulados"));
+});
