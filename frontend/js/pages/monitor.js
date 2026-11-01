@@ -233,7 +233,21 @@ Bosqyn.pages.monitoreo = function (root) {
   noFeed.textContent = "SIN SEÑAL IP · Selecciona y conecta una cámara autorizada";
   image.after(noFeed);
   image.style.display = "none";
-  const audioController = Bosqyn.audio?.mount?.(root);
+  // Consultar el motor acústico sin montar el capturador de micrófono del navegador.
+  fetch("/api/audio/model-info", { cache: "no-store", credentials: "same-origin" })
+    .then(response => response.ok ? response.json() : Promise.reject(Error("Motor no disponible")))
+    .then(info => {
+      if (disposed) return;
+      const badge = root.querySelector("#audio-model-status");
+      if (badge) {
+        badge.textContent = info.available ? "Modelo acústico listo" : "Modelo acústico no disponible";
+        badge.className = "bosqyn-audio-badge" + (info.available ? " ready" : "");
+      }
+    })
+    .catch(() => {
+      const badge = root.querySelector("#audio-model-status");
+      if (!disposed && badge) badge.textContent = "Motor acústico sin conexión";
+    });
   const audioStatus = root.querySelector("#audio-model-status"),
     audioTop = root.querySelector("#audio-top"),
     audioBars = root.querySelector("#audio-bars");
@@ -521,7 +535,6 @@ Bosqyn.pages.monitoreo = function (root) {
     stop();
     root.removeEventListener("bosqyn:visual-detection", onVisual);
     window.removeEventListener("bosqyn:auth-changed", onAuth);
-    if (typeof audioController === "function") audioController();
     noFeed.remove();
   };
 };
