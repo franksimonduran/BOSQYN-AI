@@ -191,3 +191,44 @@ body.bosqyn-monitor-page #header{
  .bosqyn-executive-monitor .bosqyn-satellite-choice .choice-title{font-size:9px}
 }
 @media(prefers-reduced-motion:reduce){.bx-systems button:hover{transform:none}}
+
+/* Monitoreo unificado: una sola pantalla y selección segura de cámaras IP */
+.bosqyn-executive-monitor .bosqyn-satellite-cards{display:none!important}
+.bosqyn-executive-monitor .bosqyn-ip-live-controls{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;gap:9px;padding:11px 12px;margin:8px 0 12px;
+  border:1px solid rgba(77,200,125,.32);border-radius:10px;
+  background:linear-gradient(110deg,rgba(10,68,44,.69),rgba(4,34,27,.9))
+}
+.bosqyn-executive-monitor .bosqyn-ip-live-controls label{
+  color:#ddf7e6;font-size:11px;font-weight:800
+}
+.bosqyn-executive-monitor .bosqyn-ip-live-controls select{
+  width:100%;min-width:0;color:#e8fff0;background:#071e16;
+  border:1px solid #3a8057;border-radius:7px;padding:9px;font-size:11px
+}
+.bosqyn-executive-monitor .bosqyn-ip-live-controls button{
+  color:#eafff1;background:#126a41;border:1px solid #31ac71;
+  border-radius:7px;padding:9px 12px;font-size:11px;cursor:pointer
+}
+.bosqyn-executive-monitor .bosqyn-ip-live-controls button:hover{background:#178d51}
+.bosqyn-executive-monitor .bosqyn-ip-live-controls :focus-visible{
+  outline:2px solid #8bf0b5;outline-offset:2px
+}
+.bosqyn-executive-monitor .bosqyn-ip-feed-empty{
+  position:absolute;inset:0;z-index:1;display:flex;justify-content:center;align-items:center;
+  background:radial-gradient(ellipse at center,#153e2d,#031911);
+  color:#a6e9bc;font-size:11px;line-height:1.6;text-align:center;font-weight:800;
+  letter-spacing:.04em;padding:22px
+}
+.bosqyn-executive-monitor .bosqyn-ip-feed-empty[hidden]{display:none!important}
+.bosqyn-executive-monitor .bosqyn-unified-camera #live-badge{z-index:3}
+.bosqyn-executive-monitor .bosqyn-unified-camera #combined-source{position:relative;z-index:3}
+.bosqyn-executive-monitor .bosqyn-unified-camera [data-clock]{z-index:3}
+.bosqyn-executive-monitor .bosqyn-exec-stage{margin-top:6px}
+.bosqyn-executive-monitor #bosqyn-ip-panel{display:block;margin-top:14px}
+@media(max-width:660px){
+  .bosqyn-executive-monitor .bosqyn-ip-live-controls{
+    grid-template-columns:1fr;align-items:stretch
+  }
+}
