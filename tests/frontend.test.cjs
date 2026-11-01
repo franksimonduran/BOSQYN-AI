@@ -206,6 +206,12 @@ test("Executive monitor keeps existing satellite map and displays real API count
     {url:"https://bosqyn.example",runScripts:"outside-only"}
   );
   const w=dom.window, root=w.document.getElementById("root");
+  const originalHeader=w.document.createElement("header");
+  originalHeader.id="header";
+  originalHeader.innerHTML='<button id="header-account">Acceder</button>';
+  root.before(originalHeader);
+  let headerClicks=0;
+  originalHeader.querySelector("#header-account").addEventListener("click",()=>headerClicks++);
   w.Bosqyn={auth:{role:()=> "admin"}};
   w.fetch=async url=>({
     ok:true,
@@ -242,11 +248,18 @@ test("Executive monitor keeps existing satellite map and displays real API count
   assert.equal(dash.querySelectorAll("script").length,0);
   assert.equal(dash.querySelector("#bx-chart").getAttribute("src"),"/api/statistics/chart.png?demo=0");
   assert.equal(dash.dataset.executiveMode,"overview");
+  assert.equal(dash.querySelector(".bx-hero-status #header"),originalHeader,
+    "La cabecera superior anterior debe integrarse al encabezado ejecutivo");
+  originalHeader.querySelector("#header-account").click();
+  assert.equal(headerClicks,1,"Los botones del encabezado deben conservar sus eventos");
   assert.equal(dash.querySelector(".bosqyn-satellite-cards"),null,
     "No deben aparecer pestañas entre monitoreo, satélite y cámaras IP");
   assert.equal(dash.querySelector("#bosqyn-ip-panel").hidden,false,
     "La gestión de cámaras IP debe permanecer en la pantalla unificada");
   cleanup();
+  assert.equal(originalHeader.parentElement,w.document.body,
+    "La cabecera debe volver a su posición original al salir de Monitoreo");
+  assert.equal(originalHeader.nextElementSibling,root);
   dom.window.close();
 });
 
