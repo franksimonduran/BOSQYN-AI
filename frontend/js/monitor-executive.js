@@ -61,7 +61,7 @@ Bosqyn.monitorExecutive=(()=>{
    side.innerHTML=[
       '<div class="bx-widget-head"><h2>Alertas recientes</h2><a href="#alertas">Ver todas ↗</a></div>',
       '<div id="bx-alert-feed" class="bx-alert-feed"><p class="bx-empty">Consultando evidencias…</p></div>',
-      '<p class="bx-caption">Clasificaciones sujetas a revisión humana.</p>'
+      '<p class="bx-caption">Verificación humana requerida.</p>'
    ].join("");
    stage.append(livePanel,satCenter,side);
    kpis.after(stage);
@@ -73,15 +73,15 @@ Bosqyn.monitorExecutive=(()=>{
    lower.innerHTML=[
      '<article class="bx-widget"><div class="bx-widget-head"><h2>Tendencias de evidencias</h2><span>7 días · UTC</span></div>',
      '<div class="bx-graph"><img id="bx-chart" alt="Gráfico real Matplotlib de evidencias de siete días" src="/api/statistics/chart.png?demo=0"></div>',
-     '<p class="bx-caption">Matplotlib · registros de SQLite, sin datos simulados.</p></article>',
+     '<p class="bx-caption">Datos reales.</p></article>',
      '<article class="bx-widget"><div class="bx-widget-head"><h2>Distribución de evidencias</h2><span>Registros recientes</span></div>',
      '<div id="bx-classes" class="bx-class-list"><p class="bx-empty">Consultando clases…</p></div>',
-     '<p class="bx-caption">Categorías observadas, no precisión de la IA.</p></article>',
+     '<p class="bx-caption">Registros, no precisión.</p></article>',
      '<article class="bx-widget"><div class="bx-widget-head"><h2>Ecosistema BOSQYN</h2><span>Acceso rápido</span></div>',
      '<div class="bx-systems"><button type="button" data-bx-open="ip"><b>▣</b><strong>Cámaras IP</strong><small id="bx-sys-cams">Por consultar</small></button>',
      '<button type="button" data-bx-open="live"><b>◉</b><strong>Cámara + audio</strong><small>IA unificada</small></button>',
      '<button type="button" data-bx-open="satellite"><b>◎</b><strong>Satélites</strong><small id="bx-sys-sat">NASA y NOAA</small></button></div>',
-     '<p class="bx-caption">El video de drones requiere una conexión real.</p></article>'
+     '<p class="bx-caption">Drones: sin conexión.</p></article>'
    ].join("");
    stage.after(lower);
    const ipPanel=dashboard.querySelector("#bosqyn-ip-panel");
@@ -108,7 +108,7 @@ Bosqyn.monitorExecutive=(()=>{
 
    function displayAlerts(items){
      const target=$("bx-alert-feed");target.replaceChildren();
-     if(!items.length){target.append(elem("p","bx-empty","Sin alertas. Las evidencias reales aparecerán aquí."));return;}
+     if(!items.length){target.append(elem("p","bx-empty","Sin alertas registradas."));return;}
      const symbols={INCENDIO:"♨",HUMO:"☁",TALA:"♧",NORMAL:"✧"};
      for(const item of items.slice(0,5)){
        const link=elem("a","bx-alert-row");link.href="#alertas";
@@ -153,7 +153,7 @@ Bosqyn.monitorExecutive=(()=>{
        displayAlerts(alerts.value.items||[]);
        displayDistribution(alerts.value.items||[]);
      }else{
-       $("bx-alert-feed").replaceChildren(elem("p","bx-empty","Inicia sesión para consultar el historial."));
+       $("bx-alert-feed").replaceChildren(elem("p","bx-empty","Historial no disponible."));
        $("bx-classes").replaceChildren(elem("p","bx-empty","Distribución no disponible."));
      }
      $("bx-sat-count").textContent=events.status==="fulfilled"?count(events.value.events?.length||0):"—";
