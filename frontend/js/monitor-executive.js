@@ -42,6 +42,16 @@ Bosqyn.monitorExecutive=(()=>{
    ].join("");
    dashboard.prepend(kpis);dashboard.prepend(hero);
 
+   // El encabezado global anterior ocupa una fila casi vacía sobre este panel.
+   // Conservar sus controles de sesión/notificaciones, pero integrarlos al hero.
+   const appHeader=document.getElementById("header");
+   const headerParent=appHeader?.parentNode;
+   const headerNext=appHeader?.nextSibling;
+   if(appHeader&&headerParent){
+     appHeader.classList.add("bosqyn-exec-integrated-header");
+     hero.querySelector(".bx-hero-status")?.append(appHeader);
+   }
+
    // El monitoreo es ahora una sola pantalla: sin pestañas ni modos separados.
    tabs.remove();
 
@@ -174,6 +184,12 @@ Bosqyn.monitorExecutive=(()=>{
    return ()=>{
      active=false;serial++;clearInterval(task);
      window.removeEventListener("bosqyn:auth-changed",onAuth);
+     // Reponer el encabezado en su posición original para Inicio/Alertas/Estadísticas.
+     if(appHeader&&headerParent){
+       appHeader.classList.remove("bosqyn-exec-integrated-header");
+       headerParent.insertBefore(appHeader,
+         headerNext?.parentNode===headerParent?headerNext:null);
+     }
      document.body.classList.remove("bosqyn-monitor-page");
      root.classList.remove("bosqyn-executive-monitor");
    };
