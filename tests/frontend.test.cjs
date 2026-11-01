@@ -242,6 +242,28 @@ test("Executive monitor keeps existing satellite map and displays real API count
   assert.equal(dash.querySelectorAll("script").length,0);
   assert.equal(dash.querySelector("#bx-chart").getAttribute("src"),"/api/statistics/chart.png?demo=0");
   assert.equal(dash.dataset.executiveMode,"overview");
+  assert.equal(dash.querySelector(".bosqyn-satellite-cards"),null,
+    "No deben aparecer pestañas entre monitoreo, satélite y cámaras IP");
+  assert.equal(dash.querySelector("#bosqyn-ip-panel").hidden,false,
+    "La gestión de cámaras IP debe permanecer en la pantalla unificada");
   cleanup();
   dom.window.close();
+});
+
+test("Live monitor uses authorized IP camera instead of device webcam",()=>{
+  const live=fs.readFileSync("frontend/js/pages/monitor.js","utf8");
+  const template=fs.readFileSync("frontend/views/monitoreo.html","utf8");
+  const overview=fs.readFileSync("frontend/js/monitor-executive.js","utf8");
+  assert.ok(live.includes('"/api/ip-cameras"'));
+  assert.ok(live.includes('"/api/ip-cameras/" + id + "/snapshot'));
+  assert.ok(live.includes("bosqyn-live-ip-select"));
+  assert.ok(live.includes('await action(id, "connect")'));
+  assert.ok(live.includes('await action(id, "disconnect")'));
+  assert.ok(!live.includes("getUserMedia("));
+  assert.ok(!live.includes("Bosqyn.audio?.mount"));
+  assert.ok(template.includes("Monitoreo por cámaras IP"));
+  assert.ok(!template.includes("Iniciar cámara y audio"));
+  assert.ok(!template.includes("Conecta la webcam"));
+  assert.ok(overview.includes("tabs.remove()"));
+  assert.ok(overview.includes("ipPanel.hidden=false"));
 });
