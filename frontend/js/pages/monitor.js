@@ -383,12 +383,13 @@ Bosqyn.pages.monitoreo = function (root) {
     if (!response.ok) throw Error(data.error || "No se pudo cambiar el estado de la cámara");
     return data.camera;
   }
-  async function ensureVisualStream() {
+  async function ensureVisualStream(firstFrame) {
     if (video) return;
-    // Canvas streams copy authorized IP JPEG frames. No navigator.mediaDevices call.
+    // Dibujar el primer fotograma IP antes de captureStream evita iniciar un video vacío.
     canvas = document.createElement("canvas");
     canvas.width = 640; canvas.height = 360;
     canvas.className = "bosqyn-ip-vision-canvas";
+    canvas.getContext("2d").drawImage(firstFrame, 0, 0, canvas.width, canvas.height);
     stream = canvas.captureStream ? canvas.captureStream(2) : null;
     if (!stream) {
       status.textContent = "Este navegador no admite el análisis visual de fotogramas IP.";
@@ -397,6 +398,8 @@ Bosqyn.pages.monitoreo = function (root) {
     video = document.createElement("video");
     video.muted = true; video.playsInline = true; video.autoplay = true;
     video.className = "bosqyn-ip-vision-source";
+    video.hidden = true;
+    video.style.display = "none";
     video.setAttribute("aria-hidden", "true");
     image.after(video);
     video.srcObject = stream;
@@ -429,8 +432,7 @@ Bosqyn.pages.monitoreo = function (root) {
         if (canvas) {
           canvas.getContext("2d").drawImage(frame, 0, 0, canvas.width, canvas.height);
         } else {
-          await ensureVisualStream();
-          if (canvas) canvas.getContext("2d").drawImage(frame, 0, 0, canvas.width, canvas.height);
+          await ensureVisualStream(frame);
         }
         status.classList.remove("bosqyn-camera-error");
         status.textContent = "Fotogramas de cámara IP recibidos · inferencia visual en el navegador";
