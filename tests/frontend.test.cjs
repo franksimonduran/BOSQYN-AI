@@ -94,9 +94,12 @@ test("Automatic incidents require persistence and ignore normal class", async ()
     videoWidth: 640,
     videoHeight: 480,
   }));
-  const toggle = root.querySelector("[data-auto]");
-  toggle.checked = true;
-  await toggle.onchange();
+  // La interfaz no debe exponer controles técnicos ni el texto eliminado.
+  assert.equal(root.querySelector("[data-auto]"), null);
+  assert.equal(root.querySelector("[data-notifications]"), null);
+  assert.equal(root.querySelector("[data-system]"), null);
+  assert.ok(!root.textContent.includes("Las alertas requieren sesión"));
+  // La detección automática existente continúa funcionando sin este control visible.
   const emit = (name) =>
     root.dispatchEvent(
       new w.CustomEvent("bosqyn:visual-detection", {
