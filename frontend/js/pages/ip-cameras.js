@@ -236,7 +236,7 @@ function mount(dashboard,stopWebcam){
   '<p id="ip-status" class="bosqyn-ip-muted" role="status">Accede como administrador para añadir cámaras.</p>'+
   '<div id="ip-grid" class="bosqyn-ip-grid"></div>'+
   '<details><summary>Historial de conexiones y eventos</summary><div id="ip-events" class="bosqyn-ip-events"></div></details>'+
-  '<p class="bosqyn-ip-muted">La webcam y el mapa satelital son independientes. Una motosierra es un indicio acústico, no prueba de tala ilegal. La pasarela procesa como máximo un fotograma por segundo por cámara.</p>';
+  '<p class="bosqyn-ip-muted">Cámara IP, detección visual y acústica y mapa satelital se presentan en una sola pantalla. La motosierra es un indicio acústico, no prueba de tala ilegal. La pasarela procesa aproximadamente un fotograma por segundo.</p>';
  satellite.after(panel);
  const onEnter=()=>{
    stopWebcam?.();
