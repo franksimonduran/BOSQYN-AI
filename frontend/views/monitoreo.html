@@ -19,8 +19,6 @@
     ><h1 class="text-[17px] font-extrabold leading-none text-white"
       >Monitoreo por cámaras IP</h1
     ></div
-  ><p class="mt-[7px] text-[10px] text-mute"
-    >Visualiza fotogramas de una cámara IP y sus predicciones de IA</p
   ></div
 ><div class="bosqyn-unified-grid mt-[14px]"
   ><div
@@ -84,9 +82,7 @@
       ></div
     ><div class="bosqyn-dominant-progress" role="presentation"
       ><span data-vision-progress></span></div
-    ><p class="bosqyn-dominant-tip"
-      >Se muestra únicamente la clasificación visual predominante. El porcentaje
-      es la confianza del modelo, no su precisión validada.</p
+    ><p class="bosqyn-dominant-tip">Confianza del modelo, no precisión validada.</p
     ><section class="bosqyn-combined-audio" aria-label="Resultados acústicos">
       <div class="bosqyn-combined-audio-head">
         <span class="bosqyn-combined-title"
@@ -133,12 +129,5 @@
       ></span></button></div
 ></div>
 <div class="bosqyn-multimodal-state" id="multimodal-insight" role="status">
-  Predicciones visuales y acústicas de la cámara IP. Las coincidencias de tala
-  requieren verificación humana.
+  Detecciones sujetas a verificación humana.
 </div>
-<p class="bosqyn-unified-note"
-  >Imagen: fotogramas de cámara IP transmitidos mediante la pasarela local, con
-  inferencia visual de Teachable Machine en tu navegador. Sonido: análisis
-  acústico Keras en Python si la cámara IP tiene audio habilitado. No se utiliza
-  la webcam ni el micrófono de este dispositivo.</p
->
