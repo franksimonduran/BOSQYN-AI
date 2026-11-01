@@ -42,11 +42,8 @@ Bosqyn.monitorExecutive=(()=>{
    ].join("");
    dashboard.prepend(kpis);dashboard.prepend(hero);
 
-   const overview=elem("button","bosqyn-satellite-choice bx-overview-tab");
-   overview.type="button";overview.id="bosqyn-mode-overview";
-   overview.setAttribute("role","tab");overview.setAttribute("aria-selected","true");
-   overview.innerHTML='<span class="choice-title">◈ &nbsp; Vista general</span><span class="choice-art" aria-hidden="true">▦</span><span class="choice-desc">Centro de control</span>';
-   tabs.prepend(overview);
+   // El monitoreo es ahora una sola pantalla: sin pestañas ni modos separados.
+   tabs.remove();
 
    const stage=elem("div","bosqyn-exec-stage");
    stage.setAttribute("aria-label","Cámara, satélite y alertas");
@@ -57,7 +54,7 @@ Bosqyn.monitorExecutive=(()=>{
       '<p class="bx-caption">Clasificaciones sujetas a revisión humana.</p>'
    ].join("");
    stage.append(livePanel,satCenter,side);
-   tabs.after(stage);
+   kpis.after(stage);
    const status=root.querySelector(".bosqyn-camera-status");
    if(status)livePanel.prepend(status);
 
@@ -77,39 +74,26 @@ Bosqyn.monitorExecutive=(()=>{
      '<p class="bx-caption">El video de drones requiere una conexión real.</p></article>'
    ].join("");
    stage.after(lower);
+   const ipPanel=dashboard.querySelector("#bosqyn-ip-panel");
+   if(ipPanel){
+     lower.after(ipPanel);
+     ipPanel.hidden=false;
+   }
+   livePanel.hidden=false;
+   satCenter.hidden=false;
+   dashboard.dataset.executiveMode="overview";
+
    const $=id=>dashboard.querySelector("#"+id);
    const invalidate=()=>{
      const map=getMap?.();
      if(map)requestAnimationFrame(()=>setTimeout(()=>map.invalidateSize(),110));
    };
-   function setMode(value){
-     dashboard.dataset.executiveMode=value;
-     [[overview,"overview"],[modeLive,"live"],[modeSat,"satellite"],[ipTab,"ip"]].forEach(([button,key])=>{
-       button?.setAttribute("aria-selected",String(key===value));
-     });
-     lower.hidden=value!=="overview";
-     side.hidden=value!=="overview";
-     if(value==="overview"||value==="satellite")invalidate();
-   }
-   const showOverview=()=>{
-     // Reuse the original mode switch to hide the IP panel and release the webcam.
-     modeSat.click();
-     livePanel.hidden=false;satCenter.hidden=false;
-     setMode("overview");
-   };
-   const showLive=()=>setMode("live");
-   const showSat=()=>setMode("satellite");
-   const showIP=()=>setMode("ip");
-   overview.addEventListener("click",showOverview);
-   modeLive.addEventListener("click",showLive);
-   modeSat.addEventListener("click",showSat);
-   ipTab?.addEventListener("click",showIP);
+   invalidate();
+   // Las tarjetas inferiores desplazan a módulos presentes en la misma pantalla.
    lower.querySelectorAll("[data-bx-open]").forEach(btn=>btn.addEventListener("click",()=>{
      const to=btn.dataset.bxOpen;
-     if(to==="ip")ipTab?.click();
-     else if(to==="live")modeLive.click();
-     else modeSat.click();
-     dashboard.scrollIntoView({behavior:"smooth",block:"start"});
+     const target=to==="ip"?ipPanel:to==="live"?livePanel:satCenter;
+     target?.scrollIntoView({behavior:"smooth",block:"start"});
    }));
 
    function displayAlerts(items){
@@ -186,14 +170,10 @@ Bosqyn.monitorExecutive=(()=>{
    const onAuth=()=>reload();
    window.addEventListener("bosqyn:auth-changed",onAuth);
    task=setInterval(reload,60000);
-   overview.click();reload();
+   reload();
    return ()=>{
      active=false;serial++;clearInterval(task);
      window.removeEventListener("bosqyn:auth-changed",onAuth);
-     overview.removeEventListener("click",showOverview);
-     modeLive.removeEventListener("click",showLive);
-     modeSat.removeEventListener("click",showSat);
-     ipTab?.removeEventListener("click",showIP);
      document.body.classList.remove("bosqyn-monitor-page");
      root.classList.remove("bosqyn-executive-monitor");
    };
