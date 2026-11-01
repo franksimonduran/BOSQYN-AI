@@ -43,7 +43,7 @@ Bosqyn.pages.monitoreo = function (root) {
   <span><i class="bosqyn-source-dot" style="background:#efbe56"></i> NOAA GOES-19: <b id="bosqyn-noaa-status">consultando</b></span>
   <span><b id="bosqyn-events-count">0</b> observaciones</span>
  </div>
- <p class="bosqyn-footnote">Observaciones periódicas, no detecciones confirmadas ni video en tiempo real. La ausencia de puntos no descarta incendios.</p>
+ <p class="bosqyn-footnote">Observaciones satelitales, no alertas confirmadas.</p>
 </section>`;
   root.append(dashboard, livePanel);
   const ipCameraCleanup = Bosqyn.ipCameras?.mount(dashboard, () => stop());
@@ -116,9 +116,7 @@ Bosqyn.pages.monitoreo = function (root) {
       );
       const coverage = dashboard.querySelector(".bosqyn-footnote");
       coverage.textContent =
-        "Cobertura consultada (oeste, sur, este, norte): " +
-        (state.bbox || []).join(", ") +
-        ". Puede desplazarse el mapa fuera de esta cobertura sin ampliar la consulta. Ventana: últimas 24 h; consulta cada 30 min. Sin puntos no significa ausencia de incendios. NASA y NOAA usan códigos de calidad diferentes.";
+        "Últimas 24 h · Sin puntos no significa ausencia de incendios.";
       if (!satelliteMap) return;
       satelliteLayer.clearLayers();
       for (const e of data.events || []) {
@@ -217,7 +215,7 @@ Bosqyn.pages.monitoreo = function (root) {
   const status = document.createElement("div");
   status.className = "bosqyn-camera-status";
   status.setAttribute("role", "status");
-  status.textContent = "Selecciona una cámara IP guardada. No se usa la cámara ni el micrófono de este dispositivo.";
+  status.textContent = "Selecciona una cámara IP.";
   root.prepend(status);
   const controls = document.createElement("div");
   controls.className = "bosqyn-ip-live-controls";
@@ -264,10 +262,10 @@ Bosqyn.pages.monitoreo = function (root) {
         lastAudio?.className?.toLowerCase() === "tala" &&
         lastVisual.probability >= .8 && lastAudio.probability >= .8 &&
         lastVisual.timestamp >= recent && lastAudio.timestamp >= recent) {
-      fused.textContent = "Coincidencia de indicios visuales y acústicos de tala en la cámara IP. Requiere revisión humana.";
+      fused.textContent = "Indicios visuales y acústicos de tala · Verificar.";
       fused.classList.add("bosqyn-multimodal-warning");
     } else {
-      fused.textContent = "Detecciones independientes de video y audio de la cámara IP; no confirman actividades ilegales.";
+      fused.textContent = "Resultados de cámara IP · Sujetos a verificación.";
       fused.classList.remove("bosqyn-multimodal-warning");
     }
   }
@@ -280,7 +278,7 @@ Bosqyn.pages.monitoreo = function (root) {
     audioBars.replaceChildren();
     const hint = document.createElement("p");
     hint.className = "bosqyn-audio-placeholder";
-    hint.textContent = "El micrófono del dispositivo no se utiliza. El audio depende de la cámara IP y su pasarela.";
+    hint.textContent = "Esperando audio de cámara IP.";
     audioBars.append(hint);
     if (audioStatus) audioStatus.textContent = "Sin audio de cámara IP";
     updateJointState();
@@ -370,7 +368,7 @@ Bosqyn.pages.monitoreo = function (root) {
     }
     if (items.some(item => String(item.id) === previous)) select.value = previous;
     if (!items.length && !active)
-      status.textContent = "Guarda una cámara en el formulario Cámaras IP de esta misma pantalla e inicia su pasarela local.";
+      status.textContent = "Agrega una cámara IP y activa su pasarela.";
     return items;
   }
   async function action(id, actionName) {
@@ -435,7 +433,7 @@ Bosqyn.pages.monitoreo = function (root) {
           await ensureVisualStream(frame);
         }
         status.classList.remove("bosqyn-camera-error");
-        status.textContent = "Fotogramas de cámara IP recibidos · inferencia visual en el navegador";
+        status.textContent = "Cámara IP conectada · IA visual activa";
         if (mediaSource) mediaSource.textContent = "Cámara IP: " + (activeCamera?.name || id);
         lastFrame = Date.now();
       };
@@ -486,7 +484,7 @@ Bosqyn.pages.monitoreo = function (root) {
       selectedId = id; active = true; activeCamera = null; lastFrame = 0;
       const session = ++mediaSession;
       button.textContent = "Desconectar cámara IP";
-      status.textContent = "Conexión solicitada. Esperando fotogramas desde la pasarela de la red local.";
+      status.textContent = "Conectando · Esperando señal IP.";
       await refresh(session, id);
       monitorTimer = setInterval(() => refresh(session, id), 1700);
     } catch (err) {
@@ -499,7 +497,7 @@ Bosqyn.pages.monitoreo = function (root) {
       if (id) {
         try { await action(id, "disconnect"); } catch (err) { status.textContent = err.message; }
       }
-      status.textContent = "Cámara IP desconectada. Puedes conectar otra cámara guardada.";
+      status.textContent = "Cámara IP desconectada.";
     } else start();
   });
   controls.querySelector("#bosqyn-live-ip-reload").addEventListener("click", loadCameras);
