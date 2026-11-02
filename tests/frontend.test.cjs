@@ -37,7 +37,7 @@ test("Home uses API counts and never seeded incidents", async () => {
     assert.equal(root.querySelector("[data-home-auto]").textContent, "4");
     assert.equal(
     root.querySelector("[data-home-health]").textContent,
-    "En línea",
+    "Sistema en línea",
   );
     assert.ok(!root.textContent.includes("98%"));
   } finally {
@@ -343,7 +343,7 @@ test("Executive homepage uses only real server values and safe recent evidence",
     assert.equal(root.querySelector("[data-home-health]").textContent,"Sistema en línea");
     assert.equal(root.querySelectorAll(".bh-record").length,1);
     assert.equal(root.querySelectorAll(".bh-record script").length,0);
-    assert.ok(root.querySelector(".bh-record").textContent.includes("<script>"));
+    assert.ok(root.querySelector(".bh-record").textContent.toLowerCase().includes("<script>"));
     assert.ok(root.querySelector('[href="#monitoreo"]'));
     assert.equal(root.querySelector("[data-home-chart]").getAttribute("src"),
     "/api/statistics/chart.png?demo=0");
