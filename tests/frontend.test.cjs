@@ -32,15 +32,18 @@ test("Home uses API counts and never seeded incidents", async () => {
   w.eval(fs.readFileSync("frontend/js/pages/home.js", "utf8"));
   const cleanup = w.Bosqyn.pages.inicio(root);
   await wait();
-  assert.equal(root.querySelector("[data-home-total]").textContent, "7");
-  assert.equal(root.querySelector("[data-home-auto]").textContent, "4");
-  assert.equal(
+  try {
+    assert.equal(root.querySelector("[data-home-total]").textContent, "7");
+    assert.equal(root.querySelector("[data-home-auto]").textContent, "4");
+    assert.equal(
     root.querySelector("[data-home-health]").textContent,
     "En línea",
   );
-  assert.ok(!root.textContent.includes("98%"));
-  cleanup();
-  dom.window.close();
+    assert.ok(!root.textContent.includes("98%"));
+  } finally {
+    cleanup();
+    dom.window.close();
+  }
 });
 test("History filters are sent to API and records are escaped", async () => {
   const { dom, w, root } = setup("alertas");
@@ -331,20 +334,24 @@ test("Executive homepage uses only real server values and safe recent evidence",
   w.eval(fs.readFileSync("frontend/js/pages/home.js","utf8"));
   const cleanup = w.Bosqyn.pages.inicio(root);
   await wait();
-  assert.equal(root.querySelector("[data-home-total]").textContent,"12");
-  assert.equal(root.querySelector("[data-home-pending]").textContent,"3");
-  assert.equal(root.querySelector("[data-home-auto]").textContent,"5");
-  assert.equal(root.querySelector("[data-home-cameras]").textContent,"1 / 2");
-  assert.equal(root.querySelector("[data-home-satellite]").textContent,"2");
-  assert.equal(root.querySelector("[data-home-health]").textContent,"Sistema en línea");
-  assert.equal(root.querySelectorAll(".bh-record").length,1);
-  assert.equal(root.querySelectorAll(".bh-record script").length,0);
-  assert.ok(root.querySelector(".bh-record").textContent.includes("<script>"));
-  assert.ok(root.querySelector('[href="#monitoreo"]'));
-  assert.equal(root.querySelector("[data-home-chart]").getAttribute("src"),
+  try {
+    assert.equal(root.querySelector("[data-home-total]").textContent,"12");
+    assert.equal(root.querySelector("[data-home-pending]").textContent,"3");
+    assert.equal(root.querySelector("[data-home-auto]").textContent,"5");
+    assert.equal(root.querySelector("[data-home-cameras]").textContent,"1 / 2");
+    assert.equal(root.querySelector("[data-home-satellite]").textContent,"2");
+    assert.equal(root.querySelector("[data-home-health]").textContent,"Sistema en línea");
+    assert.equal(root.querySelectorAll(".bh-record").length,1);
+    assert.equal(root.querySelectorAll(".bh-record script").length,0);
+    assert.ok(root.querySelector(".bh-record").textContent.includes("<script>"));
+    assert.ok(root.querySelector('[href="#monitoreo"]'));
+    assert.equal(root.querySelector("[data-home-chart]").getAttribute("src"),
     "/api/statistics/chart.png?demo=0");
-  assert.equal(requested.length,5);
-  cleanup();dom.window.close();
+    assert.equal(requested.length,5);
+  } finally {
+    cleanup();
+    dom.window.close();
+  }
 });
 
 test("Homepage never fabricates IP camera or satellite numbers without access", async () => {
@@ -363,10 +370,14 @@ test("Homepage never fabricates IP camera or satellite numbers without access", 
   w.eval(fs.readFileSync("frontend/js/pages/home.js","utf8"));
   const cleanup = w.Bosqyn.pages.inicio(root);
   await wait();
-  assert.equal(root.querySelector("[data-home-total]").textContent,"0");
-  assert.equal(root.querySelector("[data-home-satellite]").textContent,"—");
-  assert.equal(root.querySelector("[data-home-cameras]").textContent,"—");
-  assert.ok(!urls.includes("/api/ip-cameras"), "Guest must never request admin camera credentials");
-  assert.ok(!root.textContent.includes("128"), "No seeded KPI counts");
-  cleanup();dom.window.close();
+  try {
+    assert.equal(root.querySelector("[data-home-total]").textContent,"0");
+    assert.equal(root.querySelector("[data-home-satellite]").textContent,"—");
+    assert.equal(root.querySelector("[data-home-cameras]").textContent,"—");
+    assert.ok(!urls.includes("/api/ip-cameras"), "Guest must never request admin camera credentials");
+    assert.ok(!root.textContent.includes("128"), "No seeded KPI counts");
+  } finally {
+    cleanup();
+    dom.window.close();
+  }
 });
