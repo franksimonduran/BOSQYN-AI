@@ -1,57 +1,98 @@
-<section class="bosqyn-brand-hero"
-  ><h1 class="bosqyn-sr-only">BOSQYN AI</h1
-  ><img
-    src="img/Logo/logo-principal.png"
-    alt="BOSQYN AI · Guardianes de nuestros bosques"
-    width="1672"
-    height="941"
-    fetchpriority="high"
-  /><p
-    >Sistema inteligente de monitoreo y alerta temprana de incendios forestales
-    e indicios de tala</p
-  ><p class="bosqyn-brand-motto">Observa. Detecta. Protege.</p></section
->
-<section class="bosqyn-live-metrics" aria-label="Datos reales del sistema">
-  <article class="card"
-    ><b data-home-total>—</b><span>Evidencias guardadas</span></article
-  >
-  <article class="card"
-    ><b data-home-pending>—</b><span>Pendientes de revisión</span></article
-  >
-  <article class="card"
-    ><b data-home-auto>—</b><span>Incidentes visuales</span></article
-  >
-  <article class="card"
-    ><b data-home-health>Consultando</b
-    ><span>Estado del servidor</span></article
-  >
-</section>
-<p data-home-status role="status"></p
-><section class="bosqyn-inline-records"
-  ><h2>Actividad real</h2
-  ><a class="bosqyn-action" href="#alertas">Revisar evidencias</a>
-  <a class="bosqyn-action" href="#monitoreo">Abrir monitoreo</a
-  ><div data-home-recent></div
-></section>
-<section class="bosqyn-detection-options" aria-label="Opciones de detección">
-  <a href="#monitoreo"
-    ><img src="img/deteccion/Humo.png" alt="" /><span
-      ><b>Humo</b><small>Visión artificial</small></span
-    ></a
-  >
-  <a href="#monitoreo"
-    ><img src="img/deteccion/Fuego.png" alt="" /><span
-      ><b>Incendio</b><small>Monitoreo visual</small></span
-    ></a
-  >
-  <a href="#monitoreo"
-    ><img src="img/deteccion/Tala.png" alt="" /><span
-      ><b>Tala</b><small>Indicios por verificar</small></span
-    ></a
-  >
-  <a href="#monitoreo"
-    ><img src="img/deteccion/Bosque.png" alt="" /><span
-      ><b>Observaciones satelitales</b><small>NASA FIRMS / NOAA</small></span
-    ></a
-  >
-</section>
+<div class="bosqyn-home-executive">
+  <section class="bh-hero" aria-labelledby="bh-heading">
+    <div class="bh-hero-body">
+      <div class="bh-eyebrow"><span class="bh-leaf">✦</span> BOSQYN AI <span class="bh-eyebrow-divider"></span> GUARDIANES DE NUESTROS BOSQUES</div>
+      <h1 id="bh-heading">Inteligencia para <span>proteger nuestros bosques</span></h1>
+      <p>Monitoreo forestal y alertas tempranas con inteligencia artificial.</p>
+      <div class="bh-hero-actions">
+        <a class="bh-button bh-button-main" href="#monitoreo">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="m8 5 11 7-11 7V5Z" fill="currentColor"/></svg>
+          Abrir monitoreo
+        </a>
+        <a class="bh-button bh-button-outline" href="#alertas">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>
+          Ver alertas
+        </a>
+      </div>
+    </div>
+    <div class="bh-hero-system">
+      <span class="bh-status-dot"></span>
+      <span data-home-health>Consultando sistema</span>
+      <span class="bh-system-separator" aria-hidden="true"></span>
+      <time data-home-status>Sin actualizar</time>
+    </div>
+  </section>
+
+  <section class="bh-kpis" aria-label="Indicadores reales del sistema">
+    <article class="bh-kpi">
+      <div class="bh-kpi-icon bh-icon-camera" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="7" width="15" height="11" rx="2" stroke="currentColor" stroke-width="1.7"/><circle cx="10.5" cy="12.5" r="3" stroke="currentColor" stroke-width="1.7"/><path d="m18 10 3-2v9l-3-2" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+      </div>
+      <div><span class="bh-kpi-label">Cámaras IP</span><strong data-home-cameras>—</strong><small data-home-cameras-note>Conexiones disponibles para administrador</small></div>
+    </article>
+    <article class="bh-kpi bh-kpi-warning">
+      <div class="bh-kpi-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      </div>
+      <div><span class="bh-kpi-label">Alertas pendientes</span><strong data-home-pending>—</strong><small>Por verificar</small></div>
+    </article>
+    <article class="bh-kpi">
+      <div class="bh-kpi-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.7"/><circle cx="8" cy="9" r="1.5" stroke="currentColor" stroke-width="1.5"/><path d="m5 17 5-5 3 3 3-5 3 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div><span class="bh-kpi-label">Evidencias registradas</span><strong data-home-total>—</strong><small>Historial real</small></div>
+    </article>
+    <article class="bh-kpi">
+      <div class="bh-kpi-icon bh-icon-gold" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="m7 8 9 9M5 13l6-6m2 12 6-6M3 7l4-4 5 5-4 4-5-5Zm9 9 4-4 5 5-4 4-5-5ZM4 20l4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div><span class="bh-kpi-label">Observaciones satelitales</span><strong data-home-satellite>—</strong><small>NASA FIRMS · NOAA GOES-19</small></div>
+    </article>
+  </section>
+
+  <section class="bh-modules" aria-label="Accesos rápidos">
+    <div class="bh-section-title">
+      <div><span class="bh-section-icon" aria-hidden="true">▦</span><h2>Accesos principales</h2></div>
+      <span class="bh-section-side">Módulos integrados</span>
+    </div>
+    <div class="bh-module-grid">
+      <a class="bh-module bh-module-camera" href="#monitoreo">
+        <div class="bh-module-visual"><img src="img/h-tala.jpg" alt="" loading="lazy"/><span class="bh-module-pictogram">▣</span></div>
+        <div class="bh-module-content"><span class="bh-module-tag">MONITOREO</span><h3>Cámaras IP e IA</h3><p>Imagen y audio forestal</p><span class="bh-arrow" aria-hidden="true">↗</span></div>
+      </a>
+      <a class="bh-module bh-module-satellite" href="#monitoreo">
+        <div class="bh-module-visual bh-module-stars"><span class="bh-satellite-mark" aria-hidden="true">◎</span></div>
+        <div class="bh-module-content"><span class="bh-module-tag">OBSERVACIÓN</span><h3>Mapa satelital</h3><p>NASA FIRMS · NOAA</p><span class="bh-arrow" aria-hidden="true">↗</span></div>
+      </a>
+      <a class="bh-module bh-module-alert" href="#alertas">
+        <div class="bh-module-visual"><img src="img/h-humo.jpg" alt="" loading="lazy"/><span class="bh-module-pictogram">♧</span></div>
+        <div class="bh-module-content"><span class="bh-module-tag">SEGUIMIENTO</span><h3>Alertas y evidencias</h3><p>Registro y verificación</p><span class="bh-arrow" aria-hidden="true">↗</span></div>
+      </a>
+      <a class="bh-module bh-module-stats" href="#estadisticas">
+        <div class="bh-module-visual bh-module-data"><span aria-hidden="true" class="bh-bars"><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
+        <div class="bh-module-content"><span class="bh-module-tag">ANÁLISIS</span><h3>Estadísticas</h3><p>Tendencias y registros</p><span class="bh-arrow" aria-hidden="true">↗</span></div>
+      </a>
+    </div>
+  </section>
+
+  <section class="bh-overview" aria-label="Resumen operativo">
+    <div class="bh-section-title">
+      <div><span class="bh-section-icon" aria-hidden="true">◈</span><h2>Resumen del sistema</h2></div>
+      <span class="bh-section-side">Información del servidor</span>
+    </div>
+    <div class="bh-overview-grid">
+      <article class="bh-summary-panel">
+        <header class="bh-summary-header"><h3>Actividad reciente</h3><a href="#alertas">Ver historial ↗</a></header>
+        <div class="bh-records" data-home-recent role="status" aria-live="polite">
+          <p class="bh-muted">Consultando registros…</p>
+        </div>
+        <div class="bh-records-footer"><span>Detecciones visuales guardadas</span><strong data-home-auto>—</strong></div>
+      </article>
+      <article class="bh-summary-panel bh-chart-panel">
+        <header class="bh-summary-header"><h3>Evidencias · últimos 7 días</h3><a href="#estadisticas">Estadísticas ↗</a></header>
+        <div class="bh-chart"><img data-home-chart src="/api/statistics/chart.png?demo=0" alt="Gráfico Matplotlib de actividad real durante los últimos 7 días" loading="lazy"/><p class="bh-chart-error" data-home-chart-error hidden>Gráfico no disponible</p></div>
+        <div class="bh-records-footer"><span>Datos reales · sin simulación</span><span>Matplotlib</span></div>
+      </article>
+    </div>
+  </section>
+</div>
