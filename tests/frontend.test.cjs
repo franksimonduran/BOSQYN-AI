@@ -302,3 +302,71 @@ test("Executive copy is concise while functional controls and caveats remain", (
   assert.ok(stats.includes("DATOS SIMULADOS"), "Demo data still clearly labeled");
   assert.ok(statistics.includes("DEMOSTRACIÓN · Datos simulados"));
 });
+
+test("Executive homepage uses only real server values and safe recent evidence", async () => {
+  const { dom, w, root } = setup("inicio");
+  w.Bosqyn = { auth: { role: () => "admin" } };
+  const requested = [];
+  w.fetch = async (url) => {
+    requested.push(url);
+    return {
+      ok: true,
+      json: async () => {
+        if (url === "/api/statistics") return {
+          total: 12, by_status: { PENDIENTE: 3 }, by_source: { VISION_AUTOMATICA: 5 }
+        };
+        if (url === "/api/health") return {status:"ok"};
+        if (url === "/api/satellite/events") return {events:[{id:1},{id:2}]};
+        if (url === "/api/ip-cameras") return {items:[
+          {id:1,connected:true},{id:2,connected:false}
+        ]};
+        if (url === "/api/alerts?limit=4") return {
+          items:[{id:1,category:"<script>alert(1)</script>",status:"PENDIENTE",
+            occurred_at:"2026-10-30T12:00:00Z",source:"VISION_AUTOMATICA"}]
+        };
+        throw Error("Unexpected API: "+url);
+      }
+    };
+  };
+  w.eval(fs.readFileSync("frontend/js/pages/home.js","utf8"));
+  const cleanup = w.Bosqyn.pages.inicio(root);
+  await wait();
+  assert.equal(root.querySelector("[data-home-total]").textContent,"12");
+  assert.equal(root.querySelector("[data-home-pending]").textContent,"3");
+  assert.equal(root.querySelector("[data-home-auto]").textContent,"5");
+  assert.equal(root.querySelector("[data-home-cameras]").textContent,"1 / 2");
+  assert.equal(root.querySelector("[data-home-satellite]").textContent,"2");
+  assert.equal(root.querySelector("[data-home-health]").textContent,"Sistema en línea");
+  assert.equal(root.querySelectorAll(".bh-record").length,1);
+  assert.equal(root.querySelectorAll(".bh-record script").length,0);
+  assert.ok(root.querySelector(".bh-record").textContent.includes("<script>"));
+  assert.ok(root.querySelector('[href="#monitoreo"]'));
+  assert.equal(root.querySelector("[data-home-chart]").getAttribute("src"),
+    "/api/statistics/chart.png?demo=0");
+  assert.equal(requested.length,5);
+  cleanup();dom.window.close();
+});
+
+test("Homepage never fabricates IP camera or satellite numbers without access", async () => {
+  const { dom, w, root } = setup("inicio");
+  w.Bosqyn = { auth: { role: () => "guest" } };
+  const urls = [];
+  w.fetch = async (url) => {
+    urls.push(url);
+    return {
+      ok: url === "/api/statistics" || url === "/api/health",
+      json: async () => url === "/api/statistics"
+        ? { total:0, by_status:{}, by_source:{} }
+        : {status:"ok"}
+    };
+  };
+  w.eval(fs.readFileSync("frontend/js/pages/home.js","utf8"));
+  const cleanup = w.Bosqyn.pages.inicio(root);
+  await wait();
+  assert.equal(root.querySelector("[data-home-total]").textContent,"0");
+  assert.equal(root.querySelector("[data-home-satellite]").textContent,"—");
+  assert.equal(root.querySelector("[data-home-cameras]").textContent,"—");
+  assert.ok(!urls.includes("/api/ip-cameras"), "Guest must never request admin camera credentials");
+  assert.ok(!root.textContent.includes("128"), "No seeded KPI counts");
+  cleanup();dom.window.close();
+});
