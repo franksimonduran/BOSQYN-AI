@@ -135,3 +135,33 @@
 }
 @media(max-width:390px){.bh-kpis{grid-template-columns:1fr 1fr}.bh-hero-actions{gap:6px}.bh-button{padding:9px;font-size:9px}}
 @media(prefers-reduced-motion:reduce){.bh-module:hover,.bh-button:hover{transform:none}}
+
+/* Inicio corporativo: optimización de contraste y jerarquía sin alterar navegación. */
+.bosqyn-home-executive{
+  --bh-border:rgba(107,192,137,.31);
+  --bh-gold:#e1be80;
+  gap:15px;
+}
+.bh-hero{
+  background-position:center,center 43%;
+  border-color:rgba(96,186,128,.33);
+  box-shadow:0 18px 48px rgba(0,0,0,.26),inset 0 1px rgba(217,184,116,.14);
+}
+.bh-hero-body{position:relative;z-index:1}
+.bh-kpi{position:relative;overflow:hidden}
+.bh-kpi:after{
+  content:"";position:absolute;right:-42px;top:-65px;width:125px;height:125px;
+  border-radius:50%;border:1px solid rgba(140,224,174,.065);pointer-events:none
+}
+.bh-kpi:focus-within,.bh-summary-panel:focus-within{border-color:rgba(107,225,153,.5)}
+.bh-module{box-shadow:0 9px 22px rgba(0,0,0,.11)}
+.bh-module h3{line-height:1.4}
+.bh-summary-panel{box-shadow:0 8px 23px rgba(0,0,0,.12)}
+.bh-button:focus-visible,.bh-summary-header a:focus-visible{
+  outline:2px solid #80edb2;outline-offset:3px
+}
+@media(max-width:670px){
+  .bh-hero-body{max-width:100%}
+  .bh-hero-system{justify-content:flex-start;flex-wrap:wrap}
+  .bh-hero:after{opacity:.35}
+}
