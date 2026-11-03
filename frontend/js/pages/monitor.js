@@ -225,6 +225,11 @@ Bosqyn.pages.monitoreo = function (root) {
     '<option value="">Consultando cámaras registradas…</option></select>' +
     '<button type="button" id="bosqyn-live-ip-reload">Actualizar cámaras</button>';
   visualGrid?.before(controls);
+  // Abrir el módulo de gestión y su formulario sin duplicar configuraciones.
+  root.querySelector("#btn-add-ip-camera")?.addEventListener("click", () => {
+    dashboard.querySelector("#bosqyn-mode-ip")?.click();
+    dashboard.querySelector("#ip-add-camera")?.click();
+  });
   const select = controls.querySelector("#bosqyn-live-ip-select");
   const noFeed = document.createElement("p");
   noFeed.className = "bosqyn-ip-feed-empty";
