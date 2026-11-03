@@ -229,6 +229,15 @@ function mount(dashboard,stopWebcam){
  panel.innerHTML=
   '<div class="bosqyn-ip-toolbar"><div><h2>Cámaras IP</h2><p class="bosqyn-ip-muted">Hasta 24 registradas · 4 conectadas simultáneamente</p></div>'+
   '<button id="ip-add-camera" type="button" aria-controls="ip-form" aria-expanded="false">+ Añadir cámara IP</button></div>'+
+  '<section id="ip-mobile-stream" class="bosqyn-mobile-stream">'+
+    '<div class="bosqyn-mobile-stream-top"><div><h3>Conectar celular por Internet</h3>'+
+    '<p>Utiliza la cámara de este teléfono por datos móviles 4G/5G, sin Wi-Fi ni pasarela local.</p></div>'+
+    '<div class="bosqyn-mobile-actions"><button type="button" id="ip-mobile-start">Transmitir desde este celular</button>'+
+    '<button type="button" id="ip-mobile-stop" hidden>Detener transmisión</button></div></div>'+
+    '<video id="ip-mobile-preview" autoplay muted playsinline aria-label="Vista previa de cámara móvil"></video>'+
+    '<p id="ip-mobile-notice" role="status">Disponible solo al abrir BOSQYN AI en el dispositivo que actuará como cámara. Mantén esta pantalla abierta.</p>'+
+    '<p class="bosqyn-ip-muted">Envía aproximadamente una imagen JPEG por segundo mediante HTTPS. En esta versión el audio móvil directo no se transmite.</p>'+
+   '</section>'+
   '<form id="ip-form" class="bosqyn-ip-form bosqyn-ip-quick-form" hidden>'+
    '<p class="bosqyn-ip-intro">Pega la dirección de transmisión de tu cámara o celular. Solo necesitas ese enlace.</p>'+
    '<label class="bosqyn-ip-url-field">Enlace de cámara IP<input name="url" required maxlength="1024" inputmode="url" placeholder="http://192.168.1.100:8080/video" autocomplete="off"></label>'+
@@ -263,6 +272,7 @@ function mount(dashboard,stopWebcam){
  tabLive?.addEventListener("click",onOther);tabSat?.addEventListener("click",onOther);
  const onAuth=()=>{if(!panel.hidden)refresh();};
  window.addEventListener("bosqyn:auth-changed",onAuth);
+ const mobileCleanup=Bosqyn.mobileStream?.mount(panel,refresh);
  const form=$("ip-form");
  const addButton=$("ip-add-camera");
  const toggleForm=show=>{
@@ -313,7 +323,7 @@ function mount(dashboard,stopWebcam){
  });
  timer=setInterval(()=>{if(!panel.hidden)refresh();},1600);
  return ()=>{
-   active=false;clearInterval(timer);stopVision();stopRecording();
+   active=false;clearInterval(timer);stopVision();stopRecording();mobileCleanup?.();
    window.removeEventListener("bosqyn:auth-changed",onAuth);
    tabLive?.removeEventListener("click",onOther);tabSat?.removeEventListener("click",onOther);
    panel.remove();tab.remove();nodes.clear();panel=null;
