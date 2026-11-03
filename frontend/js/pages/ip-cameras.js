@@ -253,11 +253,11 @@ function mount(dashboard,stopWebcam){
     '<button type="button" id="ip-mobile-stop" hidden>Detener transmisión</button></div></div>'+
     '<video id="ip-mobile-preview" autoplay muted playsinline aria-label="Vista previa de cámara móvil"></video>'+
     '<label class="bosqyn-mobile-audio-option"><input type="checkbox" id="ip-mobile-audio"> Transmitir también el micrófono (análisis de sonidos forestales)</label>'+
-    '<p id="ip-mobile-notice" role="status">Disponible solo al abrir BOSQYN AI en el dispositivo que actuará como cámara. Mantén esta pantalla abierta.</p>'+
-    '<p class="bosqyn-ip-muted">Envía aproximadamente una imagen JPEG por segundo mediante HTTPS. El audio es opcional y depende de que el modelo acústico esté disponible en el servidor.</p>'+
+    '<p id="ip-mobile-notice" role="status">Usa este botón desde el teléfono emisor. Para ver las imágenes en otro equipo, deja abierta esta página en el celular y entra a Monitoreo desde el segundo dispositivo.</p>'+
+    '<p class="bosqyn-ip-muted">Envía aproximadamente una imagen por segundo mediante HTTPS. No utilices la cámara IP 192.168.x.x para el modo 4G/5G. El audio es opcional y depende del modelo del servidor.</p>'+
    '</section>'+
   '<form id="ip-form" class="bosqyn-ip-form bosqyn-ip-quick-form" hidden>'+
-   '<p class="bosqyn-ip-intro">Pega la dirección de transmisión de tu cámara o celular. Solo necesitas ese enlace.</p>'+
+   '<p class="bosqyn-ip-intro">Solo para cámaras IP dentro de una red local con pasarela activa. Si usas datos móviles 4G/5G, utiliza el botón «Transmitir desde este celular» de arriba.</p>'+
    '<label class="bosqyn-ip-url-field">Enlace de cámara IP<input name="url" required maxlength="1024" inputmode="url" placeholder="http://192.168.1.100:8080/video" autocomplete="off"></label>'+
    '<label class="bosqyn-ip-name-field">Nombre (opcional)<input name="name" maxlength="80" placeholder="Cámara forestal 01"></label>'+
    '<details class="bosqyn-ip-advanced"><summary>Configuración avanzada (opcional)</summary><div class="bosqyn-ip-advanced-grid">'+
