@@ -125,6 +125,12 @@ Bosqyn.mobileStream=(()=>{
     });
     async function push(){
       if(!running||!cameraId)return;
+      // Si el navegador detecta una transición a red celular, no enviar datos.
+      if(networkType()==="cellular"){
+        await stop();
+        status("Transmisión detenida: se detectó una conexión celular. Conéctate de nuevo al Wi-Fi.");
+        return;
+      }
       if(!stream?.active||stream.getVideoTracks().every(track=>track.readyState!=="live")){
         await stop();
         status("La cámara del celular dejó de enviar imagen. Desbloquea el teléfono, revisa los permisos y vuelve a pulsar Transmitir.");
@@ -175,10 +181,19 @@ Bosqyn.mobileStream=(()=>{
           return;
         }
         status("Solicitando permiso para usar la cámara…");
-        stream=await navigator.mediaDevices.getUserMedia({
-          video:{facingMode:{ideal:"environment"},width:{ideal:640},height:{ideal:480}},
-          audio:audioOption?.checked?{echoCancellation:false,noiseSuppression:false,autoGainControl:false}:false
-        });
+        const videoConstraints={facingMode:{ideal:"environment"},width:{ideal:640},height:{ideal:480}};
+        try{
+          stream=await navigator.mediaDevices.getUserMedia({
+            video:videoConstraints,
+            audio:audioOption?.checked?{echoCancellation:false,noiseSuppression:false,autoGainControl:false}:false
+          });
+        }catch(mediaError){
+          // Un permiso de micrófono denegado no debe impedir la cámara Wi-Fi.
+          if(!audioOption?.checked||!["NotAllowedError","NotFoundError","OverconstrainedError"].includes(mediaError.name))throw mediaError;
+          stream=await navigator.mediaDevices.getUserMedia({video:videoConstraints,audio:false});
+          audioOption.checked=false;
+          status("Micrófono no disponible; se continuará solo con la cámara.");
+        }
         // Mostrar la vista previa antes de play(): algunos Android no inician
         // videoWidth/videoHeight cuando el elemento está en display:none.
         box.classList.add("is-streaming");
