@@ -18,7 +18,8 @@ from urllib.parse import urlsplit
 NETWORKS=tuple(ipaddress.ip_network(x) for x in ("10.0.0.0/8","172.16.0.0/12","192.168.0.0/16"))
 PROTOCOLS={"RTSP":"rtsp","HTTP/MJPEG":"http","ONVIF":"http"}
 KINDS={"telefono","camara_ip","seguridad"}
-MAX_CAMERAS=6
+MAX_CAMERAS=24
+MAX_ACTIVE_CAMERAS=4
 MAX_FRAME_BYTES=480_000
 
 def stamp():
@@ -136,7 +137,7 @@ class CameraRegistry:
         secret=self.crypt().encrypt(json.dumps({"url":source,"username":username,"password":password}).encode()).decode()
         with self.lock,self.connect() as db:
             if db.execute("SELECT COUNT(*) FROM ip_cameras").fetchone()[0]>=MAX_CAMERAS:
-                raise ValueError("Límite de seis cámaras alcanzado")
+                raise ValueError("Límite de 24 cámaras registradas alcanzado")
             cur=db.execute("INSERT INTO ip_cameras(name,kind,protocol,port,source_ciphertext,audio_enabled,threshold,created_at) VALUES(?,?,?,?,?,?,?,?)",
                 (name,kind,protocol,port,secret,int(body.get("audio_enabled") is True),threshold,stamp()))
             id=cur.lastrowid
@@ -147,6 +148,13 @@ class CameraRegistry:
             if action=="test":
                 cur=db.execute("UPDATE ip_cameras SET test_seq=test_seq+1 WHERE id=?",(id,))
             else:
+                if action=="connect":
+                    existing=db.execute("SELECT desired FROM ip_cameras WHERE id=?",(id,)).fetchone()
+                    if existing is None:raise KeyError(id)
+                    if existing["desired"]!="on" and db.execute(
+                        "SELECT COUNT(*) FROM ip_cameras WHERE desired='on'"
+                    ).fetchone()[0]>=MAX_ACTIVE_CAMERAS:
+                        raise ValueError("Máximo cuatro cámaras conectadas simultáneamente; desconecta una primero")
                 cur=db.execute("UPDATE ip_cameras SET desired=? WHERE id=?",("on" if action=="connect" else "off",id))
             if not cur.rowcount:raise KeyError(id)
             if action=="disconnect":self.latest.pop(id,None)
