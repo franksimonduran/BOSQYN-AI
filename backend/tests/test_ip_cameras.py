@@ -205,3 +205,28 @@ class CameraHTTPTests(unittest.TestCase):
         self.assertEqual(self.call(f"/api/ip-cameras/{id}/action","POST",{"action":"disconnect"},cookie=cookie)[0],200)
         self.assertEqual(self.call(f"/api/ip-cameras/{id}/snapshot",cookie=cookie)[0],503)
         self.assertEqual(self.call(f"/api/ip-cameras/{id}","DELETE",cookie=cookie)[0],200)
+
+    def test_mobile_internet_stream_requires_admin_and_uses_no_bridge(self):
+        """The browser route is admin-only, while private LAN cameras stay isolated."""
+        self.assertEqual(self.call("/api/ip-cameras/mobile","POST",{"name":"Intruso"})[0],401)
+        cookie=self.login()
+        code,result,_=self.call("/api/ip-cameras/mobile","POST",
+                                {"name":"Android 4G"},cookie=cookie)
+        self.assertEqual(code,201,result)
+        mobile_id=result["camera"]["id"]
+        self.assertEqual(result["camera"]["protocol"],"MOVIL/HTTPS")
+        agent=self.call("/api/ip-cameras/agent/config",token=TOKEN)[1]["cameras"]
+        self.assertFalse(any(camera["id"]==mobile_id for camera in agent))
+        route=f"/api/ip-cameras/{mobile_id}/mobile/frame"
+        self.assertEqual(self.call(route,"POST",JPEG,binary=True)[0],401)
+        self.assertEqual(self.call(route,"POST",JPEG,binary=True,cookie=cookie)[0],400)
+        self.assertEqual(self.call(f"/api/ip-cameras/{mobile_id}/action","POST",
+                                   {"action":"connect"},cookie=cookie)[0],200)
+        self.assertEqual(self.call(route,"POST",JPEG,binary=True,cookie=cookie)[0],200)
+        self.assertEqual(self.call(f"/api/ip-cameras/{mobile_id}/snapshot",
+                                   cookie=cookie)[1],JPEG)
+        self.assertEqual(self.call(f"/api/ip-cameras/{mobile_id}/action","POST",
+                                   {"action":"disconnect"},cookie=cookie)[0],200)
+        self.assertEqual(self.call(route,"POST",JPEG,binary=True,cookie=cookie)[0],409)
+        self.assertEqual(self.call(f"/api/ip-cameras/{mobile_id}","DELETE",
+                                   cookie=cookie)[0],200)
