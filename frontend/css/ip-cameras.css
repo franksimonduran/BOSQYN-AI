@@ -82,3 +82,6 @@
 .bosqyn-mobile-stream.is-streaming video{display:block}
 .bosqyn-mobile-stream #ip-mobile-notice{font-size:11px;line-height:1.6;color:#9ce9b9;margin:9px 0}
 @media(max-width:650px){.bosqyn-mobile-stream{padding:12px}.bosqyn-mobile-stream-top{align-items:stretch;flex-direction:column}.bosqyn-mobile-actions button{width:100%}}
+
+.bosqyn-mobile-audio-option{display:flex;align-items:center;gap:9px;margin-top:12px;font-size:11px;font-weight:700;color:#d1f4e0;cursor:pointer}
+.bosqyn-mobile-audio-option input{accent-color:#3cdb91;width:16px;height:16px;flex:none}
