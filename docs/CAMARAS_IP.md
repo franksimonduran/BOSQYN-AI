@@ -1,5 +1,46 @@
 # BOSQYN IA · Cámaras IP — conexión real mediante pasarela de red
 
+## Nuevo: cámara del celular por Internet 4G/5G (sin Wi-Fi)
+
+Esta opción es **distinta** de las cámaras HTTP/MJPEG, RTSP y ONVIF de la red local.
+No requiere instalar IP Webcam, tener una computadora intermediaria ni configurar
+una IP `192.168.x.x`. El navegador del celular transmite aproximadamente
+**1 JPEG por segundo** mediante HTTPS al servidor de BOSQYN AI en Render.
+
+### Desde el celular que actuará como cámara
+
+1. Activa los **datos móviles** y entra a **https://bosqyn-ai.onrender.com**.
+2. Inicia sesión como **Administrador** desde ese mismo celular.
+3. Abre **Monitoreo → Cámaras IP → Conectar celular por Internet**.
+4. Pulsa **Transmitir desde este celular** y autoriza la cámara del navegador.
+5. Mantén la página abierta en primer plano y el celular conectado a Internet.
+6. Desde otro dispositivo, inicia sesión como Administrador en BOSQYN AI para
+   consultar la cámara recién registrada y usar las herramientas de monitoreo.
+7. Pulsa **Detener transmisión** en el celular para apagar la cámara.
+
+Las URL privadas previas no funcionarán por Internet; esta opción utiliza la
+cámara física de tu teléfono y una conexión HTTPS saliente.
+
+### Seguridad y límites
+
+- Los fotogramas están protegidos por **sesión administradora** y validación del
+  **mismo origen**. No se habilita subida anónima ni acceso público a las imágenes.
+- La ruta `POST /api/ip-cameras/mobile` registra la fuente `MOVIL/HTTPS`.
+  La ruta `POST /api/ip-cameras/{id}/mobile/frame` acepta únicamente JPEG
+  de hasta 480 000 bytes y limita la frecuencia a aproximadamente 1 imagen/s.
+- No hay necesidad de divulgar credenciales, abrir puertos, usar túneles inseguros
+  ni configurar un token en el teléfono.
+- No hay transmisión continua cuando se cierra o suspende la pestaña; Android
+  puede pausar el navegador al bloquear la pantalla o cambiar de aplicación.
+- **Esta primera versión envía solo imágenes**. El micrófono y la detección de
+  audio remota aún no están integrados en este modo.
+- Para varias cámaras, los fotogramas se almacenan temporalmente en la memoria
+  del proceso Render y solo están disponibles mientras ese proceso esté activo.
+  No equivale a streaming de video 30 fps ni a grabación ininterrumpida.
+- El teléfono consume datos móviles y batería. Evita dejarlo sin supervisión
+  o exponerlo a condiciones ambientales peligrosas.
+
+
 Este módulo se agrega a **Monitoreo → Cámaras IP**, sin reemplazar la webcam,
 detección acústica existente, alertas, estadísticas, Leaflet, NASA FIRMS o NOAA.
 Se implementa sobre el backend original de Python/SQLite y el frontend original
