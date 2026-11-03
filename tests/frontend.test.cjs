@@ -427,3 +427,59 @@ test("Wi-Fi phone streaming rejects unconfirmed or cellular connections", async 
   assert.equal(opens,0,"No puede solicitar cámara ni transmitir por datos móviles conocidos");
   cleanup();dom.window.close();
 });
+
+test("Premium camera center mounts real KPIs, setup methods, and device sections", async () => {
+  const dom=new JSDOM('<div id="root"><div class="bosqyn-satellite-dashboard">'+
+    '<div class="bosqyn-satellite-cards"><button id="bosqyn-mode-live"></button><button id="bosqyn-mode-satellite"></button></div>'+
+    '<section id="bosqyn-satellite-center"></section></div>'+
+    '<section id="bosqyn-live-panel"></section></div>',
+    {url:"https://bosqyn.example",runScripts:"outside-only"});
+  const w=dom.window,root=w.document.querySelector("#root");
+  w.Bosqyn={auth:{role:()=>"admin"},mobileStream:{mount:()=>()=>{}},vision:{stop:()=>{}}};
+  w.fetch=async(url)=>({ok:true,json:async()=>url.includes("events")?{items:[]}:{
+    items:[{id:9,name:"Bosque",protocol:"MOVIL/HTTPS",kind:"telefono",port:443,
+      connected:false,desired:"off",audio_enabled:false,bridge_online:false}] }});
+  w.eval(fs.readFileSync("frontend/js/pages/ip-cameras.js","utf8"));
+  const cleanup=w.Bosqyn.ipCameras.mount(root.querySelector(".bosqyn-satellite-dashboard"),()=>{});
+  root.querySelector("#bosqyn-mode-ip").click();
+  await wait();
+  assert.equal(root.querySelector("#ip-count-total").textContent,"01");
+  assert.equal(root.querySelector("#ip-count-online").textContent,"00");
+  assert.ok(root.querySelector("#ip-mobile-permission-help").hidden);
+  assert.ok(root.querySelector("#ip-mobile-wifi-confirm"));
+  assert.ok(root.querySelector(".bosqyn-ip-secondary summary"));
+  assert.ok(root.querySelector("[data-action='delete']"));
+  assert.ok(!root.querySelector("[data-action='delete']").closest(".bosqyn-ip-buttons"));
+  root.querySelector("#ip-add-camera").click();
+  assert.equal(root.querySelector("#ip-form").hidden,false);
+  assert.equal(root.querySelector("#ip-mobile-stream").hidden,true);
+  root.querySelector("#ip-show-mobile").click();
+  assert.equal(root.querySelector("#ip-form").hidden,true);
+  assert.equal(root.querySelector("#ip-mobile-stream").hidden,false);
+  cleanup();dom.window.close();
+});
+
+test("Wi-Fi camera permission denial shows Android recovery guide", async () => {
+  const dom=new JSDOM('<section id="panel"><div id="ip-mobile-stream">'+
+    '<div class="bosqyn-ip-steps"><span>Red</span><span>Permisos</span><span>Vista previa</span><span>Transmitir</span></div>'+
+    '<button id="ip-mobile-start">Transmitir</button><button id="ip-mobile-stop" hidden>Detener</button>'+
+    '<video id="ip-mobile-preview"></video>'+
+    '<input id="ip-mobile-wifi-confirm" type="checkbox" checked>'+
+    '<input id="ip-mobile-audio" type="checkbox">'+
+    '<p id="ip-mobile-notice"></p><div id="ip-mobile-permission-help" hidden></div>'+
+    '</div></section>',{url:"https://bosqyn.example",runScripts:"outside-only"});
+  const w=dom.window;
+  Object.defineProperty(w,"isSecureContext",{value:true,configurable:true});
+  Object.defineProperty(w.navigator,"mediaDevices",{value:{
+    getUserMedia:async()=>{const e=new Error("Permission denied");e.name="NotAllowedError";throw e;}
+  },configurable:true});
+  w.Bosqyn={auth:{ensureAdmin:async()=>true}};
+  w.eval(fs.readFileSync("frontend/js/mobile-stream.js","utf8"));
+  const root=w.document.querySelector("#panel");
+  const cleanup=w.Bosqyn.mobileStream.mount(root,()=>{});
+  root.querySelector("#ip-mobile-start").click();await wait();
+  assert.match(root.querySelector("#ip-mobile-notice").textContent,/Permiso de cámara denegado/i);
+  assert.equal(root.querySelector("#ip-mobile-notice").dataset.level,"error");
+  assert.equal(root.querySelector("#ip-mobile-permission-help").hidden,false);
+  cleanup();dom.window.close();
+});
