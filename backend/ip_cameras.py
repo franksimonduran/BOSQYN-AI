@@ -143,16 +143,18 @@ class CameraRegistry:
                 (name,kind,protocol,port,secret,int(body.get("audio_enabled") is True),threshold,stamp()))
             id=cur.lastrowid
         return self.get(id)
-    def register_mobile(self, name="Celular por Internet"):
+    def register_mobile(self, name="Celular por Internet", audio_enabled=False):
         """Register a browser-push camera without a private IP or inbound port."""
         if not isinstance(name,str) or not 1<=len(name.strip())<=80:
             raise ValueError("Nombre de cámara inválido")
+        if not isinstance(audio_enabled,bool):
+            raise ValueError("Audio inválido")
         secret=self.crypt().encrypt(json.dumps({"url":"","username":"","password":""}).encode()).decode()
         with self.lock,self.connect() as db:
             if db.execute("SELECT COUNT(*) FROM ip_cameras").fetchone()[0]>=MAX_CAMERAS:
                 raise ValueError("Límite de 24 cámaras registradas alcanzado")
             cur=db.execute("INSERT INTO ip_cameras(name,kind,protocol,port,source_ciphertext,audio_enabled,threshold,created_at) VALUES(?,?,?,?,?,?,?,?)",
-                (name.strip(),"telefono",MOBILE_PROTOCOL,443,secret,0,0.85,stamp()))
+                (name.strip(),"telefono",MOBILE_PROTOCOL,443,secret,int(audio_enabled),0.85,stamp()))
             camera_id=cur.lastrowid
         return self.get(camera_id)
 
