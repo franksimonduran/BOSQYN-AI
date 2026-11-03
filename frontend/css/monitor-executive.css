@@ -288,3 +288,80 @@ body.bosqyn-monitor-page .bosqyn-executive-monitor > .bosqyn-satellite-dashboard
   margin-top:0!important;
 }
 body.bosqyn-monitor-page .bosqyn-exec-hero{margin-top:0!important}
+
+
+/* 2026-11-03 · Monitoreo sin huecos: dimensiones gobernadas por contenido real */
+.bosqyn-executive-monitor .bosqyn-exec-stage{
+  display:grid!important;
+  grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)!important;
+  align-items:start!important;gap:12px;
+}
+.bosqyn-executive-monitor .bosqyn-exec-context{
+  min-width:0;display:flex;flex-direction:column;gap:12px;align-self:start;
+}
+.bosqyn-executive-monitor .bosqyn-exec-context>*{
+  min-width:0;margin:0;flex:none;
+}
+.bosqyn-executive-monitor .bosqyn-exec-alerts{
+  min-height:0!important;height:auto!important;padding:12px;
+}
+.bosqyn-executive-monitor .bosqyn-exec-alerts.is-empty{
+  padding:10px 12px;
+}
+.bosqyn-executive-monitor .bosqyn-exec-alerts.is-empty .bx-caption{
+  display:none!important;
+}
+.bosqyn-executive-monitor .bx-empty{padding:8px 0!important;margin:0;line-height:1.5}
+.bosqyn-executive-monitor .bosqyn-exec-lower{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr))!important;
+  gap:12px;align-items:start;margin:12px 0 0;
+}
+.bosqyn-executive-monitor .bosqyn-exec-lower .bx-widget{
+  min-height:0!important;height:auto!important;min-width:0;
+}
+.bosqyn-executive-monitor .bosqyn-exec-lower .bx-widget[hidden]{
+  display:none!important;
+}
+.bosqyn-executive-monitor .bx-class-list{
+  min-height:0!important;padding:9px 0 0;
+}
+.bosqyn-executive-monitor .bx-graph{
+  min-height:0!important;margin-top:7px;
+}
+.bosqyn-executive-monitor .bx-systems{padding-top:10px}
+.bosqyn-executive-monitor .bosqyn-satellite-map{
+  height:clamp(235px,33vh,375px)!important;min-height:235px!important;
+}
+.bosqyn-executive-monitor .bosqyn-unified-camera{
+  min-height:0!important;aspect-ratio:16/9!important;
+}
+.bosqyn-executive-monitor #bosqyn-live-panel{
+  height:auto!important;min-height:0!important;
+}
+.bosqyn-executive-monitor #bosqyn-live-panel .bosqyn-unified-grid{
+  height:auto!important;min-height:0!important;
+}
+.bosqyn-executive-monitor #bosqyn-ip-panel{
+  height:auto!important;min-height:0!important;margin-top:12px!important;
+}
+.bosqyn-executive-monitor #bosqyn-ip-panel #ip-grid:empty{
+  display:none!important;
+}
+.bosqyn-executive-monitor #bosqyn-ip-panel #ip-events:empty{
+  display:none!important;
+}
+@media(max-width:960px){
+  .bosqyn-executive-monitor .bosqyn-exec-stage{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  .bosqyn-executive-monitor .bosqyn-exec-context{gap:10px}
+  .bosqyn-executive-monitor .bosqyn-satellite-map{
+    height:clamp(240px,38vh,370px)!important;
+  }
+}
+@media(max-width:560px){
+  .bosqyn-executive-monitor .bosqyn-exec-lower{gap:9px}
+  .bosqyn-executive-monitor .bosqyn-exec-context{gap:9px}
+  .bosqyn-executive-monitor .bosqyn-satellite-map{height:260px!important;min-height:240px!important}
+  .bosqyn-executive-monitor .bosqyn-exec-alerts.is-empty{padding:10px}
+}
