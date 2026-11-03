@@ -112,7 +112,7 @@ class CameraAPI:
         try:
             if path=="/api/ip-cameras/mobile":
                 body=self.read_json()
-                value=registry.register_mobile(body.get("name","Celular por Internet"))
+                value=registry.register_mobile(body.get("name","Celular por Internet"),body.get("audio_enabled",False))
                 return self.json_response(201,{"camera":value})
             id=camera_id(path)
             if id is not None and path==f"/api/ip-cameras/{id}/mobile/frame":
@@ -124,6 +124,28 @@ class CameraAPI:
                 except PermissionError:
                     return self.json_response(409,{"error":"Activa la cámara antes de transmitir"})
                 return self.json_response(200,{"received":True})
+            if id is not None and path==f"/api/ip-cameras/{id}/mobile/audio":
+                row=registry.get(id)
+                if row is None:return self.json_response(404,{"error":"Cámara no registrada"})
+                if row["protocol"]!="MOVIL/HTTPS" or not row["audio_enabled"]:
+                    return self.json_response(400,{"error":"Esta cámara no admite audio móvil"})
+                if row["desired"]!="on":
+                    return self.json_response(409,{"error":"La cámara no está transmitiendo"})
+                if self.headers.get("Content-Type","").split(";")[0]!="application/octet-stream" or self.headers.get("X-Bosqyn-Sample-Rate")!="16000":
+                    return self.json_response(415,{"error":"Se requiere PCM16 mono de 16000 Hz"})
+                raw=self.camera_binary(96000)
+                if raw is None:return
+                if len(raw)!=96000 or not self.server.audio_model.info().get("available"):
+                    return self.json_response(503,{"error":"Modelo acústico no disponible o audio incompleto"})
+                if not self.server.audio_semaphore.acquire(blocking=False):
+                    return self.json_response(429,{"error":"Motor acústico ocupado"})
+                try:
+                    prediction=self.server.audio_model.predict_pcm16(raw)
+                    registry.set_audio(id,prediction)
+                    return self.json_response(200,{"prediction":prediction})
+                except (ValueError,RuntimeError) as error:
+                    return self.json_response(400,{"error":type(error).__name__})
+                finally:self.server.audio_semaphore.release()
             if path=="/api/ip-cameras":
                 value=registry.register(self.read_json())
                 return self.json_response(201,{"camera":value})
