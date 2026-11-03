@@ -123,7 +123,7 @@ function card(camera){
    }
    if(!await admin())return;
    if(action==="connect" && current?.protocol==="MOVIL/HTTPS" && !current.connected){
-     status("Para conectar esta cámara, abre BOSQYN AI desde el celular emisor y pulsa «Transmitir desde este celular». El botón Conectar no activa remotamente la cámara del teléfono.");
+     status("Para conectar esta cámara, abre BOSQYN AI desde el celular emisor y pulsa «Transmitir por Wi-Fi». El botón Conectar no activa remotamente la cámara del teléfono.");
      panel?.querySelector("#ip-mobile-stream")?.scrollIntoView({behavior:"smooth",block:"center"});
      return;
    }
@@ -140,7 +140,7 @@ function card(camera){
      }else{
        const result=await api("/api/ip-cameras/"+id+"/action","POST",{action});
        status(action==="test"?"Prueba solicitada a la pasarela local.":action==="connect"?
-          "Conexión solicitada. La cámara IP privada necesita una pasarela local; para usar 4G/5G pulsa «Transmitir desde este celular».":
+          "Conexión solicitada. La cámara IP privada necesita una pasarela local; para usar Wi-Fi pulsa «Transmitir por Wi-Fi».":
           "Cámara desconectada.");
        if(action==="disconnect"){if(visionId===id)stopVision();stopRecording();}
        update(result.camera);
@@ -155,9 +155,9 @@ function card(camera){
    tag.textContent=c.connected?"Transmitiendo":mobile?"Esperando celular":c.desired==="on"?"Sin señal / reconectando":"Desconectada";
    tag.classList.toggle("is-online",!!c.connected);
    empty.textContent=mobile
-     ?"Sin imágenes del celular. En ese teléfono abre BOSQYN AI y pulsa «Transmitir desde este celular»."
-     : "Sin conexión con la pasarela local. La dirección 192.168.x.x no funciona directamente por Internet.";
-   meta.textContent=(mobile?"Celular 4G/5G · HTTPS (sin Wi-Fi)":"Cámara IP local · "+c.protocol+" · Puerto "+c.port)+
+     ?"Sin imágenes del celular. En ese teléfono abre BOSQYN AI y pulsa «Transmitir por Wi-Fi»."
+     : "Sin conexión con la pasarela local. Las cámaras con dirección 192.168.x.x necesitan la pasarela local de BOSQYN.";
+   meta.textContent=(mobile?"Celular Wi-Fi · HTTPS (sin Wi-Fi)":"Cámara IP local · "+c.protocol+" · Puerto "+c.port)+
      " · Última imagen: "+fmt(c.last_frame_at);
    const connectButton=buttons.querySelector('[data-action="connect"]');
    if(connectButton){
@@ -247,17 +247,18 @@ function mount(dashboard,stopWebcam){
   '<div class="bosqyn-ip-toolbar"><div><h2>Cámaras IP</h2><p class="bosqyn-ip-muted">Hasta 24 registradas · 4 conectadas simultáneamente</p></div>'+
   '<button id="ip-add-camera" type="button" aria-controls="ip-form" aria-expanded="false">+ Añadir cámara IP</button></div>'+
   '<section id="ip-mobile-stream" class="bosqyn-mobile-stream">'+
-    '<div class="bosqyn-mobile-stream-top"><div><h3>Conectar celular por Internet</h3>'+
-    '<p>Utiliza la cámara de este teléfono por datos móviles 4G/5G, sin Wi-Fi ni pasarela local.</p></div>'+
-    '<div class="bosqyn-mobile-actions"><button type="button" id="ip-mobile-start">Transmitir desde este celular</button>'+
+    '<div class="bosqyn-mobile-stream-top"><div><h3>Conectar celular por Wi-Fi</h3>'+
+    '<p>Utiliza la cámara de este teléfono por Wi-Fi con acceso a Internet, sin Wi-Fi ni pasarela local.</p></div>'+
+    '<div class="bosqyn-mobile-actions"><button type="button" id="ip-mobile-start">Transmitir por Wi-Fi</button>'+
     '<button type="button" id="ip-mobile-stop" hidden>Detener transmisión</button></div></div>'+
+    '<label class="bosqyn-mobile-wifi-confirm"><input type="checkbox" id="ip-mobile-wifi-confirm"> Confirmo que estoy conectado a Wi-Fi y desactivé los datos móviles</label>'+ 
     '<video id="ip-mobile-preview" autoplay muted playsinline aria-label="Vista previa de cámara móvil"></video>'+
     '<label class="bosqyn-mobile-audio-option"><input type="checkbox" id="ip-mobile-audio"> Transmitir también el micrófono (análisis de sonidos forestales)</label>'+
     '<p id="ip-mobile-notice" role="status">Usa este botón desde el teléfono emisor. Para ver las imágenes en otro equipo, deja abierta esta página en el celular y entra a Monitoreo desde el segundo dispositivo.</p>'+
-    '<p class="bosqyn-ip-muted">Envía aproximadamente una imagen por segundo mediante HTTPS. No utilices la cámara IP 192.168.x.x para el modo 4G/5G. El audio es opcional y depende del modelo del servidor.</p>'+
+    '<p class="bosqyn-ip-muted">Envía aproximadamente una imagen por segundo mediante HTTPS. No utilices la cámara IP 192.168.x.x para el modo Wi-Fi. El audio es opcional y depende del modelo del servidor.</p>'+
    '</section>'+
   '<form id="ip-form" class="bosqyn-ip-form bosqyn-ip-quick-form" hidden>'+
-   '<p class="bosqyn-ip-intro">Solo para cámaras IP dentro de una red local con pasarela activa. Si usas datos móviles 4G/5G, utiliza el botón «Transmitir desde este celular» de arriba.</p>'+
+   '<p class="bosqyn-ip-intro">Solo para cámaras IP dentro de una red local con pasarela activa. Si usas Wi-Fi con acceso a Internet, utiliza el botón «Transmitir por Wi-Fi» de arriba.</p>'+
    '<label class="bosqyn-ip-url-field">Enlace de cámara IP<input name="url" required maxlength="1024" inputmode="url" placeholder="http://192.168.1.100:8080/video" autocomplete="off"></label>'+
    '<label class="bosqyn-ip-name-field">Nombre (opcional)<input name="name" maxlength="80" placeholder="Cámara forestal 01"></label>'+
    '<details class="bosqyn-ip-advanced"><summary>Configuración avanzada (opcional)</summary><div class="bosqyn-ip-advanced-grid">'+
