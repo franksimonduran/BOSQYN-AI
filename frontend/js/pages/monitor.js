@@ -83,15 +83,23 @@ Bosqyn.pages.monitoreo = function (root) {
       }
       const present = document.querySelector("#bosqyn-leaflet-js");
       if (present) {
-        present.addEventListener("load", resolve, { once: true });
-        present.addEventListener("error", reject, { once: true });
-        return;
+        // Una carga fallida no debe bloquear el mapa al volver a Monitoreo.
+        if (present.dataset.failed === "true") present.remove();
+        else {
+          if (present.dataset.loaded === "true") return resolve();
+          present.addEventListener("load", resolve, { once: true });
+          present.addEventListener("error", reject, { once: true });
+          return;
+        }
       }
       const script = document.createElement("script");
       script.id = "bosqyn-leaflet-js";
       script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      script.onload = resolve;
-      script.onerror = reject;
+      script.onload = () => { script.dataset.loaded = "true"; resolve(); };
+      script.onerror = () => {
+        script.dataset.failed = "true";
+        reject(new Error("No se pudo cargar Leaflet"));
+      };
       document.head.append(script);
     });
   }
