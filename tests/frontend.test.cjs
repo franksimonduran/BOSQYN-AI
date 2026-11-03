@@ -682,19 +682,34 @@ test("Monitor hides the automatic operations status without leaving a blank card
   dom.window.close();
 });
 
-test("Satellite watch center starts with real imagery and retains NASA/NOAA markers", () => {
+
+test("Satellite map uses a fixed hybrid background and retains real observations", () => {
   const code=fs.readFileSync("frontend/js/pages/monitor.js","utf8");
-  const css=fs.readFileSync("frontend/css/pages/monitor-executive.css","utf8");
-  assert.match(code,/makeEsri\("World_Imagery"/);
-  assert.match(code,/L\.control\.layers\(/);
-  assert.match(code,/Híbrido \(lugares\)/);
-  assert.match(code,/World_Topo_Map/);
-  assert.match(code,/tile\.openstreetmap\.org/);
-  assert.match(code,/control\.scale\(/);
-  assert.match(code,/satelliteLayer\.clearLayers\(\)/);
-  assert.match(code,/circleMarker\(/);
-  assert.match(code,/point\.bindPopup\(detail\)/);
-  assert.match(code,/switchToTerrain\(\)/);
-  assert.match(css,/\.bosqyn-sat-map-legend/);
-  assert.match(css,/\#bosqyn-satellite-map/);
+  assert.match(code,/World_Imagery\/MapServer\/tile/);
+  assert.match(code,/World_Boundaries_and_Places\/MapServer\/tile/);
+  assert.ok(!code.includes("L.control.layers("),"El fondo híbrido no debe ofrecer un selector");
+  assert.ok(!code.includes("World_Topo_Map"),"Se retiró el modo relieve");
+  assert.ok(!code.includes("tile.openstreetmap.org"),"Se retiró el modo calles");
+  assert.match(code,/satelliteLayer.clearLayers\(\)/);
+  assert.match(code,/point.bindPopup\(detail\)/);
+  assert.match(code,/fireSimulationCleanup\?\.\(\)/);
+});
+test("Simulated spread grows over hours, changes with direction, stays separate", () => {
+  const dom = new JSDOM("<div></div>",{url:"https://bosqyn.example",runScripts:"outside-only"});
+  const w=dom.window;
+  w.eval(fs.readFileSync("frontend/js/features/fire-simulation.js","utf8"));
+  const sim=w.Bosqyn.fireSimulation;
+  const a=sim.footprint(-9.5,-76.1,1,90);
+  const b=sim.footprint(-9.5,-76.1,6,90);
+  const north=sim.footprint(-9.5,-76.1,6,0);
+  assert.equal(a.length,48);
+  assert.equal(b.length,48);
+  assert.ok(b[0][1]>a[0][1],"Mayor horizonte hacia el este");
+  assert.ok(north[0][0]>b[0][0],"La dirección del viento cambia la forma");
+  assert.throws(()=>sim.footprint(90,-76,1,0),RangeError);
+  assert.throws(()=>sim.footprint(-9,-76,4,90),RangeError);
+  const source=fs.readFileSync("frontend/js/features/fire-simulation.js","utf8");
+  assert.ok(!source.includes("fetch("),"La simulación no publica datos al backend");
+  assert.match(source,/SIMULACIÓN activada/);
+  dom.window.close();
 });

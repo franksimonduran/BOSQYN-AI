@@ -37,7 +37,18 @@ Bosqyn.pages.monitoreo = function (root) {
 </div>
 <section class="bosqyn-satellite-center" id="bosqyn-satellite-center" role="tabpanel">
  <div class="bosqyn-satellite-heading"><h2>Centro de vigilancia satelital</h2><span style="background:#07492c;color:#46e58b;border-radius:15px;padding:4px 10px;font-size:10px">Nuevo módulo</span></div>
- <div id="bosqyn-satellite-map" class="bosqyn-satellite-map" aria-label="Mapa de observaciones térmicas"><div style="padding:55px 10px;text-align:center;color:#a6d8be;font-size:12px">Cargando mapa de focos de calor y observaciones…</div></div>
+ <div id="bosqyn-satellite-map" class="bosqyn-satellite-map" aria-label="Mapa híbrido con observaciones satelitales y escenarios simulados"><div style="padding:55px 10px;text-align:center;color:#a6d8be;font-size:12px">Cargando mapa híbrido y observaciones…</div></div>
+ <section id="bosqyn-fire-simulation" class="bosqyn-fire-simulation" aria-label="Simulación ilustrativa de incendio" aria-describedby="bosqyn-fire-sim-disclaimer">
+  <div class="bosqyn-fire-sim-heading"><div><span class="bosqyn-fire-sim-kicker">ESCENARIOS HIPOTÉTICOS</span><h3>Simulación de posible incendio</h3></div><span class="bosqyn-fire-sim-badge">SIMULACIÓN</span></div>
+  <p id="bosqyn-fire-sim-disclaimer" class="bosqyn-fire-sim-disclaimer">Ejercicio ilustrativo con expansión geométrica, no predicción de incendios ni evaluación de riesgo real. No utiliza viento, vegetación ni meteorología medidos.</p>
+  <div class="bosqyn-fire-sim-controls">
+   <button id="bosqyn-fire-sim-toggle" type="button" aria-pressed="false">Iniciar simulación</button>
+   <label for="bosqyn-fire-sim-hours">Horizonte <select id="bosqyn-fire-sim-hours"><option value="1">1 hora</option><option value="3" selected>3 horas</option><option value="6">6 horas</option></select></label>
+   <label for="bosqyn-fire-sim-wind">Dirección hipotética <select id="bosqyn-fire-sim-wind"><option value="0">Norte</option><option value="45">Noreste</option><option value="90" selected>Este</option><option value="135">Sureste</option><option value="180">Sur</option><option value="225">Suroeste</option><option value="270">Oeste</option><option value="315">Noroeste</option></select></label>
+   <button id="bosqyn-fire-sim-clear" type="button" disabled>Limpiar</button>
+  </div>
+  <p id="bosqyn-fire-sim-status" role="status" aria-live="polite">Activa la simulación y toca un punto del mapa para situar un origen hipotético.</p>
+ </section>
  <div class="bosqyn-feed-status">
   <span><i class="bosqyn-source-dot" style="background:#fb6749"></i> NASA FIRMS: <b id="bosqyn-nasa-status">consultando</b></span>
   <span><i class="bosqyn-source-dot" style="background:#efbe56"></i> NOAA GOES-19: <b id="bosqyn-noaa-status">consultando</b></span>
@@ -52,6 +63,7 @@ Bosqyn.pages.monitoreo = function (root) {
   const satCenter = dashboard.querySelector("#bosqyn-satellite-center");
   let satelliteMap = null,
     satelliteLayer = null,
+    fireSimulationCleanup = null,
     satelliteTimer = null,
     activeSatellite = true,
     disposed = false;
@@ -180,50 +192,24 @@ Bosqyn.pages.monitoreo = function (root) {
         attributionControl: true,
         preferCanvas: true,
       }).setView([-9.5, -76.1], 8);
+      // ÚNICO fondo: híbrido (imagen satelital real y nombres de lugares).
+      // El origen y las áreas de simulación nunca se confunden con NASA/NOAA.
       const arcgis = "https://server.arcgisonline.com/ArcGIS/rest/services/";
-      const makeEsri = (service, options = {}) => window.L.tileLayer(
-        arcgis + service + "/MapServer/tile/{z}/{y}/{x}",
-        { maxZoom: 19, maxNativeZoom: 18, ...options },
-      );
-      const imageryAttribution =
-        'Tiles &copy; <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics, GIS User Community';
-      const satellite = makeEsri("World_Imagery", {
-        attribution: imageryAttribution,
-      });
-      // En Híbrido se usan instancias separadas: Leaflet no permite una capa
-      // compartida en dos mapas base sin desplazarla de su grupo original.
-      const hybridImagery = makeEsri("World_Imagery", {
-        attribution: imageryAttribution,
-      });
-      const placeLabels = window.L.tileLayer(
-        "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+      const imagery = window.L.tileLayer(
+        arcgis + "World_Imagery/MapServer/tile/{z}/{y}/{x}",
         {
-          maxZoom: 19, maxNativeZoom: 18, zIndex: 2, opacity: 0.94,
-          attribution: 'Labels &copy; <a href="https://www.esri.com/">Esri</a>',
-        },
-      );
-      const hybrid = window.L.layerGroup([hybridImagery, placeLabels]);
-      const terrain = makeEsri("World_Topo_Map", {
-        maxNativeZoom: 17,
-        attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>, HERE, Garmin, FAO, NOAA, USGS',
-      });
-      const streets = window.L.tileLayer(
-        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-        {
-          maxZoom: 19,
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        },
-      );
-      satellite.addTo(satelliteMap);
-      satelliteLayer = window.L.layerGroup().addTo(satelliteMap);
-      window.L.control.layers(
-        { "Satélite": satellite, "Híbrido (lugares)": hybrid, "Relieve": terrain, "Calles": streets },
-        { "Observaciones NASA / NOAA": satelliteLayer },
-        {
-          position: "topright",
-          collapsed: window.innerWidth < 760,
+          maxZoom: 19, maxNativeZoom: 18,
+          attribution: 'Imagery &copy; <a href="https://www.esri.com/">Esri</a>, Maxar, GIS User Community',
         },
       ).addTo(satelliteMap);
+      const labels = window.L.tileLayer(
+        "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+        {
+          maxZoom: 19, maxNativeZoom: 18, zIndex: 2,
+          attribution: 'Labels &copy; <a href="https://www.esri.com/">Esri</a>',
+        },
+      ).addTo(satelliteMap);
+      satelliteLayer = window.L.layerGroup().addTo(satelliteMap);
       window.L.control.scale({
         metric: true, imperial: false, position: "bottomleft",
       }).addTo(satelliteMap);
@@ -232,36 +218,32 @@ Bosqyn.pages.monitoreo = function (root) {
       legend.setAttribute("aria-label", "Leyenda de observaciones satelitales");
       legend.innerHTML =
         '<span><i class="bosqyn-sat-map-dot nasa" aria-hidden="true"></i>NASA FIRMS</span>' +
-        '<span><i class="bosqyn-sat-map-dot noaa" aria-hidden="true"></i>NOAA GOES</span>';
+        '<span><i class="bosqyn-sat-map-dot noaa" aria-hidden="true"></i>NOAA GOES</span>' +
+        '<span><i class="bosqyn-sat-map-dot simulated" aria-hidden="true"></i>Escenario simulado</span>';
       mapNode.append(legend);
       const notice = document.createElement("div");
       notice.className = "bosqyn-sat-map-notice";
       notice.setAttribute("role", "status");
       notice.hidden = true;
       mapNode.append(notice);
-      const switchToTerrain = () => {
-        if (disposed || !satelliteMap) return;
-        const selected = satelliteMap.hasLayer(satellite)
-          ? satellite : satelliteMap.hasLayer(hybrid) ? hybrid : null;
-        if (!selected) return;
-        satelliteMap.removeLayer(selected);
-        terrain.addTo(satelliteMap);
+      // No permitir que errores aislados de teselas creen falsos puntos.
+      let tileErrors = 0;
+      imagery.on("tileload", () => { tileErrors = 0; });
+      imagery.on("tileerror", () => {
+        if (++tileErrors < 5 || disposed) return;
+        tileErrors = 0;
         notice.textContent =
-          "Imágenes satelitales temporalmente inaccesibles. Se muestra relieve; los eventos continúan visibles.";
+          "Imágenes satelitales temporalmente inaccesibles. Comprueba tu conexión; los puntos observados siguen diferenciados.";
         notice.hidden = false;
-      };
-      // No reemplazar los eventos cuando una tesela del proveedor no carga.
-      for (const layer of [satellite, hybridImagery]) {
-        let errors = 0;
-        layer.on("tileload", () => { errors = 0; });
-        layer.on("tileerror", () => {
-          if (++errors >= 4) {
-            errors = 0;
-            switchToTerrain();
-          }
-        });
-      }
-      satelliteMap.on("baselayerchange", () => { notice.hidden = true; });
+      });
+      imagery.on("load", () => { notice.hidden = true; });
+      // Los errores de etiquetas no desactivan las fotografías satelitales.
+      labels.on("tileerror", () => { /* Se conserva el fondo híbrido. */ });
+      fireSimulationCleanup = Bosqyn.fireSimulation?.mount({
+        map: satelliteMap,
+        leaflet: window.L,
+        panel: dashboard.querySelector("#bosqyn-fire-simulation"),
+      }) || null;
       refreshSatellite();
     })
     .catch(() => {
@@ -668,6 +650,7 @@ Bosqyn.pages.monitoreo = function (root) {
     if (satelliteTimer) clearInterval(satelliteTimer);
     execCleanup?.();
     ipCameraCleanup?.();
+    fireSimulationCleanup?.();
     if (satelliteMap) satelliteMap.remove();
     if (cleanupOperations) cleanupOperations();
     stop();

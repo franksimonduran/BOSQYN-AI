@@ -500,3 +500,39 @@ body.bosqyn-monitor-page .bosqyn-exec-hero{margin-top:0!important}
    left:8px;top:60px;max-width:calc(100% - 16px);
  }
 }
+
+/* Simulación didáctica: controles separados de observaciones reales. */
+.bosqyn-executive-monitor .bosqyn-fire-simulation{
+  padding:14px 15px;
+  margin:12px 0;
+  border:1px solid rgba(246,163,89,.37);
+  border-radius:12px;
+  background:linear-gradient(125deg,rgba(63,37,18,.65),rgba(15,37,27,.96));
+}
+.bosqyn-fire-sim-heading{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;
+}
+.bosqyn-fire-sim-kicker{display:block;margin-bottom:5px;color:#ffca89;font-size:9px;font-weight:800;letter-spacing:.14em}
+.bosqyn-fire-sim-heading h3{font-size:14px;font-weight:800;color:#fff1db}
+.bosqyn-fire-sim-badge{border:1px solid #de9a54;color:#ffd49b;border-radius:20px;padding:5px 8px;font-size:9px;font-weight:800;letter-spacing:.08em}
+.bosqyn-fire-sim-disclaimer{color:#e1cab3;line-height:1.55;font-size:11px;margin:8px 0 12px}
+.bosqyn-fire-sim-controls{display:flex;flex-wrap:wrap;align-items:end;gap:9px}
+.bosqyn-fire-sim-controls label{display:flex;flex-direction:column;gap:5px;color:#e4d6bd;font-size:10px;font-weight:700;flex:1 1 125px}
+.bosqyn-fire-sim-controls button,.bosqyn-fire-sim-controls select{
+  min-height:38px;padding:8px 10px;color:#e9fff0;border:1px solid #56785c;
+  background:#0c3021;border-radius:8px;font-size:11px;
+}
+.bosqyn-fire-sim-controls button{cursor:pointer;font-weight:800}
+.bosqyn-fire-sim-controls #bosqyn-fire-sim-toggle{background:#9f4d26;border-color:#da8a49;color:#fff2e5}
+.bosqyn-fire-sim-controls #bosqyn-fire-sim-toggle[aria-pressed="true"]{background:#5c3427}
+.bosqyn-fire-sim-controls button:disabled{opacity:.47;cursor:not-allowed}
+#bosqyn-fire-sim-status{font-size:11px;color:#f8d9b7;line-height:1.5;margin:10px 0 0}
+#bosqyn-satellite-map.bosqyn-simulation-picking{cursor:crosshair}
+#bosqyn-satellite-map.bosqyn-simulation-picking .leaflet-grab{cursor:crosshair!important}
+.bosqyn-executive-monitor #bosqyn-satellite-map .bosqyn-sat-map-legend{bottom:33px}
+.bosqyn-sat-map-dot.simulated{background:#ff9b44;border:1px dashed #fff6}
+@media(max-width:600px){
+ .bosqyn-executive-monitor .bosqyn-fire-simulation{padding:12px}
+ .bosqyn-fire-sim-controls{gap:8px}
+ .bosqyn-fire-sim-controls #bosqyn-fire-sim-toggle{flex:1 1 100%}
+}
