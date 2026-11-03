@@ -110,6 +110,20 @@ class CameraAPI:
                 finally:self.server.audio_semaphore.release()
         if not self.camera_admin():return
         try:
+            if path=="/api/ip-cameras/mobile":
+                body=self.read_json()
+                value=registry.register_mobile(body.get("name","Celular por Internet"))
+                return self.json_response(201,{"camera":value})
+            id=camera_id(path)
+            if id is not None and path==f"/api/ip-cameras/{id}/mobile/frame":
+                if self.headers.get("Content-Type","").split(";")[0]!="image/jpeg":
+                    return self.json_response(415,{"error":"Se requiere imagen JPEG"})
+                raw=self.camera_binary(MAX_FRAME_BYTES)
+                if raw is None:return
+                try:registry.mobile_frame(id,raw)
+                except PermissionError:
+                    return self.json_response(409,{"error":"Activa la cámara antes de transmitir"})
+                return self.json_response(200,{"received":True})
             if path=="/api/ip-cameras":
                 value=registry.register(self.read_json())
                 return self.json_response(201,{"camera":value})
