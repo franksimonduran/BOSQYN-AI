@@ -230,3 +230,18 @@ class CameraHTTPTests(unittest.TestCase):
         self.assertEqual(self.call(route,"POST",JPEG,binary=True,cookie=cookie)[0],409)
         self.assertEqual(self.call(f"/api/ip-cameras/{mobile_id}","DELETE",
                                    cookie=cookie)[0],200)
+
+    def test_mobile_microphone_opt_in_and_type_checks(self):
+        cookie=self.login()
+        code,data,_=self.call("/api/ip-cameras/mobile","POST",
+                              {"name":"Audio Android","audio_enabled":True},cookie=cookie)
+        self.assertEqual(code,201,data)
+        mobile_id=data["camera"]["id"]
+        self.assertTrue(data["camera"]["audio_enabled"])
+        self.assertEqual(self.call(f"/api/ip-cameras/{mobile_id}/action","POST",
+                                   {"action":"connect"},cookie=cookie)[0],200)
+        route=f"/api/ip-cameras/{mobile_id}/mobile/audio"
+        self.assertEqual(self.call(route,"POST",{"bad":"format"},cookie=cookie)[0],415)
+        self.assertEqual(self.call(route,"POST",{"bad":"format"})[0],401)
+        self.assertEqual(self.call(f"/api/ip-cameras/{mobile_id}","DELETE",
+                                   cookie=cookie)[0],200)
