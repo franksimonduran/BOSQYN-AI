@@ -220,9 +220,9 @@ function mount(dashboard,stopWebcam){
  panel=mk("section",undefined,"bosqyn-ip-panel bosqyn-satellite-center");
  panel.hidden=true;panel.id="bosqyn-ip-panel";
  panel.innerHTML=
-  '<h2>Cámaras IP · monitoreo forestal</h2>'+
-  '<p class="bosqyn-ip-muted">Conexión segura mediante pasarela local.</p>'+
-  '<form id="ip-form" class="bosqyn-ip-form">'+
+  '<div class="bosqyn-ip-toolbar"><div><h2>Cámaras IP</h2><p class="bosqyn-ip-muted">Hasta 24 registradas · 4 conectadas simultáneamente</p></div>'+
+  '<button id="ip-add-camera" type="button" aria-controls="ip-form" aria-expanded="false">+ Añadir cámara IP</button></div>'+
+  '<form id="ip-form" class="bosqyn-ip-form" hidden>'+
    '<label>Nombre<input name="name" required maxlength="80" placeholder="Cámara forestal 01"></label>'+
    '<label>Dispositivo<select name="kind"><option value="telefono">Teléfono Android</option><option value="camara_ip">Cámara IP</option><option value="seguridad">Seguridad</option></select></label>'+
    '<label>Protocolo<select name="protocol"><option>HTTP/MJPEG</option><option>RTSP</option><option>ONVIF</option></select></label>'+
@@ -232,7 +232,7 @@ function mount(dashboard,stopWebcam){
    '<label>Contraseña<input name="password" type="password" autocomplete="new-password" maxlength="200" placeholder="Opcional"></label>'+
    '<label>Umbral acústico<input name="threshold" type="number" min=".5" max=".99" step=".01" value=".85"></label>'+
    '<label class="bosqyn-ip-check"><input type="checkbox" name="audio_enabled"> Analizar audio de la cámara</label>'+
-   '<button type="submit">Guardar cámara</button></form>'+
+   '<button type="submit">Guardar cámara</button><button type="button" id="ip-cancel-camera" class="bosqyn-ip-cancel">Cancelar</button></form>'+
   '<p id="ip-status" class="bosqyn-ip-muted" role="status">Accede como administrador para añadir cámaras.</p>'+
   '<div id="ip-grid" class="bosqyn-ip-grid"></div>'+
   '<details><summary>Historial de conexiones y eventos</summary><div id="ip-events" class="bosqyn-ip-events"></div></details>'+
@@ -253,6 +253,15 @@ function mount(dashboard,stopWebcam){
  const onAuth=()=>{if(!panel.hidden)refresh();};
  window.addEventListener("bosqyn:auth-changed",onAuth);
  const form=$("ip-form");
+ const addButton=$("ip-add-camera");
+ const toggleForm=show=>{
+   form.hidden=!show;
+   addButton.setAttribute("aria-expanded",String(show));
+   addButton.textContent=show?"Cerrar formulario":"+ Añadir cámara IP";
+   if(show)form.elements.name?.focus();
+ };
+ addButton.addEventListener("click",()=>toggleForm(form.hidden));
+ $("ip-cancel-camera").addEventListener("click",()=>toggleForm(false));
  form.addEventListener("submit",async event=>{
    event.preventDefault();if(!await admin())return;
    const data=new FormData(form);
@@ -262,7 +271,8 @@ function mount(dashboard,stopWebcam){
    fields.threshold=Number(data.get("threshold"));
    try{
      const saved=await api("/api/ip-cameras","POST",fields);
-     form.elements.password.value="";form.elements.username.value="";
+     form.reset();
+     toggleForm(false);
      status("Cámara "+saved.camera.name+" guardada. Prueba su conexión.");
      await refresh();
    }catch(err){status(err.message);}
