@@ -127,10 +127,6 @@ function card(camera){
      panel?.querySelector("#ip-mobile-stream")?.scrollIntoView({behavior:"smooth",block:"center"});
      return;
    }
-   if(action==="connect" && current?.protocol!=="MOVIL/HTTPS" && !current?.bridge_online){
-     status("Esta cámara usa una dirección IP privada y necesita una pasarela local activa. Para datos 4G/5G usa «Transmitir desde este celular», no una URL 192.168.x.x.");
-     return;
-   }
    button.disabled=true;
    try{
      if(action==="delete"){
@@ -144,7 +140,7 @@ function card(camera){
      }else{
        const result=await api("/api/ip-cameras/"+id+"/action","POST",{action});
        status(action==="test"?"Prueba solicitada a la pasarela local.":action==="connect"?
-          "Conexión solicitada. La pasarela local debe estar funcionando.":
+          "Conexión solicitada. La cámara IP privada necesita una pasarela local; para usar 4G/5G pulsa «Transmitir desde este celular».":
           "Cámara desconectada.");
        if(action==="disconnect"){if(visionId===id)stopVision();stopRecording();}
        update(result.camera);
