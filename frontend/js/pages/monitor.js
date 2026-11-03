@@ -396,19 +396,19 @@ Bosqyn.pages.monitoreo = function (root) {
       const option = document.createElement("option");
       option.value = String(item.id);
       option.textContent = item.name + " · " +
-        (item.protocol === "MOVIL/HTTPS" ? "Celular 4G/5G" : "IP local") +
+        (item.protocol === "MOVIL/HTTPS" ? "Celular Wi-Fi" : "IP local") +
         " · " + (item.connected ? "Transmitiendo" : "Sin señal");
       select.append(option);
     }
     if (items.some(item => String(item.id) === previous)) {
       select.value = previous;
     } else {
-      // Prefer the live 4G/5G camera; older private-IP cameras have no cloud feed.
+      // Prefer the live Wi-Fi browser camera; older private-IP cameras have no cloud feed.
       const mobile = items.find(item => item.protocol === "MOVIL/HTTPS" && item.connected);
       if (mobile) {
         select.value = String(mobile.id);
         selectedId = mobile.id;
-        if (!active) status.textContent = "Celular por Internet disponible. Pulsa «Conectar cámara IP» para verlo y activar la IA.";
+        if (!active) status.textContent = "Celular Wi-Fi disponible. Pulsa «Conectar cámara IP» para verlo y activar la IA.";
       }
     }
     if (!items.length && !active)
