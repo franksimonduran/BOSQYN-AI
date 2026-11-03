@@ -1444,3 +1444,53 @@ body {
     transition: none;
   }
 }
+
+
+/* BOSQYN AI — dashboard estadístico de registros reales */
+#view .bosqyn-statistics-dashboard{padding:12px 1px 24px;max-width:none;color:#eaf8ef}
+#view .bsd-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin:0 0 10px}
+#view .bsd-header h1{font-size:clamp(19px,2vw,28px);font-weight:850;color:#f5fff9;margin:4px 0}
+#view .bsd-header p{font-size:11px;color:#b3d0c0}
+#view .bsd-eyebrow{font-size:8px;font-weight:800;letter-spacing:.16em;color:#e5bd79}
+#view .bsd-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:9px}
+#view .bsd-toolbar label{color:#b0d6bf;font-size:11px}
+#view .bsd-toolbar select,#view .bsd-toolbar button{background:#0c3927;color:#e9fff1;border:1px solid #307c53;border-radius:8px;padding:10px 13px;font-size:11px;cursor:pointer}
+#view .bsd-toolbar button{background:#0a8151;font-weight:750}
+#view .bsd-toolbar button:disabled{opacity:.5;cursor:wait}
+#view .bsd-context{font-size:10px;color:#9bbdab;margin:6px 0 14px}
+#view .bsd-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+#view .bsd-kpi{display:flex;flex-direction:column;gap:7px;min-width:0;padding:17px;border:1px solid #295941;background:linear-gradient(145deg,#103a29,#071e18);border-radius:12px}
+#view .bsd-kpi>span{font-size:11px;color:#c0ddc9}
+#view .bsd-kpi strong{font-size:clamp(25px,2.5vw,35px);line-height:1.15;color:#78e7a8;font-weight:850;font-variant-numeric:tabular-nums}
+#view .bsd-kpi:nth-child(2) strong{color:#ffb189}
+#view .bsd-kpi:nth-child(3) strong{color:#ebc780}
+#view .bsd-kpi:nth-child(4) strong{color:#b2cbf1}
+#view .bsd-kpi small{font-size:9px;color:#90bba6}
+#view .bsd-main-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,1fr);gap:13px;margin-bottom:13px}
+#view .bsd-secondary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+#view .bsd-panel{min-width:0;border:1px solid #295841;border-radius:12px;background:linear-gradient(155deg,#0c3022,#061b16);padding:17px}
+#view .bsd-panel header{margin:0 0 15px}
+#view .bsd-panel header h2{color:#effff3;font-size:14px;font-weight:800}
+#view .bsd-panel header p{color:#9dc3ae;font-size:10px;margin-top:5px}
+#view .bsd-trend img{display:block;width:100%;min-height:210px;object-fit:contain;border-radius:8px}
+#view .bsd-help,#view .bsd-muted{color:#93bca7;font-size:10px;line-height:1.6;margin-top:11px}
+#view .bsd-category-list,#view .bsd-review-bars,#view .bsd-source-list{display:flex;flex-direction:column;gap:12px}
+#view .bsd-bar-row{display:flex;flex-direction:column;gap:6px}
+#view .bsd-bar-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:#d5f0df}
+#view .bsd-bar-heading strong{font-size:10px;font-weight:750;color:#e5f7e9;white-space:nowrap}
+#view .bsd-bar-title{display:flex;align-items:center;gap:8px;min-width:0}
+#view .bsd-bar-title img{height:27px;width:27px;object-fit:contain}
+#view .bsd-track{height:7px;width:100%;overflow:hidden;border-radius:99px;background:#204a35}
+#view .bsd-fill{height:100%;border-radius:99px;transition:width .25s}
+#view .bsd-review-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px}
+#view .bsd-review-grid>div{border:1px solid #2b5842;border-radius:9px;padding:11px;display:flex;flex-direction:column;gap:6px}
+#view .bsd-review-grid span{font-size:10px;color:#add0b9}
+#view .bsd-review-grid strong{font-size:22px;color:#7decaf}
+#view .bsd-camera-status>strong{display:block;font-size:23px;color:#83edb6}
+#view .bsd-camera-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;border-top:1px solid #27543d;font-size:10px}
+#view .bsd-connected{color:#65e9a2}
+#view .bsd-offline{color:#e9bd8e}
+#view .bsd-footer{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:#9ec7b0;font-size:10px;margin-top:13px}
+#view .bsd-toolbar :focus-visible{outline:2px solid #89edb0;outline-offset:2px}
+@media(max-width:1050px){#view .bsd-main-grid{grid-template-columns:1fr}#view .bsd-secondary-grid{grid-template-columns:1fr 1fr}#view .bsd-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:670px){#view .bsd-secondary-grid{grid-template-columns:1fr}#view .bsd-header{align-items:flex-start}#view .bsd-toolbar{width:100%}#view .bsd-toolbar select{flex:1;min-width:0}#view .bsd-kpi{padding:12px}#view .bsd-panel{padding:13px}}
