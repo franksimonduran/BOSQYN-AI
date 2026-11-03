@@ -1,35 +1,56 @@
-# BOSQYN AI — Frontend con Python
+# Frontend de BOSQYN AI
 
-Se conserva el diseño del ZIP original. Las seis secciones están en `frontend/views/`: Inicio, Incendios, Tala, Monitoreo, Alertas y Estadísticas.
+La aplicación se sirve desde `frontend/index.html`. Usa **HTML, CSS y
+JavaScript sin compilación**; los archivos se cargan en un orden explícito.
+El backend Python ofrece la API y sirve las páginas con el mismo origen.
 
-## Arranque recomendado
+## Organización
 
-Desde la **raíz del repositorio** ejecuta:
+| Carpeta | Responsabilidad |
+| --- | --- |
+| `js/core/` | Reloj, iconos y categorías reutilizables |
+| `js/features/` | Sesiones, detección visual/acústica, cámaras y avisos |
+| `js/pages/` | Controladores de Inicio, Monitoreo, Alertas y Estadísticas |
+| `js/app.js` | Enrutamiento, navegación y limpieza de páginas |
+| `css/pages/` | Estilos de Inicio, Monitoreo y Cámaras IP |
+| `css/` | Estilos generales, tipografía y componentes |
+| `views/` | Plantillas HTML de las páginas |
+| `models/vision/` | Exportaciones del modelo de visión |
+| `img/`, `fonts/` | Recursos visuales |
+
+Los archivos `js/features/` usan el espacio de nombres `window.Bosqyn`.
+Los controladores de `js/pages/` implementan una función de montaje y una
+función de limpieza para evitar intervalos y recursos duplicados.
+
+## Ejecución
+
+Desde la raíz del repositorio:
 
 ```bash
+python -m pip install -r requirements.txt
 python -m backend.server
 ```
 
-Abre **http://127.0.0.1:5500**. El frontend y la API Python compartirán el mismo origen; no abras `index.html` con `file://`.
+Abrir `http://127.0.0.1:5500`. Para probar las interfaces:
 
-## Qué hace cada pantalla
+```bash
+npm ci --ignore-scripts
+npm test
+```
 
-- **Monitoreo:** permite iniciar la webcam. Al pulsar Capturar imagen, registra una **captura manual** JPEG en la base SQLite usando `POST /api/alerts`.
-- **Alertas:** presenta una nueva sección de capturas reales; permite confirmarlas, descartarlas o eliminarlas desde Python. La tabla original con datos de muestra se conserva y se identifica como demostración.
-- **Estadísticas:** muestra un contador de capturas y estados de la base real. Las tarjetas de precisión e indicadores gráficos originales todavía son simulados.
-- **Incendios y Tala:** presentan la funcionalidad prevista; la clasificación de IA ya se ejecuta dentro de la pantalla Monitoreo, pero no hay alertas autónomas ni evaluación de fiabilidad.
+## Pantallas en uso
 
-## Tecnologías
+- **Inicio:** indicadores reales y accesos directos.
+- **Monitoreo:** cámara IP autorizada, mapa satelital, IA visual y acústica,
+  alertas reales, gráficas de evidencias.
+- **Cámaras IP:** el celular puede enviar imágenes por Wi-Fi con Internet
+  mediante HTTPS; cámaras de la red privada usan pasarela local.
+- **Alertas:** historial real, evidencias y revisión humana.
+- **Estadísticas:** información real del backend, con gráficos Matplotlib.
 
-HTML, CSS y JavaScript. Backend en Python y SQLite sin dependencias externas. Teachable Machine/TensorFlow.js está conectado a la webcam; el entrenamiento de las clases correctas y la validación independiente están pendientes.
+La confianza de un clasificador no equivale a precisión validada. Los modelos
+de visión y audio deben evaluarse con datos independientes antes de interpretar
+sus resultados como alertas fiables.
 
-Más información: [documentación de Python](../backend/README.md).
-
-
-## Modelo TensorFlow.js en vivo
-
-El ZIP `frontend/models/vision/tm-my-image-model.zip` se extrae y valida automáticamente al iniciar el servidor Python. La webcam clasifica imágenes dentro del navegador mediante TensorFlow.js + Teachable Machine. Requiere acceso a Internet para cargar las librerías desde jsDelivr.
-
-Para comprobar los metadatos del modelo abre `/api/model-info`. Sus clases actuales son `Humo`, `Incendio`, `Normal`, `Tala` e `Ir al bosque`. La quinta clase **no equivale a** `NEBLINA_NUBES`; no se sustituye automáticamente. Vuelve a entrenar/exportar para corregirlo.
-
-Las probabilidades que muestra el frontend son predicciones de clasificación, no medidas de precisión, certificación de incendios ni indicios de ilegalidad. Las alertas automáticas y escrituras públicas continúan deshabilitadas.
+Véase [Arquitectura](../docs/ARQUITECTURA.md) y
+[Cámaras IP](../docs/CAMARAS_IP.md).

@@ -15,7 +15,7 @@ python -m pip install -r requirements.txt
 python -m backend.server
 ```
 
-Abrir `http://127.0.0.1:5500`. En un servidor público se requiere HTTPS, contraseña administrativa y volumen persistente. Consultar [RAILWAY.md](RAILWAY.md).
+Abrir `http://127.0.0.1:5500`. En un servidor público se requiere HTTPS, contraseña administrativa y volumen persistente. Consultar [despliegue Render](RENDER.md).
 
 ```bash
 python -m unittest discover -s backend/tests -v
@@ -29,7 +29,7 @@ GitHub Actions comprueba pruebas Python, flujos de interfaz, sintaxis JavaScript
 
 - Inicio y estadísticas consultan conteos reales de SQLite; no presentan porcentajes ficticios de funcionamiento ni registros de ejemplo.
 - Historial con paginación y filtros de categoría, estado y origen aplicados en el servidor.
-- Capturas manuales y registro opcional de indicios visuales automáticos. Invitado y Administrador pueden utilizar el guardado automático en Monitoreo. Requiere tres predicciones consecutivas de HUMO, INCENDIO o TALA con confianza mínima de 85 %. La API valida los valores y evita repetir categoría y origen durante 60 segundos mediante una transacción SQLite, incluso si llegan peticiones simultáneas.
+- Capturas manuales y registro opcional de indicios visuales automáticos. Las acciones protegidas requieren una sesión autorizada en Monitoreo. Requiere tres predicciones consecutivas de HUMO, INCENDIO o TALA con confianza mínima de 85 %. La API valida los valores y evita repetir categoría y origen durante 60 segundos mediante una transacción SQLite, incluso si llegan peticiones simultáneas.
 - Las predicciones enviadas por el navegador son indicios no validados por un modelo del servidor: requieren revisión humana. Una captura con tala no determina ilegalidad.
 - Respaldo JSON autenticado con imágenes y metadatos; restauración validada y transaccional sin reemplazar evidencias existentes. Límite de exportación: 30 MB de imágenes; restauración: 45 MB de JSON. Los respaldos de la antigua aplicación local tienen otro formato y no se importan aquí.
 - Retención bajo confirmación administrativa: vista previa y eliminación solo de descartadas de más de 90 días. No borra pendientes ni confirmadas y no se ejecuta automáticamente.
@@ -48,9 +48,9 @@ Se mantienen los archivos y adaptadores existentes sin reentrenar ni sustituir l
 
 ## Operación y privacidad
 
-SQLite y las imágenes se conservan en `BOSQYN_DATA_DIR`, en el volumen `/data` en Railway. Los endpoints de evidencias, respaldos y operaciones requieren una sesión; las operaciones de gestión requieren administrador. Las escrituras públicas necesitan `BOSQYN_READ_ONLY=0`, una sesión válida y comprobación de origen. No publicar contraseñas, imágenes privadas ni respaldos en GitHub. Descargar y comprobar respaldos periódicamente antes de aplicar retención; el respaldo disponible es manual, no un plan automatizado externo.
+SQLite y las imágenes se conservan en `BOSQYN_DATA_DIR`, en el volumen de datos configurado en Render. Los endpoints de evidencias, respaldos y operaciones requieren una sesión; las operaciones de gestión requieren administrador. Las escrituras públicas necesitan `BOSQYN_READ_ONLY=0`, una sesión válida y comprobación de origen. No publicar contraseñas, imágenes privadas ni respaldos en GitHub. Descargar y comprobar respaldos periódicamente antes de aplicar retención; el respaldo disponible es manual, no un plan automatizado externo.
 
-Despliegue: mantener el servicio existente y su volumen; usar `main` como fuente y `/api/health` como comprobación. Antes de publicar, exigir CI satisfactorio. Ante una regresión, volver al último despliegue estable desde Railway conservando el volumen.
+Despliegue: mantener el servicio existente y su volumen; usar `main` como fuente y `/api/health` como comprobación. Antes de publicar, exigir CI satisfactorio. Ante una regresión, volver al último despliegue estable desde Render conservando los datos persistentes.
 
 ## Campana y sonido de evidencias
 

@@ -525,3 +525,29 @@ test("Empty monitoring evidence cards collapse without inventing metrics", async
   assert.ok(!dash.textContent.includes("98%"));
   cleanup();dom.window.close();
 });
+
+test("Static entrypoint references every existing CSS and JS asset in dependency order", () => {
+  const html=fs.readFileSync("frontend/index.html","utf8");
+  const assets=[...html.matchAll(/(?:src|href)="((?:js|css)\/[^"]+\.(?:js|css)(?:\?[^"]*)?)"/g)]
+    .map(match=>match[1].split("?")[0]);
+  assert.ok(assets.length>15);
+  for(const asset of assets){
+    assert.ok(fs.existsSync("frontend/"+asset),"Missing script or style: "+asset);
+  }
+  const js=assets.filter(path=>path.startsWith("js/"));
+  assert.ok(js.indexOf("js/core/clock.js")<js.indexOf("js/features/auth.js"));
+  assert.ok(js.indexOf("js/features/vision.js")<js.indexOf("js/pages/monitor.js"));
+  assert.equal(js.at(-1),"js/app.js","Router must load after feature/page scripts");
+});
+test("All image URLs in page CSS resolve after file organization",()=>{
+  const files=["home-executive.css","ip-cameras.css","monitor-executive.css"];
+  for(const file of files){
+    const cssPath="frontend/css/pages/"+file;
+    const css=fs.readFileSync(cssPath,"utf8");
+    const urls=[...css.matchAll(/url\(["']?(\.{1,2}\/[^)"']+)["']?\)/g)];
+    for(const match of urls){
+      const target=require("node:path").resolve("frontend/css/pages",match[1]);
+      assert.ok(fs.existsSync(target),file+" has broken reference "+match[1]);
+    }
+  }
+});
