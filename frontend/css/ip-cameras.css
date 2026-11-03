@@ -47,3 +47,24 @@
 .bosqyn-ip-form:not([hidden]){padding:15px;border:1px solid rgba(87,181,126,.3);border-radius:12px;background:rgba(2,27,18,.64)}
 .bosqyn-ip-panel .bosqyn-ip-cancel{background:transparent;border:1px solid #4d8066}
 @media(max-width:540px){.bosqyn-ip-toolbar{align-items:stretch;flex-direction:column}.bosqyn-ip-toolbar #ip-add-camera{white-space:normal}}
+
+/* Registro rápido: enlace primero, detalles técnicos solo bajo demanda. */
+.bosqyn-ip-quick-form{grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:13px}
+.bosqyn-ip-quick-form .bosqyn-ip-intro,
+.bosqyn-ip-quick-form .bosqyn-ip-advanced,
+.bosqyn-ip-quick-form .bosqyn-ip-form-actions,
+.bosqyn-ip-quick-form .bosqyn-ip-form-note{grid-column:1/-1}
+.bosqyn-ip-quick-form .bosqyn-ip-intro{margin:0;color:#d4ebdc;font-size:12px}
+.bosqyn-ip-quick-form .bosqyn-ip-url-field{grid-column:auto}
+.bosqyn-ip-quick-form .bosqyn-ip-advanced{border:1px solid #285640;border-radius:9px;padding:10px 12px}
+.bosqyn-ip-quick-form .bosqyn-ip-advanced summary{font-size:12px;color:#c7e8d2;font-weight:650}
+.bosqyn-ip-quick-form .bosqyn-ip-advanced-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.bosqyn-ip-quick-form .bosqyn-ip-advanced-grid .bosqyn-ip-check{grid-column:auto;align-self:center;min-height:0}
+.bosqyn-ip-quick-form .bosqyn-ip-form-actions{display:flex;gap:10px;flex-wrap:wrap}
+.bosqyn-ip-quick-form .bosqyn-ip-form-actions button{min-width:150px}
+.bosqyn-ip-quick-form .bosqyn-ip-form-note{margin:0;color:#94bdaa;font-size:11px}
+@media(max-width:700px){
+ .bosqyn-ip-quick-form{grid-template-columns:minmax(0,1fr)}
+ .bosqyn-ip-quick-form .bosqyn-ip-advanced-grid{grid-template-columns:minmax(0,1fr)}
+ .bosqyn-ip-quick-form .bosqyn-ip-form-actions button{flex:1}
+}
