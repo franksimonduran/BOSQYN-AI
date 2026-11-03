@@ -551,3 +551,23 @@ test("All image URLs in page CSS resolve after file organization",()=>{
     }
   }
 });
+
+test("Monitor hides the automatic operations status without leaving a blank card", () => {
+  const { dom, w, root } = setup("monitoreo");
+  w.Bosqyn = {};
+  w.eval(fs.readFileSync("frontend/js/features/operations.js", "utf8"));
+  const first = root.firstElementChild;
+  const cleanup = w.Bosqyn.operations.mount(root, () => null);
+  const hidden = root.querySelector(".bosqyn-operations");
+  assert.ok(hidden, "Debe conservarse el estado accesible de incidentes");
+  assert.equal(root.firstElementChild, first, "No insertar secciones vacías al principio");
+  assert.equal(hidden.tagName, "DIV", "No activar CSS para primera sección móvil");
+  assert.equal(root.lastElementChild, hidden, "Colocar el estado fuera del encabezado");
+  assert.ok(hidden.classList.contains("bosqyn-sr-only"), "Usar la clase oculta real del proyecto");
+  assert.equal(hidden.querySelector('[role="status"]').getAttribute("aria-live"), "polite");
+  const css = fs.readFileSync("frontend/css/python.css", "utf8");
+  assert.match(css, /\.bosqyn-operations\.bosqyn-sr-only/);
+  cleanup();
+  assert.equal(root.querySelector(".bosqyn-operations"), null, "Limpiar el estado al salir");
+  dom.window.close();
+});

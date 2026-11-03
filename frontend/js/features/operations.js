@@ -41,12 +41,12 @@ Bosqyn.operations = (function () {
     } catch {}
   }
   function mount(root, getVideo) {
-    const panel = document.createElement("section");
-    // Los controles técnicos se retiran del diseño; se conserva intacta la
-    // captura de amenazas y la preferencia actual del usuario.
-    panel.className = "bosqyn-operations sr-only";
-    panel.innerHTML = '<p data-operation-status role="status" aria-live="polite"></p>';
-    root.prepend(panel);
+    // Solo para lectores de pantalla: nunca debe crear una tarjeta visible
+    // ni convertirse en el primer <section> de Monitoreo en Android.
+    const panel = document.createElement("div");
+    panel.className = "bosqyn-operations bosqyn-sr-only";
+    panel.innerHTML = '<span data-operation-status role="status" aria-live="polite" aria-atomic="true"></span>';
+    root.append(panel);
     const message = panel.querySelector("[data-operation-status]");
     let active = true,
       busy = false,
@@ -184,6 +184,7 @@ Bosqyn.operations = (function () {
       root.removeEventListener("bosqyn:visual-detection", onDetection);
       root.removeEventListener("bosqyn:audio-clip", onClip);
       root.removeEventListener("bosqyn:audio-stopped", onAudioStop);
+      panel.remove();
     };
   }
   return {
