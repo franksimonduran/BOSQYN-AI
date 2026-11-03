@@ -17,6 +17,7 @@ from urllib.parse import urlsplit
 
 NETWORKS=tuple(ipaddress.ip_network(x) for x in ("10.0.0.0/8","172.16.0.0/12","192.168.0.0/16"))
 PROTOCOLS={"RTSP":"rtsp","HTTP/MJPEG":"http","ONVIF":"http"}
+MOBILE_PROTOCOL="MOVIL/HTTPS"
 KINDS={"telefono","camara_ip","seguridad"}
 MAX_CAMERAS=24
 MAX_ACTIVE_CAMERAS=4
@@ -142,6 +143,32 @@ class CameraRegistry:
                 (name,kind,protocol,port,secret,int(body.get("audio_enabled") is True),threshold,stamp()))
             id=cur.lastrowid
         return self.get(id)
+    def register_mobile(self, name="Celular por Internet"):
+        """Register a browser-push camera without a private IP or inbound port."""
+        if not isinstance(name,str) or not 1<=len(name.strip())<=80:
+            raise ValueError("Nombre de cámara inválido")
+        secret=self.crypt().encrypt(json.dumps({"url":"","username":"","password":""}).encode()).decode()
+        with self.lock,self.connect() as db:
+            if db.execute("SELECT COUNT(*) FROM ip_cameras").fetchone()[0]>=MAX_CAMERAS:
+                raise ValueError("Límite de 24 cámaras registradas alcanzado")
+            cur=db.execute("INSERT INTO ip_cameras(name,kind,protocol,port,source_ciphertext,audio_enabled,threshold,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                (name.strip(),"telefono",MOBILE_PROTOCOL,443,secret,0,0.85,stamp()))
+            camera_id=cur.lastrowid
+        return self.get(camera_id)
+
+    def mobile_frame(self, id, raw):
+        """Allow only registered mobile cameras to push JPEGs from authenticated browsers."""
+        row=self.get(id)
+        if row is None:raise KeyError(id)
+        if row["protocol"]!=MOBILE_PROTOCOL:
+            raise ValueError("El dispositivo no es una cámara móvil HTTPS")
+        with self.lock:
+            last=self.latest.get(id,{}).get("mobile_rate_at",0)
+            if time.monotonic()-last<0.8:
+                raise ValueError("Envía como máximo un fotograma por segundo")
+            self.frame(id,raw)
+            self.latest[id]["mobile_rate_at"]=time.monotonic()
+
     def action(self,id,action):
         if action not in ("test","connect","disconnect"):raise ValueError("Acción desconocida")
         with self.lock,self.connect() as db:
@@ -169,7 +196,7 @@ class CameraRegistry:
     def agent_config(self):
         cipher=self.crypt()
         with self.lock,self.connect() as db:
-            rows=[dict(r) for r in db.execute("SELECT id,name,kind,protocol,port,source_ciphertext,desired,test_seq,audio_enabled FROM ip_cameras")]
+            rows=[dict(r) for r in db.execute("SELECT id,name,kind,protocol,port,source_ciphertext,desired,test_seq,audio_enabled FROM ip_cameras WHERE protocol != ?",(MOBILE_PROTOCOL,))]
         for row in rows:
             secrets=json.loads(cipher.decrypt(row.pop("source_ciphertext").encode()).decode())
             row.update(secrets)
