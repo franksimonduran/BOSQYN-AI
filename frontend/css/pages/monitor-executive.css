@@ -373,3 +373,130 @@ body.bosqyn-monitor-page .bosqyn-exec-hero{margin-top:0!important}
   color:#c3dece;background:#102c22;
   border:1px dashed #3b7352;
 }
+
+/* Centro de Vigilancia Satelital: ortofoto, relieve y controles de capas. */
+.bosqyn-executive-monitor #bosqyn-satellite-map{
+  position:relative;
+  height:clamp(320px,43vh,495px)!important;
+  min-height:320px!important;
+  border:1px solid rgba(111,204,148,.37);
+  border-radius:13px;
+  overflow:hidden;
+  background:#0b261b;
+  box-shadow:0 12px 28px rgba(0,0,0,.23);
+}
+.bosqyn-executive-monitor #bosqyn-satellite-map.leaflet-container{
+  font-family:inherit;
+}
+.bosqyn-executive-monitor #bosqyn-satellite-map .leaflet-control-layers{
+  background:rgba(7,30,20,.96);
+  color:#e9fff1;
+  border:1px solid #448d60;
+  border-radius:10px;
+  box-shadow:0 4px 16px rgba(0,0,0,.36);
+}
+.bosqyn-executive-monitor #bosqyn-satellite-map .leaflet-control-layers-list{
+  padding:2px 3px;
+  max-height:260px;
+  overflow:auto;
+}
+.bosqyn-executive-monitor #bosqyn-satellite-map .leaflet-control-layers label{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  color:#e6fff0;
+  margin:4px 0;
+  font-size:12px;
+}
+.bosqyn-executive-monitor #bosqyn-satellite-map .leaflet-control-layers-separator{
+  border-top-color:#3b7150;
+}
+.bosqyn-executive-monitor #bosqyn-satellite-map .leaflet-control-layers-toggle{
+  background-color:#e8f8ed;
+  border-radius:8px;
+}
+.bosqyn-executive-monitor #bosqyn-satellite-map .leaflet-control-zoom a{
+  color:#e6fff1;
+  background:#133b29;
+  border-bottom-color:#336c4b;
+}
+.bosqyn-executive-monitor #bosqyn-satellite-map .leaflet-control-zoom a:hover{
+  color:#fff;
+  background:#206b43;
+}
+.bosqyn-executive-monitor #bosqyn-satellite-map .leaflet-control-scale-line{
+  color:#e8fff0;
+  border-color:#e8fff0;
+  background:rgba(4,24,15,.75);
+  text-shadow:none;
+}
+.bosqyn-executive-monitor #bosqyn-satellite-map .leaflet-popup-content-wrapper,
+.bosqyn-executive-monitor #bosqyn-satellite-map .leaflet-popup-tip{
+  color:#ebfff1;
+  background:#0c2b1e;
+  border:1px solid rgba(108,196,134,.3);
+}
+.bosqyn-executive-monitor #bosqyn-satellite-map .leaflet-popup-close-button{
+  color:#c6f8d8;
+}
+.bosqyn-executive-monitor #bosqyn-satellite-map .leaflet-control-attribution{
+  background:rgba(5,21,15,.82);
+  color:#c6dccb;
+  max-width:100%;
+  font-size:9px;
+}
+.bosqyn-executive-monitor #bosqyn-satellite-map .leaflet-control-attribution a{
+  color:#8ed9ae;
+}
+.bosqyn-executive-monitor #bosqyn-satellite-map .bosqyn-sat-map-legend{
+  position:absolute;
+  z-index:450;
+  bottom:33px;
+  right:10px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  pointer-events:none;
+  border:1px solid rgba(104,197,139,.48);
+  border-radius:9px;
+  padding:8px 10px;
+  color:#e8fff0;
+  background:rgba(7,25,17,.9);
+  font-size:10px;
+  font-weight:700;
+  box-shadow:0 4px 16px rgba(0,0,0,.26);
+}
+.bosqyn-sat-map-legend span{display:inline-flex;align-items:center;gap:5px}
+.bosqyn-sat-map-dot{display:inline-block;width:9px;height:9px;border-radius:50%;border:1px solid #fff8}
+.bosqyn-sat-map-dot.nasa{background:#fc7b49}
+.bosqyn-sat-map-dot.noaa{background:#f6d16b}
+.bosqyn-executive-monitor #bosqyn-satellite-map .bosqyn-sat-map-notice{
+  position:absolute;
+  z-index:550;
+  top:8px;
+  left:50px;
+  max-width:calc(100% - 130px);
+  padding:9px 11px;
+  border:1px solid #d9aa62;
+  border-radius:8px;
+  background:rgba(34,31,18,.96);
+  color:#ffe7b4;
+  font-size:11px;
+  line-height:1.4;
+  pointer-events:none;
+}
+.bosqyn-executive-monitor #bosqyn-satellite-map .bosqyn-sat-map-notice[hidden]{
+  display:none!important;
+}
+@media(max-width:600px){
+ .bosqyn-executive-monitor #bosqyn-satellite-map{
+   height:360px!important;
+   min-height:330px!important;
+ }
+ .bosqyn-executive-monitor #bosqyn-satellite-map .bosqyn-sat-map-legend{
+   bottom:37px;right:6px;font-size:9px;padding:6px;gap:6px;
+ }
+ .bosqyn-executive-monitor #bosqyn-satellite-map .bosqyn-sat-map-notice{
+   left:8px;top:60px;max-width:calc(100% - 16px);
+ }
+}

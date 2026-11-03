@@ -681,3 +681,20 @@ test("Monitor hides the automatic operations status without leaving a blank card
   assert.equal(root.querySelector(".bosqyn-operations"), null, "Limpiar el estado al salir");
   dom.window.close();
 });
+
+test("Satellite watch center starts with real imagery and retains NASA/NOAA markers", () => {
+  const code=fs.readFileSync("frontend/js/pages/monitor.js","utf8");
+  const css=fs.readFileSync("frontend/css/pages/monitor-executive.css","utf8");
+  assert.match(code,/makeEsri\("World_Imagery"/);
+  assert.match(code,/L\.control\.layers\(/);
+  assert.match(code,/Híbrido \(lugares\)/);
+  assert.match(code,/World_Topo_Map/);
+  assert.match(code,/tile\.openstreetmap\.org/);
+  assert.match(code,/control\.scale\(/);
+  assert.match(code,/satelliteLayer\.clearLayers\(\)/);
+  assert.match(code,/circleMarker\(/);
+  assert.match(code,/point\.bindPopup\(detail\)/);
+  assert.match(code,/switchToTerrain\(\)/);
+  assert.match(css,/\.bosqyn-sat-map-legend/);
+  assert.match(css,/\#bosqyn-satellite-map/);
+});

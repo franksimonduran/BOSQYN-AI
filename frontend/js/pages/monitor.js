@@ -173,33 +173,95 @@ Bosqyn.pages.monitoreo = function (root) {
       if (disposed) return;
       const mapNode = dashboard.querySelector("#bosqyn-satellite-map");
       mapNode.textContent = "";
-      satelliteMap = window.L.map(mapNode).setView([-9.5, -76.1], 8);
-      // Esri World Topographic Map no usa una API key del cliente en esta capa pública.
-      const tiles = window.L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+      // Fotografía satelital real: la imagen cartográfica no es una detección
+      // en tiempo real. Los focos NASA y NOAA se dibujan por separado.
+      satelliteMap = window.L.map(mapNode, {
+        zoomControl: true,
+        attributionControl: true,
+        preferCanvas: true,
+      }).setView([-9.5, -76.1], 8);
+      const arcgis = "https://server.arcgisonline.com/ArcGIS/rest/services/";
+      const makeEsri = (service, options = {}) => window.L.tileLayer(
+        arcgis + service + "/MapServer/tile/{z}/{y}/{x}",
+        { maxZoom: 19, maxNativeZoom: 18, ...options },
+      );
+      const imageryAttribution =
+        'Tiles &copy; <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics, GIS User Community';
+      const satellite = makeEsri("World_Imagery", {
+        attribution: imageryAttribution,
+      });
+      // En Híbrido se usan instancias separadas: Leaflet no permite una capa
+      // compartida en dos mapas base sin desplazarla de su grupo original.
+      const hybridImagery = makeEsri("World_Imagery", {
+        attribution: imageryAttribution,
+      });
+      const placeLabels = window.L.tileLayer(
+        "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
         {
-          maxZoom: 17,
-          attribution: "Tiles &copy; Esri, HERE, Garmin, FAO, NOAA, USGS",
+          maxZoom: 19, maxNativeZoom: 18, zIndex: 2, opacity: 0.94,
+          attribution: 'Labels &copy; <a href="https://www.esri.com/">Esri</a>',
+        },
+      );
+      const hybrid = window.L.layerGroup([hybridImagery, placeLabels]);
+      const terrain = makeEsri("World_Topo_Map", {
+        maxNativeZoom: 17,
+        attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>, HERE, Garmin, FAO, NOAA, USGS',
+      });
+      const streets = window.L.tileLayer(
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+          maxZoom: 19,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        },
+      );
+      satellite.addTo(satelliteMap);
+      satelliteLayer = window.L.layerGroup().addTo(satelliteMap);
+      window.L.control.layers(
+        { "Satélite": satellite, "Híbrido (lugares)": hybrid, "Relieve": terrain, "Calles": streets },
+        { "Observaciones NASA / NOAA": satelliteLayer },
+        {
+          position: "topright",
+          collapsed: window.innerWidth < 760,
         },
       ).addTo(satelliteMap);
-      // Si el proveedor bloquea la carga, conservar el mapa y los marcadores;
-      // evita mosaicos de error que cubren las observaciones.
-      let tileErrors = 0;
-      tiles.on("tileerror", () => {
-        tileErrors++;
-        if (tileErrors === 3) {
-          satelliteMap.removeLayer(tiles);
-          mapNode.style.background =
-            "repeating-linear-gradient(0deg,transparent,transparent 69px,#255344 70px),repeating-linear-gradient(90deg,transparent,transparent 69px,#255344 70px),#123c2d";
-          const info = document.createElement("div");
-          info.textContent =
-            "Mapa base temporalmente no disponible. Las ubicaciones satelitales siguen visibles.";
-          info.style.cssText =
-            "position:absolute;top:8px;right:8px;z-index:500;color:#def5e4;background:#0a241bcc;border-radius:6px;padding:7px;font-size:11px;max-width:240px";
-          mapNode.append(info);
-        }
-      });
-      satelliteLayer = window.L.layerGroup().addTo(satelliteMap);
+      window.L.control.scale({
+        metric: true, imperial: false, position: "bottomleft",
+      }).addTo(satelliteMap);
+      const legend = document.createElement("div");
+      legend.className = "bosqyn-sat-map-legend";
+      legend.setAttribute("aria-label", "Leyenda de observaciones satelitales");
+      legend.innerHTML =
+        '<span><i class="bosqyn-sat-map-dot nasa" aria-hidden="true"></i>NASA FIRMS</span>' +
+        '<span><i class="bosqyn-sat-map-dot noaa" aria-hidden="true"></i>NOAA GOES</span>';
+      mapNode.append(legend);
+      const notice = document.createElement("div");
+      notice.className = "bosqyn-sat-map-notice";
+      notice.setAttribute("role", "status");
+      notice.hidden = true;
+      mapNode.append(notice);
+      const switchToTerrain = () => {
+        if (disposed || !satelliteMap) return;
+        const selected = satelliteMap.hasLayer(satellite)
+          ? satellite : satelliteMap.hasLayer(hybrid) ? hybrid : null;
+        if (!selected) return;
+        satelliteMap.removeLayer(selected);
+        terrain.addTo(satelliteMap);
+        notice.textContent =
+          "Imágenes satelitales temporalmente inaccesibles. Se muestra relieve; los eventos continúan visibles.";
+        notice.hidden = false;
+      };
+      // No reemplazar los eventos cuando una tesela del proveedor no carga.
+      for (const layer of [satellite, hybridImagery]) {
+        let errors = 0;
+        layer.on("tileload", () => { errors = 0; });
+        layer.on("tileerror", () => {
+          if (++errors >= 4) {
+            errors = 0;
+            switchToTerrain();
+          }
+        });
+      }
+      satelliteMap.on("baselayerchange", () => { notice.hidden = true; });
       refreshSatellite();
     })
     .catch(() => {
