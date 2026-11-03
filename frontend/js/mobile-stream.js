@@ -8,9 +8,11 @@ Bosqyn.mobileStream=(()=>{
     const stopButton=panel.querySelector("#ip-mobile-stop");
     const preview=panel.querySelector("#ip-mobile-preview");
     const notice=panel.querySelector("#ip-mobile-notice");
+    const audioOption=panel.querySelector("#ip-mobile-audio");
     const box=panel.querySelector("#ip-mobile-stream");
     if(!start||!stopButton||!preview||!notice||!box)return ()=>{};
     let running=false,busy=false,stream=null,cameraId=null,abort=null,timeout=null,failures=0;
+    let audioContext=null,audioSource=null,audioProcessor=null,audioSamples=0,audioChunks=[],audioSending=false,audioDisabled=false;
     const canvas=document.createElement("canvas");
     const status=msg=>{notice.textContent=msg;};
     const api=async(path,body)=>{
@@ -21,10 +23,80 @@ Bosqyn.mobileStream=(()=>{
       if(!r.ok)throw Error(data.error||"HTTP "+r.status);
       return data;
     };
+    function closeAudio(){
+      audioDisabled=true;
+      if(audioProcessor){audioProcessor.disconnect();audioProcessor.onaudioprocess=null;audioProcessor=null;}
+      audioSource?.disconnect();audioSource=null;
+      if(audioContext){audioContext.close().catch(()=>{});audioContext=null;}
+      audioChunks=[];audioSamples=0;audioSending=false;
+    }
+    function pcm16(samples,sourceRate){
+      const length=48000; // 3 segundos a 16 kHz = 96000 bytes PCM16 mono.
+      const result=new ArrayBuffer(length*2);
+      const view=new DataView(result);
+      for(let i=0;i<length;i++){
+        const pos=i*sourceRate/16000,low=Math.min(samples.length-1,Math.floor(pos));
+        const high=Math.min(samples.length-1,low+1),fraction=pos-low;
+        const sample=Math.max(-1,Math.min(1,samples[low]*(1-fraction)+samples[high]*fraction));
+        view.setInt16(i*2,sample<0?sample*32768:sample*32767,true);
+      }
+      return result;
+    }
+    async function sendAudio(buffer){
+      if(!running||!cameraId||audioSending||audioDisabled)return;
+      audioSending=true;
+      try{
+        const response=await fetch("/api/ip-cameras/"+cameraId+"/mobile/audio",{
+          method:"POST",credentials:"same-origin",cache:"no-store",
+          headers:{"Content-Type":"application/octet-stream","X-Bosqyn-Action":"1","X-Bosqyn-Sample-Rate":"16000"},
+          body:buffer
+        });
+        const reply=await response.json().catch(()=>({}));
+        if(!response.ok)throw Error(reply.error||"HTTP "+response.status);
+      }catch(error){
+        // La cámara visual sigue funcionando si el modelo acústico no está disponible.
+        if(running){
+          status("Video activo; audio no disponible: "+error.message);
+          closeAudio();
+          stream?.getAudioTracks().forEach(track=>track.stop());
+        }
+      }finally{audioSending=false;}
+    }
+    async function openAudio(){
+      if(!stream?.getAudioTracks().length)return;
+      const Context=window.AudioContext||window.webkitAudioContext;
+      if(!Context)throw Error("Tu navegador no admite procesamiento de audio");
+      audioContext=new Context();
+      if(audioContext.state==="suspended")await audioContext.resume();
+      audioSource=audioContext.createMediaStreamSource(stream);
+      audioProcessor=audioContext.createScriptProcessor(4096,1,1);
+      audioDisabled=false;
+      audioProcessor.onaudioprocess=event=>{
+        if(!running||audioDisabled)return;
+        const values=event.inputBuffer.getChannelData(0);
+        audioChunks.push(new Float32Array(values));
+        audioSamples+=values.length;
+        const needed=Math.round(audioContext.sampleRate*3);
+        if(audioSamples<needed)return;
+        const gathered=new Float32Array(needed);
+        let offset=0;
+        for(const chunk of audioChunks){
+          const amount=Math.min(chunk.length,needed-offset);
+          gathered.set(chunk.subarray(0,amount),offset);
+          offset+=amount;
+          if(offset>=needed)break;
+        }
+        audioChunks=[];audioSamples=0;
+        if(!audioSending)sendAudio(pcm16(gathered,audioContext.sampleRate));
+      };
+      audioSource.connect(audioProcessor);
+      audioProcessor.connect(audioContext.destination);
+    }
     function stopLocal(){
       running=false;
       if(timeout!==null){clearTimeout(timeout);timeout=null;}
       abort?.abort();abort=null;
+      closeAudio();
       stream?.getTracks().forEach(track=>track.stop());stream=null;
       preview.pause();preview.srcObject=null;
       start.disabled=false;start.hidden=false;stopButton.hidden=true;
@@ -91,7 +163,7 @@ Bosqyn.mobileStream=(()=>{
         status("Solicitando permiso para usar la cámara…");
         stream=await navigator.mediaDevices.getUserMedia({
           video:{facingMode:{ideal:"environment"},width:{ideal:640},height:{ideal:480}},
-          audio:false
+          audio:audioOption?.checked?{echoCancellation:false,noiseSuppression:false,autoGainControl:false}:false
         });
         preview.srcObject=stream;
         await preview.play();
@@ -99,14 +171,15 @@ Bosqyn.mobileStream=(()=>{
         const list=await fetch("/api/ip-cameras",{credentials:"same-origin",cache:"no-store"});
         if(!list.ok)throw Error("No se pudo consultar las cámaras registradas");
         const items=(await list.json()).items||[];
-        let camera=items.find(c=>c.protocol==="MOVIL/HTTPS"&&c.desired!=="on");
+        let camera=items.find(c=>c.protocol==="MOVIL/HTTPS"&&c.desired!=="on"&&Boolean(c.audio_enabled)===Boolean(audioOption?.checked));
         if(!camera){
-          const saved=await api("/api/ip-cameras/mobile",{name:"Celular por Internet"});
+          const saved=await api("/api/ip-cameras/mobile",{name:"Celular por Internet",audio_enabled:Boolean(audioOption?.checked)});
           camera=saved.camera;
         }
         cameraId=camera.id;
         await api("/api/ip-cameras/"+cameraId+"/action",{action:"connect"});
         running=true;failures=0;
+        if(audioOption?.checked)await openAudio();
         start.hidden=true;stopButton.hidden=false;box.classList.add("is-streaming");
         onRefresh?.();
         await push();
