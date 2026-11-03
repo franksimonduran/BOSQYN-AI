@@ -206,8 +206,12 @@ Bosqyn.vision = (function () {
         let errors = 0;
 
         async function nextFrame() {
-          if (run !== activeRun || !root.isConnected || video.readyState < 2)
+          if (run !== activeRun || !root.isConnected) return;
+          // El primer fotograma IP puede tardar; no detener la IA para siempre.
+          if (video.readyState < 2) {
+            timer = setTimeout(nextFrame, 300);
             return;
+          }
           try {
             const predictions = await model.predict(video, false);
             if (run !== activeRun || !root.isConnected) return;
