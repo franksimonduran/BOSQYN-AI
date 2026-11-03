@@ -69,6 +69,25 @@ class CameraRegistryTests(unittest.TestCase):
         self.assertFalse(self.store.bridge_ok("incorrect"))
         self.assertTrue(self.store.bridge_ok(TOKEN))
 
+    def test_more_cameras_can_be_registered_but_streams_are_bounded(self):
+        # Independent camera profiles may exceed the previous six-device limit.
+        ids=[]
+        for index in range(24):
+            camera=self.store.register({"name":f"Sector {index+1}",
+                "kind":"camara_ip","protocol":"RTSP",
+                "url":f"rtsp://10.1.2.{index+10}:554/live"})
+            ids.append(camera["id"])
+        self.assertEqual(len(self.store.list()),24)
+        with self.assertRaisesRegex(ValueError,"24 cámaras"):
+            self.store.register({"name":"Sector 25","kind":"camara_ip",
+                "protocol":"RTSP","url":"rtsp://10.1.2.200:554/live"})
+        for id in ids[:4]:
+            self.store.action(id,"connect")
+        with self.assertRaisesRegex(ValueError,"cuatro cámaras"):
+            self.store.action(ids[4],"connect")
+        self.store.action(ids[1],"disconnect")
+        self.assertEqual(self.store.action(ids[4],"connect")["desired"],"on")
+
     def test_wifi_loss_and_reconnection_are_not_duplicated(self):
         camera=self.store.register({"name":"Reconexion","kind":"camara_ip","protocol":"RTSP",
             "url":"rtsp://10.0.0.55:554/ch1"})
