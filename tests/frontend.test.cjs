@@ -92,7 +92,7 @@ test("Automatic incidents require persistence and ignore normal class", async ()
   w.HTMLCanvasElement.prototype.getContext = () => ({ drawImage() {} });
   w.HTMLCanvasElement.prototype.toDataURL = () =>
     "data:image/jpeg;base64,/9j/2Q==";
-  w.eval(fs.readFileSync("frontend/js/operations.js", "utf8"));
+  w.eval(fs.readFileSync("frontend/js/features/operations.js", "utf8"));
   const cleanup = w.Bosqyn.operations.mount(root, () => ({
     videoWidth: 640,
     videoHeight: 480,
@@ -149,7 +149,7 @@ test("Bell shows pending threat count and opens real notifications", async () =>
       ],
     }),
   });
-  w.eval(fs.readFileSync("frontend/js/notifications.js", "utf8"));
+  w.eval(fs.readFileSync("frontend/js/features/notifications.js", "utf8"));
   await wait();
   assert.equal(
     w.document.getElementById("bosqyn-notification-count").textContent,
@@ -181,7 +181,7 @@ test("Guest and administrator are distinct entry options", async () => {
         ? { authenticated: true, role: "guest" }
         : { authenticated: false, configured: true },
   });
-  w.eval(fs.readFileSync("frontend/js/auth.js", "utf8"));
+  w.eval(fs.readFileSync("frontend/js/features/auth.js", "utf8"));
   await wait();
   assert.equal(w.document.getElementById("bosqyn-auth-overlay").hidden, false);
   assert.ok(w.document.querySelector("[data-guest]"));
@@ -229,7 +229,7 @@ test("Executive monitor keeps existing satellite map and displays real API count
       {events:[{id:1},{id:2},{id:3}]}:
       {feeds:{NASA:{status:"ok"},NOAA:{status:"sin datos"}}}
   });
-  w.eval(fs.readFileSync("frontend/js/monitor-executive.js","utf8"));
+  w.eval(fs.readFileSync("frontend/js/features/monitor-executive.js","utf8"));
   const dash=root.querySelector(".bosqyn-satellite-dashboard");
   const map=dash.querySelector("#bosqyn-satellite-map");
   const live=root.querySelector("#bosqyn-live-panel");
@@ -275,7 +275,7 @@ test("Executive monitor keeps existing satellite map and displays real API count
 test("Live monitor uses authorized IP camera instead of device webcam",()=>{
   const live=fs.readFileSync("frontend/js/pages/monitor.js","utf8");
   const template=fs.readFileSync("frontend/views/monitoreo.html","utf8");
-  const overview=fs.readFileSync("frontend/js/monitor-executive.js","utf8");
+  const overview=fs.readFileSync("frontend/js/features/monitor-executive.js","utf8");
   assert.ok(live.includes('"/api/ip-cameras"'));
   assert.ok(live.includes('"/api/ip-cameras/" + id + "/snapshot'));
   assert.ok(live.includes("bosqyn-live-ip-select"));
@@ -389,7 +389,7 @@ test("Homepage never fabricates IP camera or satellite numbers without access", 
 });
 
 test("Mobile 4G camera uses admin-only HTTPS uploads and no public stream URL", () => {
-  const mobile=fs.readFileSync("frontend/js/mobile-stream.js","utf8");
+  const mobile=fs.readFileSync("frontend/js/features/mobile-stream.js","utf8");
   const ip=fs.readFileSync("frontend/js/pages/ip-cameras.js","utf8");
   assert.ok(mobile.includes("getUserMedia"),"La cámara se obtiene del celular");
   assert.ok(mobile.includes("Bosqyn.auth?.ensureAdmin"),"El emisor requiere administrador");
@@ -420,7 +420,7 @@ test("Wi-Fi phone streaming rejects unconfirmed or cellular connections", async 
   }});
   Object.defineProperty(w.navigator,"connection",{configurable:true,value:{type:"cellular"}});
   w.Bosqyn={auth:{ensureAdmin:async()=>true}};
-  w.eval(fs.readFileSync("frontend/js/mobile-stream.js","utf8"));
+  w.eval(fs.readFileSync("frontend/js/features/mobile-stream.js","utf8"));
   const root=w.document.querySelector("#panel");
   const cleanup=w.Bosqyn.mobileStream.mount(root,()=>{});
   const button=root.querySelector("#ip-mobile-start");
@@ -480,7 +480,7 @@ test("Wi-Fi camera permission denial shows Android recovery guide", async () => 
     getUserMedia:async()=>{const e=new Error("Permission denied");e.name="NotAllowedError";throw e;}
   },configurable:true});
   w.Bosqyn={auth:{ensureAdmin:async()=>true}};
-  w.eval(fs.readFileSync("frontend/js/mobile-stream.js","utf8"));
+  w.eval(fs.readFileSync("frontend/js/features/mobile-stream.js","utf8"));
   const root=w.document.querySelector("#panel");
   const cleanup=w.Bosqyn.mobileStream.mount(root,()=>{});
   root.querySelector("#ip-mobile-start").click();await wait();
@@ -509,7 +509,7 @@ test("Empty monitoring evidence cards collapse without inventing metrics", async
     if(url==="/api/ip-cameras")return {items:[]};
     return {feeds:{}};
   }});
-  w.eval(fs.readFileSync("frontend/js/monitor-executive.js","utf8"));
+  w.eval(fs.readFileSync("frontend/js/features/monitor-executive.js","utf8"));
   const dash=root.querySelector(".bosqyn-satellite-dashboard");
   const cleanup=w.Bosqyn.monitorExecutive.mount({
     root,dashboard:dash,livePanel:root.querySelector("#bosqyn-live-panel"),

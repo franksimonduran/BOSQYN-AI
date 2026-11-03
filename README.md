@@ -2,6 +2,10 @@
 
 Prototipo de monitoreo forestal para INNOBEST HUÁNUCO 2026. La versión oficial es `main`: integra el backend y frontend de la rama de producción `feature/monitoreo-pestanas-20261016` y las mejoras operativas. Las ramas de preparación se conservan como historial; no son versiones oficiales.
 
+## Estructura del código
+
+Consulta [Arquitectura y carpetas](docs/ARQUITECTURA.md), [Frontend](frontend/README.md), [Backend](backend/README.md), [Cámaras IP](docs/CAMARAS_IP.md) y [despliegue en Render](RENDER.md).
+
 ## Ejecutar y verificar
 
 Python 3.11 o superior:
