@@ -122,6 +122,15 @@ function card(camera){
      return;
    }
    if(!await admin())return;
+   if(action==="connect" && current?.protocol==="MOVIL/HTTPS" && !current.connected){
+     status("Para conectar esta cámara, abre BOSQYN AI desde el celular emisor y pulsa «Transmitir desde este celular». El botón Conectar no activa remotamente la cámara del teléfono.");
+     panel?.querySelector("#ip-mobile-stream")?.scrollIntoView({behavior:"smooth",block:"center"});
+     return;
+   }
+   if(action==="connect" && current?.protocol!=="MOVIL/HTTPS" && !current?.bridge_online){
+     status("Esta cámara usa una dirección IP privada y necesita una pasarela local activa. Para datos 4G/5G usa «Transmitir desde este celular», no una URL 192.168.x.x.");
+     return;
+   }
    button.disabled=true;
    try{
      if(action==="delete"){
@@ -135,7 +144,7 @@ function card(camera){
      }else{
        const result=await api("/api/ip-cameras/"+id+"/action","POST",{action});
        status(action==="test"?"Prueba solicitada a la pasarela local.":action==="connect"?
-          "Conexión solicitada. Esperando señal IP.":
+          "Conexión solicitada. La pasarela local debe estar funcionando.":
           "Cámara desconectada.");
        if(action==="disconnect"){if(visionId===id)stopVision();stopRecording();}
        update(result.camera);
@@ -146,10 +155,19 @@ function card(camera){
  function update(c){
    current=c;
    title.textContent=c.name;
-   tag.textContent=c.connected?"Conectada":c.desired==="on"?"Sin señal / reconectando":"Desconectada";
+   const mobile=c.protocol==="MOVIL/HTTPS";
+   tag.textContent=c.connected?"Transmitiendo":mobile?"Esperando celular":c.desired==="on"?"Sin señal / reconectando":"Desconectada";
    tag.classList.toggle("is-online",!!c.connected);
-   meta.textContent=c.protocol+" · "+c.kind+" · Puerto "+c.port+
+   empty.textContent=mobile
+     ?"Sin imágenes del celular. En ese teléfono abre BOSQYN AI y pulsa «Transmitir desde este celular»."
+     : "Sin conexión con la pasarela local. La dirección 192.168.x.x no funciona directamente por Internet.";
+   meta.textContent=(mobile?"Celular 4G/5G · HTTPS (sin Wi-Fi)":"Cámara IP local · "+c.protocol+" · Puerto "+c.port)+
      " · Última imagen: "+fmt(c.last_frame_at);
+   const connectButton=buttons.querySelector('[data-action="connect"]');
+   if(connectButton){
+     connectButton.textContent=mobile?"Cómo activar en el celular":"Conectar cámara IP";
+     connectButton.title=mobile?"Inicia la transmisión desde el teléfono que tiene la cámara":"Requiere una pasarela local activa";
+   }
    test.textContent=c.protocol==="MOVIL/HTTPS"?"Conexión: transmisión segura desde navegador":
      "Prueba: "+(c.last_test?.status||"no realizada");
    const testButton=buttons.querySelector('[data-action="test"]');
