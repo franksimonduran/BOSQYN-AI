@@ -44,22 +44,42 @@ function card(camera){
  const item=mk("article",undefined,"bosqyn-ip-card");
  item.dataset.id=String(id);
  const head=mk("div",undefined,"bosqyn-ip-head");
+ const titleWrap=mk("div",undefined,"bosqyn-ip-name");
  const title=mk("strong",camera.name);
+ const subtitle=mk("span",camera.protocol==="MOVIL/HTTPS"?"CELULAR WI-FI · HTTPS":"CÁMARA IP · RED LOCAL","bosqyn-ip-source");
+ titleWrap.append(title,subtitle);
  const tag=mk("span","Sin señal","bosqyn-ip-tag");
- head.append(title,tag);
+ head.append(titleWrap,tag);
  const frame=mk("div",undefined,"bosqyn-ip-screen");
+ const frameDecor=mk("div",undefined,"bosqyn-ip-screen-label");
+ frameDecor.innerHTML='<span class="bosqyn-ip-screen-pulse" aria-hidden="true"></span> BOSQYN AI · VIGILANCIA FORESTAL';
+ frame.append(frameDecor);
  const image=mk("img");image.alt="Fotogramas de "+camera.name;image.hidden=true;
+ const emptyWrap=mk("div",undefined,"bosqyn-ip-empty-screen");
+ emptyWrap.innerHTML='<span class="bosqyn-ip-video-icon" aria-hidden="true">▣</span><strong>Esperando señal</strong>';
  const empty=mk("p","Sin conexión con la pasarela local");
- frame.append(image,empty);
+ emptyWrap.append(empty);
+ frame.append(image,emptyWrap);
  const meta=mk("p",camera.protocol+" · "+camera.kind+" · Puerto "+camera.port,"bosqyn-ip-muted");
  const test=mk("p","Prueba pendiente de solicitar","bosqyn-ip-muted");
- const audio=mk("p","Audio: sin análisis","bosqyn-ip-muted");
+ const audio=mk("p","Audio en espera","bosqyn-ip-muted");
+ const detailsStatus=mk("div",undefined,"bosqyn-ip-ai-status");
+ const visualStat=mk("div",undefined,"bosqyn-ip-ai-stat");
+ visualStat.innerHTML='<span class="bosqyn-ip-ai-icon" aria-hidden="true">◎</span><span><small>IA VISUAL</small><strong>En espera</strong></span>';
+ const soundStat=mk("div",undefined,"bosqyn-ip-ai-stat");
+ soundStat.innerHTML='<span class="bosqyn-ip-ai-icon" aria-hidden="true">◉</span><span><small>IA ACÚSTICA</small></span>';
+ soundStat.lastElementChild.append(audio);
+ detailsStatus.append(visualStat,soundStat);
  const detection=mk("div",undefined,"bosqyn-ip-detection");
  detection.innerHTML='<div><img data-vision-logo src="img/deteccion/Bosque.png" alt="" width="35" height="35"/>'+
    '<strong data-vision-class>ESPERANDO IA</strong> <b data-vision-confidence>--</b></div>'+
    '<p data-vision-detail>Clasificador detenido</p><span data-vision-warning>SIN ANÁLISIS</span>'+
    '<div class="bosqyn-dominant-progress"><span data-vision-progress></span></div>';
  const buttons=mk("div",undefined,"bosqyn-ip-buttons");
+ const secondary=mk("details",undefined,"bosqyn-ip-secondary");
+ secondary.innerHTML='<summary>Más opciones <span aria-hidden="true">⌄</span></summary>';
+ const secondaryButtons=mk("div",undefined,"bosqyn-ip-secondary-buttons");
+ secondary.append(secondaryButtons);
  const labels=[
   ["test","Probar conexión"],["connect","Conectar cámara"],["disconnect","Desconectar"],
   ["capture","Capturar foto"],["ai","IA visual"],["fullscreen","Pantalla completa"],
@@ -67,11 +87,11 @@ function card(camera){
  ];
  for(const [action,label] of labels){
    const button=mk("button",label);button.type="button";button.dataset.action=action;
-   buttons.append(button);
+   (["connect","disconnect","ai","capture"].includes(action)?buttons:secondaryButtons).append(button);
  }
  const modelStatus=mk("p","IA en espera","bosqyn-ip-muted");
  const canvas=document.createElement("canvas");canvas.hidden=true;
- item.append(head,frame,meta,test,audio,detection,buttons,modelStatus,canvas);
+ item.append(head,frame,meta,detailsStatus,detection,buttons,secondary,test,modelStatus,canvas);
  let current=null,lastFrame=0;
  const video=()=>visionVideo;
  function draw(){
@@ -82,7 +102,7 @@ function card(camera){
    canvas.getContext("2d").drawImage(image,0,0,canvas.width,canvas.height);
  }
  image.addEventListener("load",draw);
- buttons.addEventListener("click",async event=>{
+ const handleAction=async event=>{
    const button=event.target.closest("[data-action]");
    if(!button)return;
    const action=button.dataset.action;
@@ -147,10 +167,13 @@ function card(camera){
      }
    }catch(err){status(err.message);}
    finally{button.disabled=false;}
- });
+ };
+ buttons.addEventListener("click",handleAction);
+ secondaryButtons.addEventListener("click",handleAction);
  function update(c){
    current=c;
    title.textContent=c.name;
+   subtitle.textContent=c.protocol==="MOVIL/HTTPS"?"CELULAR WI-FI · HTTPS":"CÁMARA IP · RED LOCAL";
    const mobile=c.protocol==="MOVIL/HTTPS";
    tag.textContent=c.connected?"Transmitiendo":mobile?"Esperando celular":c.desired==="on"?"Sin señal / reconectando":"Desconectada";
    tag.classList.toggle("is-online",!!c.connected);
@@ -168,12 +191,20 @@ function card(camera){
      "Prueba: "+(c.last_test?.status||"no realizada");
    const testButton=buttons.querySelector('[data-action="test"]');
    if(testButton){testButton.disabled=c.protocol==="MOVIL/HTTPS";testButton.title=c.protocol==="MOVIL/HTTPS"?"La prueba se hace enviando imágenes desde el celular":"";}
+   visualStat.querySelector("strong").textContent=visionId===id?"Analizando":c.connected?"Disponible":"En espera";
+   item.classList.toggle("is-connected",!!c.connected);
    audio.textContent=c.audio_result?
      "Audio "+c.audio_result.class+" "+Math.round(Number(c.audio_result.confidence||0)*100)+
        "% · clase original "+c.audio_result.original_class:
      (c.audio_enabled?"Audio: habilitado; esperando clasificador":"Audio: desactivado");
-   empty.hidden=!!c.connected;
+   emptyWrap.hidden=!!c.connected;
    image.hidden=!c.connected;
+   const connectBtn=buttons.querySelector('[data-action="connect"]');
+   const disconnectBtn=buttons.querySelector('[data-action="disconnect"]');
+   if(connectBtn)connectBtn.hidden=!!c.connected;
+   if(disconnectBtn)disconnectBtn.hidden=!c.connected;
+   buttons.querySelector('[data-action="ai"]').disabled=!c.connected;
+   buttons.querySelector('[data-action="capture"]').disabled=!c.connected;
    if(!c.connected){
      image.removeAttribute("src");
      if(visionId===id)stopVision();
@@ -197,6 +228,9 @@ function render(items){
    if(!node){node=card(camera);nodes.set(camera.id,node);area.append(node.item);}
    node.update(camera);
  }
+ const total=$("ip-count-total"),connected=$("ip-count-online"),activity=$("ip-count-events");
+ if(total)total.textContent=String(items.length).padStart(2,"0");
+ if(connected)connected.textContent=String(items.filter(c=>c.connected).length).padStart(2,"0");
  if(!items.length&& !area.querySelector("[data-ip-empty]")){
    const hint=mk("p","Sin cámaras registradas. Añade una cámara IP para comenzar.","bosqyn-ip-muted");
    hint.dataset.ipEmpty="1";area.append(hint);
@@ -217,7 +251,14 @@ async function refresh(){
    render(cameras.items||[]);
    const events=$("ip-events");
    events.replaceChildren();
-   for(const e of (history.items||[]).slice(0,10)){
+   const historyItems=(history.items||[]);
+   const activity=$("ip-count-events");
+   if(activity)activity.textContent=String(historyItems.length).padStart(2,"0");
+   if(!historyItems.length){
+     const placeholder=mk("p","Todavía no hay eventos de cámaras registrados. Aquí aparecerán conexiones y detecciones reales.","bosqyn-ip-no-events");
+     events.append(placeholder);
+   }
+   for(const e of historyItems.slice(0,10)){
      const line=mk("p",fmt(e.occurred_at)+" · "+e.camera_name+" · "+e.category+
        (e.confidence===null?"":" · "+Math.round(e.confidence*100)+"%"));
      events.append(line);
@@ -244,9 +285,23 @@ function mount(dashboard,stopWebcam){
  panel=mk("section",undefined,"bosqyn-ip-panel bosqyn-satellite-center");
  panel.hidden=true;panel.id="bosqyn-ip-panel";
  panel.innerHTML=
-  '<div class="bosqyn-ip-toolbar"><div><h2>Cámaras IP</h2><p class="bosqyn-ip-muted">Hasta 24 registradas · 4 conectadas simultáneamente</p></div>'+
-  '<button id="ip-add-camera" type="button" aria-controls="ip-form" aria-expanded="false">+ Añadir cámara IP</button></div>'+
+  '<header class="bosqyn-ip-dashboard-head"><div class="bosqyn-ip-heading-kicker">BOSQYN AI &nbsp; / &nbsp; CENTRO DE VIGILANCIA</div>'+
+   '<div class="bosqyn-ip-toolbar"><div><h2>Centro de Cámaras <span>Inteligentes</span></h2>'+
+   '<p>Monitoreo visual y acústico forestal · Hasta 24 registradas, 4 simultáneas</p></div>'+
+   '<span class="bosqyn-ip-dashboard-mark" aria-hidden="true">▣</span></div>'+
+   '<div class="bosqyn-ip-kpis" aria-label="Resumen de cámaras">'+
+    '<div class="bosqyn-ip-kpi"><span>◫</span><strong id="ip-count-total">00</strong><small>Registradas</small></div>'+
+    '<div class="bosqyn-ip-kpi"><span>◉</span><strong id="ip-count-online">00</strong><small>En línea</small></div>'+
+    '<div class="bosqyn-ip-kpi"><span>◎</span><strong id="ip-count-events">00</strong><small>Eventos recientes</small></div>'+
+   '</div></header>'+
+  '<section class="bosqyn-ip-onboarding"><div class="bosqyn-ip-onboarding-head"><div><span class="bosqyn-ip-section-number">01 / CONECTIVIDAD</span><h3>Conectar un dispositivo</h3>'+
+   '<p>Elige cómo deseas llevar la señal a BOSQYN AI.</p></div></div>'+
+   '<div class="bosqyn-ip-methods"><button id="ip-show-mobile" type="button" class="bosqyn-ip-method is-active" aria-pressed="true" aria-controls="ip-mobile-stream">'+
+    '<span class="bosqyn-ip-method-icon">▯</span><strong>Celular por Wi-Fi</strong><small>Sin IP · Transmisión HTTPS</small></button>'+
+    '<button id="ip-add-camera" type="button" class="bosqyn-ip-method" aria-controls="ip-form" aria-expanded="false">'+
+    '<span class="bosqyn-ip-method-icon">▣</span><strong>Cámara IP local</strong><small>RTSP · MJPEG · ONVIF</small></button></div></section>'+
   '<section id="ip-mobile-stream" class="bosqyn-mobile-stream">'+
+    '<div class="bosqyn-ip-steps"><span class="is-current">01 · Red Wi-Fi</span><span>02 · Permisos</span><span>03 · Vista previa</span><span>04 · Transmisión</span></div>'+
     '<div class="bosqyn-mobile-stream-top"><div><h3>Conectar celular por Wi-Fi</h3>'+
     '<p>Usa la cámara de este teléfono mediante una red Wi-Fi con Internet. No necesita IP ni computadora intermediaria.</p></div>'+
     '<div class="bosqyn-mobile-actions"><button type="button" id="ip-mobile-start">Transmitir por Wi-Fi</button>'+
@@ -273,8 +328,9 @@ function mount(dashboard,stopWebcam){
    '<p class="bosqyn-ip-form-note">Se necesita acceso administrador y una pasarela local activa en la misma red que la cámara. Nunca compartas contraseñas en el enlace.</p>'+
   '</form>'+
   '<p id="ip-status" class="bosqyn-ip-muted" role="status">Accede como administrador para añadir cámaras.</p>'+
+  '<div class="bosqyn-ip-section-heading"><div><span class="bosqyn-ip-section-number">02 / DISPOSITIVOS</span><h3>Cámaras registradas</h3></div><span class="bosqyn-ip-device-count">Panel de vigilancia</span></div>'+
   '<div id="ip-grid" class="bosqyn-ip-grid"></div>'+
-  '<details><summary>Historial de conexiones y eventos</summary><div id="ip-events" class="bosqyn-ip-events"></div></details>'+
+  '<details class="bosqyn-ip-history"><summary>Historial de conexiones y eventos</summary><div id="ip-events" class="bosqyn-ip-events"></div></details>'+
   '<p class="bosqyn-ip-muted">Detecciones sujetas a verificación humana.</p>';
  satellite.after(panel);
  const onEnter=()=>{
@@ -297,10 +353,15 @@ function mount(dashboard,stopWebcam){
  const toggleForm=show=>{
    form.hidden=!show;
    addButton.setAttribute("aria-expanded",String(show));
-   addButton.textContent=show?"Cerrar formulario":"+ Añadir cámara IP";
+   const mobileSection=$("ip-mobile-stream"),mobileChoice=$("ip-show-mobile");
+   addButton.classList.toggle("is-active",show);
+   mobileChoice.classList.toggle("is-active",!show);
+   mobileChoice.setAttribute("aria-pressed",String(!show));
+   if(mobileSection)mobileSection.hidden=show;
    if(show)form.elements.url?.focus();
  };
- addButton.addEventListener("click",()=>toggleForm(form.hidden));
+ addButton.addEventListener("click",()=>toggleForm(true));
+ $("ip-show-mobile").addEventListener("click",()=>toggleForm(false));
  $("ip-cancel-camera").addEventListener("click",()=>toggleForm(false));
  form.addEventListener("submit",async event=>{
    event.preventDefault();if(!await admin())return;
