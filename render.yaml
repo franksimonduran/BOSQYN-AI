@@ -1,0 +1,43 @@
+# BOSQYN AI — Production blueprint for Render.
+# Paid compute and persistent disk are necessary for local SQLite/evidence.
+# This file does not start or purchase a Render service until the owner
+# explicitly creates/approves the Blueprint in their Render account.
+services:
+  - type: web
+    name: bosqyn-ai-web
+    runtime: python
+    repo: https://github.com/franksimonduran/BOSQYN-AI
+    branch: main
+    plan: 1c-2g
+    autoDeployTrigger: off
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m backend.server
+    healthCheckPath: /api/health
+    disk:
+      name: bosqyn-evidence
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "10000"
+      - key: BOSQYN_DATA_DIR
+        value: /data/bosqyn
+      # Keep write operations disabled until secrets and disk are verified.
+      - key: BOSQYN_READ_ONLY
+        value: "1"
+      - key: BOSQYN_AUDIO_ENABLED
+        value: "0"
+      - key: NOAA_ENABLED
+        value: "1"
+      - key: BOSQYN_ADMIN_PASSWORD
+        sync: false
+      - key: BOSQYN_IP_CAMERA_KEY
+        sync: false
+      - key: BOSQYN_IP_BRIDGE_TOKEN
+        sync: false
+      - key: NASA_FIRMS_MAP_KEY
+        sync: false
