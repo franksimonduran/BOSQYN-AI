@@ -706,8 +706,8 @@ test("Simulated spread grows over hours, changes with direction, stays separate"
   assert.equal(b.length,48);
   assert.ok(b[0][1]>a[0][1],"Mayor horizonte hacia el este");
   assert.ok(north[0][0]>b[0][0],"La dirección del viento cambia la forma");
-  assert.throws(()=>sim.footprint(90,-76,1,0),RangeError);
-  assert.throws(()=>sim.footprint(-9,-76,4,90),RangeError);
+  assert.throws(()=>sim.footprint(90,-76,1,0),/Escenario no válido/);
+  assert.throws(()=>sim.footprint(-9,-76,4,90),/Escenario no válido/);
   const source=fs.readFileSync("frontend/js/features/fire-simulation.js","utf8");
   assert.ok(!source.includes("fetch("),"La simulación no publica datos al backend");
   assert.match(source,/SIMULACIÓN activada/);
