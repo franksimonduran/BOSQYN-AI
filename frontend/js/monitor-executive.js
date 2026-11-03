@@ -37,7 +37,7 @@ Bosqyn.monitorExecutive=(()=>{
    kpis.innerHTML=[
      '<article class="bx-kpi"><span class="bx-kpi-icon">▣</span><div><span>Cámaras IP conectadas</span><strong id="bx-cameras">—</strong><small id="bx-cameras-note">Acceso administrador</small></div></article>',
      '<article class="bx-kpi bx-danger"><span class="bx-kpi-icon">♧</span><div><span>Alertas pendientes</span><strong id="bx-pending">—</strong><small>Por verificar en historial</small></div></article>',
-     '<article class="bx-kpi"><span class="bx-kpi-icon">◈</span><div><span>Evidencias registradas</span><strong id="bx-total">—</strong><small>Base de datos real</small></div></article>',
+     '<article class="bx-kpi"><span class="bx-kpi-icon">◈</span><div><span>Evidencias · 7 días</span><strong id="bx-total">—</strong><small>Base de datos real</small></div></article>',
      '<article class="bx-kpi bx-satellite"><span class="bx-kpi-icon">◎</span><div><span>Observaciones satelitales</span><strong id="bx-sat-count">—</strong><small>NASA FIRMS + NOAA GOES-19</small></div></article>'
    ].join("");
    dashboard.prepend(kpis);dashboard.prepend(hero);
