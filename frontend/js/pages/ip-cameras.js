@@ -222,17 +222,21 @@ function mount(dashboard,stopWebcam){
  panel.innerHTML=
   '<div class="bosqyn-ip-toolbar"><div><h2>Cámaras IP</h2><p class="bosqyn-ip-muted">Hasta 24 registradas · 4 conectadas simultáneamente</p></div>'+
   '<button id="ip-add-camera" type="button" aria-controls="ip-form" aria-expanded="false">+ Añadir cámara IP</button></div>'+
-  '<form id="ip-form" class="bosqyn-ip-form" hidden>'+
-   '<label>Nombre<input name="name" required maxlength="80" placeholder="Cámara forestal 01"></label>'+
-   '<label>Dispositivo<select name="kind"><option value="telefono">Teléfono Android</option><option value="camara_ip">Cámara IP</option><option value="seguridad">Seguridad</option></select></label>'+
-   '<label>Protocolo<select name="protocol"><option>HTTP/MJPEG</option><option>RTSP</option><option>ONVIF</option></select></label>'+
-   '<label>URL privada<input name="url" required maxlength="1024" placeholder="http://192.168.1.100:8080/video" autocomplete="off"></label>'+
-   '<label>Puerto<input name="port" type="number" min="1" max="65535" placeholder="Puerto de la URL"></label>'+
-   '<label>Usuario<input name="username" autocomplete="off" maxlength="120" placeholder="Opcional"></label>'+
-   '<label>Contraseña<input name="password" type="password" autocomplete="new-password" maxlength="200" placeholder="Opcional"></label>'+
-   '<label>Umbral acústico<input name="threshold" type="number" min=".5" max=".99" step=".01" value=".85"></label>'+
-   '<label class="bosqyn-ip-check"><input type="checkbox" name="audio_enabled"> Analizar audio de la cámara</label>'+
-   '<button type="submit">Guardar cámara</button><button type="button" id="ip-cancel-camera" class="bosqyn-ip-cancel">Cancelar</button></form>'+
+  '<form id="ip-form" class="bosqyn-ip-form bosqyn-ip-quick-form" hidden>'+
+   '<p class="bosqyn-ip-intro">Pega la dirección de transmisión de tu cámara o celular. Solo necesitas ese enlace.</p>'+
+   '<label class="bosqyn-ip-url-field">Enlace de cámara IP<input name="url" required maxlength="1024" inputmode="url" placeholder="http://192.168.1.100:8080/video" autocomplete="off"></label>'+
+   '<label class="bosqyn-ip-name-field">Nombre (opcional)<input name="name" maxlength="80" placeholder="Cámara forestal 01"></label>'+
+   '<details class="bosqyn-ip-advanced"><summary>Configuración avanzada (opcional)</summary><div class="bosqyn-ip-advanced-grid">'+
+     '<label>Dispositivo<select name="kind"><option value="telefono">Teléfono Android</option><option value="camara_ip">Cámara IP</option><option value="seguridad">Seguridad</option></select></label>'+
+     '<label>Protocolo<select name="protocol"><option value="auto">Automático según enlace</option><option>HTTP/MJPEG</option><option>RTSP</option><option>ONVIF</option></select></label>'+
+     '<label>Usuario<input name="username" autocomplete="off" maxlength="120" placeholder="Solo si la cámara lo exige"></label>'+
+     '<label>Contraseña<input name="password" type="password" autocomplete="new-password" maxlength="200" placeholder="Solo si la cámara lo exige"></label>'+
+     '<label>Umbral acústico<input name="threshold" type="number" min=".5" max=".99" step=".01" value=".85"></label>'+
+     '<label class="bosqyn-ip-check"><input type="checkbox" name="audio_enabled"> Analizar audio (si la cámara lo transmite)</label>'+
+   '</div></details>'+
+   '<div class="bosqyn-ip-form-actions"><button type="submit">Guardar y conectar</button><button type="button" id="ip-cancel-camera" class="bosqyn-ip-cancel">Cancelar</button></div>'+
+   '<p class="bosqyn-ip-form-note">Se necesita acceso administrador y una pasarela local activa en la misma red que la cámara. Nunca compartas contraseñas en el enlace.</p>'+
+  '</form>'+
   '<p id="ip-status" class="bosqyn-ip-muted" role="status">Accede como administrador para añadir cámaras.</p>'+
   '<div id="ip-grid" class="bosqyn-ip-grid"></div>'+
   '<details><summary>Historial de conexiones y eventos</summary><div id="ip-events" class="bosqyn-ip-events"></div></details>'+
@@ -258,24 +262,47 @@ function mount(dashboard,stopWebcam){
    form.hidden=!show;
    addButton.setAttribute("aria-expanded",String(show));
    addButton.textContent=show?"Cerrar formulario":"+ Añadir cámara IP";
-   if(show)form.elements.name?.focus();
+   if(show)form.elements.url?.focus();
  };
  addButton.addEventListener("click",()=>toggleForm(form.hidden));
  $("ip-cancel-camera").addEventListener("click",()=>toggleForm(false));
  form.addEventListener("submit",async event=>{
    event.preventDefault();if(!await admin())return;
    const data=new FormData(form);
-   const fields=Object.fromEntries(data);
-   fields.audio_enabled=form.elements.audio_enabled.checked;
-   fields.port=data.get("port")||null;
-   fields.threshold=Number(data.get("threshold"));
+   const url=String(data.get("url")||"").trim();
+   let scheme="";
+   try{scheme=new URL(url).protocol.toLowerCase();}
+   catch{status("Introduce una URL completa, por ejemplo http://192.168.1.100:8080/video");return;}
+   if(!["http:","https:","rtsp:"].includes(scheme)){
+     status("Solo se admiten enlaces HTTP, HTTPS o RTSP a una IP privada.");return;
+   }
+   const requested=String(data.get("protocol")||"auto");
+   const protocol=requested==="auto"?(scheme==="rtsp:"?"RTSP":"HTTP/MJPEG"):requested;
+   const fields={
+     url,name:String(data.get("name")||"").trim()||"Cámara forestal "+String(nodes.size+1).padStart(2,"0"),
+     kind:String(data.get("kind")||"telefono"),protocol,
+     port:null,username:String(data.get("username")||""),
+     password:String(data.get("password")||""),
+     threshold:Number(data.get("threshold")||0.85),
+     audio_enabled=form.elements.audio_enabled.checked
+   };
+   const submit=form.querySelector('button[type="submit"]');
+   submit.disabled=true;
    try{
      const saved=await api("/api/ip-cameras","POST",fields);
+     let connectMessage="Cámara registrada. ";
+     try{
+       await api("/api/ip-cameras/"+saved.camera.id+"/action","POST",{action:"connect"});
+       connectMessage+="Conexión solicitada; esperando señal de la pasarela local.";
+     }catch(connectError){
+       connectMessage+="No se pudo solicitar conexión: "+connectError.message;
+     }
      form.reset();
      toggleForm(false);
-     status("Cámara "+saved.camera.name+" guardada. Prueba su conexión.");
+     status(connectMessage);
      await refresh();
    }catch(err){status(err.message);}
+   finally{submit.disabled=false;}
  });
  timer=setInterval(()=>{if(!panel.hidden)refresh();},1600);
  return ()=>{
