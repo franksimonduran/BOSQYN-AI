@@ -365,3 +365,11 @@ body.bosqyn-monitor-page .bosqyn-exec-hero{margin-top:0!important}
   .bosqyn-executive-monitor .bosqyn-satellite-map{height:260px!important;min-height:240px!important}
   .bosqyn-executive-monitor .bosqyn-exec-alerts.is-empty{padding:10px}
 }
+
+/* Fallo de Leaflet: aviso compacto en vez de un mapa sin contenido. */
+.bosqyn-executive-monitor .bosqyn-satellite-map.bosqyn-map-unavailable{
+  height:auto!important;min-height:0!important;
+  padding:16px 14px;line-height:1.6;font-size:12px;
+  color:#c3dece;background:#102c22;
+  border:1px dashed #3b7352;
+}
