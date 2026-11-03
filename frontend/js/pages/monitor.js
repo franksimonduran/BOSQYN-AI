@@ -227,9 +227,16 @@ Bosqyn.pages.monitoreo = function (root) {
   visualGrid?.before(controls);
   // Abrir el módulo de gestión y su formulario sin duplicar configuraciones.
   root.querySelector("#btn-add-ip-camera")?.addEventListener("click", () => {
-    dashboard.querySelector("#bosqyn-mode-ip")?.click();
-    const addButton = dashboard.querySelector("#ip-add-camera");
+    // El dashboard ejecutivo elimina las pestañas: abrir el panel real.
+    const cameraPanel = dashboard.querySelector("#bosqyn-ip-panel");
+    if (!cameraPanel) {
+      status.textContent = "El módulo de cámaras IP no está disponible.";
+      return;
+    }
+    cameraPanel.hidden = false;
+    const addButton = cameraPanel.querySelector("#ip-add-camera");
     if (addButton?.getAttribute("aria-expanded") !== "true") addButton?.click();
+    cameraPanel.scrollIntoView({ behavior: "smooth", block: "start" });
   });
   const select = controls.querySelector("#bosqyn-live-ip-select");
   const noFeed = document.createElement("p");
@@ -343,22 +350,33 @@ Bosqyn.pages.monitoreo = function (root) {
     image.removeAttribute("src");
     image.style.display = "none";
     noFeed.hidden = false;
+    if (select) select.disabled = false;
     if (mediaSource) mediaSource.textContent = "Cámara IP sin conexión";
     if (button) { button.disabled = false; button.textContent = "Conectar cámara IP"; }
   }
   async function cameras() {
-    try {
-      const response = await fetch("/api/ip-cameras", { cache: "no-store", credentials: "same-origin" });
-      if (!response.ok) throw new Error("Inicia sesión como administrador para elegir una cámara IP.");
-      const payload = await response.json();
-      return payload.items || [];
-    } catch (err) {
-      status.textContent = err.message;
-      return [];
+    const response = await fetch("/api/ip-cameras", { cache: "no-store", credentials: "same-origin" });
+    if (!response.ok) {
+      let data = {};
+      try { data = await response.json(); } catch {}
+      throw new Error(data.error ||
+        (response.status === 401 || response.status === 403
+          ? "Inicia sesión como administrador para gestionar cámaras IP."
+          : "No se pudo consultar el servicio de cámaras IP."));
     }
+    const payload = await response.json();
+    return payload.items || [];
   }
   async function loadCameras() {
-    const items = await cameras();
+    let items;
+    try { items = await cameras(); }
+    catch (error) {
+      if (!disposed) {
+        status.textContent = error.message;
+        select.replaceChildren(new Option("Cámaras no disponibles", ""));
+      }
+      return [];
+    }
     if (disposed) return;
     const previous = select.value || String(selectedId || "");
     select.replaceChildren();
@@ -374,7 +392,7 @@ Bosqyn.pages.monitoreo = function (root) {
     }
     if (items.some(item => String(item.id) === previous)) select.value = previous;
     if (!items.length && !active)
-      status.textContent = "Agrega una cámara IP y activa su pasarela.";
+      status.textContent = "Agrega una cámara IP y activa su pasarela local.";
     return items;
   }
   async function action(id, actionName) {
@@ -472,8 +490,9 @@ Bosqyn.pages.monitoreo = function (root) {
           resetVideo(); image.style.display = "none"; noFeed.hidden = false;
         }
       }
-    } catch {
-      status.textContent = "Sin conexión con el servidor de cámaras IP.";
+    } catch (error) {
+      if (active && session === mediaSession)
+        status.textContent = error.message || "Sin conexión con el servidor de cámaras IP.";
     }
   }
   async function start() {
@@ -487,7 +506,7 @@ Bosqyn.pages.monitoreo = function (root) {
     starting = true; button.disabled = true;
     try {
       await action(id, "connect");
-      selectedId = id; active = true; activeCamera = null; lastFrame = 0;
+      selectedId = id; active = true; select.disabled = true; activeCamera = null; lastFrame = 0;
       const session = ++mediaSession;
       button.textContent = "Desconectar cámara IP";
       status.textContent = "Conectando · Esperando señal IP.";
