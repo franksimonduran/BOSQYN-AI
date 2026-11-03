@@ -280,21 +280,33 @@ class BosqynHandler(CameraAPI, SimpleHTTPRequestHandler):
                 ),
             )
         if route == "/api/statistics":
-            result = self.store.statistics()
-            result["activity_by_day"] = self.store.activity_by_day(7)
+            try:
+                days = int(parse_qs(target.query).get("days", ["7"])[0])
+                if days not in (7, 30, 90):
+                    raise ValueError("Periodo no admitido")
+            except ValueError:
+                return self.json_response(400, {"error": "Periodo válido: 7, 30 o 90 días"})
+            result = self.store.period_summary(days)
+            result["activity_by_day"] = self.store.activity_by_day(days)
+            result["category_activity_by_day"] = self.store.category_activity_by_day(days)
+            result["notice"] = "Conteos de evidencias guardadas, no todas las predicciones ni precisión de IA."
             return self.json_response(200, result)
         if route == "/api/statistics/chart.png":
             # Modo demo aislado: no almacena ni altera datos reales en SQLite.
             try:
                 from .charts import demonstration_activity_by_day, render_activity_png
 
-                demo = parse_qs(target.query).get("demo", ["0"])[0] == "1"
+                params = parse_qs(target.query)
+                demo = params.get("demo", ["0"])[0] == "1"
+                days = int(params.get("days", ["7"])[0])
+                if days not in (7, 30, 90):
+                    return self.json_response(400, {"error":"Periodo válido: 7, 30 o 90 días"})
                 daily = (
                     demonstration_activity_by_day()
                     if demo
-                    else self.store.activity_by_day(7)
+                    else self.store.activity_by_day(days)
                 )
-                key = (demo,) + tuple(
+                key = (demo, days) + tuple(
                     (x["date"], x["PENDIENTE"], x["CONFIRMADA"], x["DESCARTADA"])
                     for x in daily
                 )
