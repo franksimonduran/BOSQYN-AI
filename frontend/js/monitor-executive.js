@@ -63,7 +63,11 @@ Bosqyn.monitorExecutive=(()=>{
       '<div id="bx-alert-feed" class="bx-alert-feed"><p class="bx-empty">Consultando evidencias…</p></div>',
       '<p class="bx-caption">Verificación humana requerida.</p>'
    ].join("");
-   stage.append(livePanel,satCenter,side);
+   // Apilar mapa y alertas en la misma columna evita filas vacías cuando
+   // el monitor de cámara tiene más contenido que los paneles de contexto.
+   const context=elem("div","bosqyn-exec-context");
+   context.append(satCenter,side);
+   stage.append(livePanel,context);
    kpis.after(stage);
    const status=root.querySelector(".bosqyn-camera-status");
    if(status)livePanel.prepend(status);
@@ -108,7 +112,8 @@ Bosqyn.monitorExecutive=(()=>{
 
    function displayAlerts(items){
      const target=$("bx-alert-feed");target.replaceChildren();
-     if(!items.length){target.append(elem("p","bx-empty","Sin alertas registradas."));return;}
+     side.classList.toggle("is-empty",!items.length);
+     if(!items.length){target.append(elem("p","bx-empty","Sin alertas recientes. Consulta el historial cuando se registre una detección."));return;}
      const symbols={INCENDIO:"♨",HUMO:"☁",TALA:"♧",NORMAL:"✧"};
      for(const item of items.slice(0,5)){
        const link=elem("a","bx-alert-row");link.href="#alertas";
@@ -119,9 +124,18 @@ Bosqyn.monitorExecutive=(()=>{
        link.append(icon,info);target.append(link);
      }
    }
+   const distributionWidget=$("bx-classes")?.closest(".bx-widget");
+   const chartWidget=$("bx-chart")?.closest(".bx-widget");
+   function showEvidenceWidgets(items,stats){
+     // Sin observaciones reales no reservar dos tarjetas de gráficos vacíos.
+     if(distributionWidget)distributionWidget.hidden=!items.length;
+     if(chartWidget&&stats?.status==="fulfilled"){
+       chartWidget.hidden=!(Number(stats.value.total)>0);
+     }
+   }
    function displayDistribution(items){
      const target=$("bx-classes");target.replaceChildren();
-     if(!items.length){target.append(elem("p","bx-empty","Sin evidencias para calcular proporciones."));return;}
+     if(!items.length){return;}
      const groups=new Map();
      for(const item of items){
        const key=String(item.category||"SIN CLASE").toUpperCase();
@@ -150,11 +164,16 @@ Bosqyn.monitorExecutive=(()=>{
      $("bx-total").textContent=stats.status==="fulfilled"?count(stats.value.total):"—";
      $("bx-pending").textContent=stats.status==="fulfilled"?count(stats.value.by_status?.PENDIENTE||0):"—";
      if(alerts.status==="fulfilled"){
-       displayAlerts(alerts.value.items||[]);
-       displayDistribution(alerts.value.items||[]);
+       const items=alerts.value.items||[];
+       displayAlerts(items);
+       displayDistribution(items);
+       showEvidenceWidgets(items,stats);
      }else{
+       side.classList.add("is-empty");
        $("bx-alert-feed").replaceChildren(elem("p","bx-empty","Historial no disponible."));
-       $("bx-classes").replaceChildren(elem("p","bx-empty","Distribución no disponible."));
+       $("bx-classes").replaceChildren();
+       if(distributionWidget)distributionWidget.hidden=true;
+       if(chartWidget&&stats.status==="fulfilled")chartWidget.hidden=!(Number(stats.value.total)>0);
      }
      $("bx-sat-count").textContent=events.status==="fulfilled"?count(events.value.events?.length||0):"—";
      if(cameras.status==="fulfilled"&&cameras.value){
@@ -174,8 +193,9 @@ Bosqyn.monitorExecutive=(()=>{
    }
    const chart=$("bx-chart");
    chart.addEventListener("error",()=>{
+     // La falla del PNG no debe conservar un rectángulo vacío de gráfico.
      chart.hidden=true;
-     chart.parentElement.append(elem("p","bx-empty","Gráfico real no disponible temporalmente."));
+     if(chartWidget)chartWidget.hidden=true;
    },{once:true});
    const onAuth=()=>reload();
    window.addEventListener("bosqyn:auth-changed",onAuth);
