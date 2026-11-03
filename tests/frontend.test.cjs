@@ -245,11 +245,17 @@ test("Executive monitor keeps existing satellite map and displays real API count
   assert.equal(dash.querySelector("#bx-cameras").textContent,"1 / 2");
   assert.equal(dash.querySelector("#bx-sat-count").textContent,"3");
   assert.equal(map.textContent,"MAPA ORIGINAL");
+  assert.equal(dash.querySelector(".bosqyn-exec-context").contains(map),true,
+    "Mapa y alertas comparten columna para evitar huecos verticales");
   assert.equal(dash.querySelector("#bosqyn-satellite-center").hidden,false);
   assert.equal(live.hidden,false);
   assert.equal(dash.querySelectorAll(".bx-alert-row").length,2);
   assert.equal(dash.querySelectorAll("script").length,0);
   assert.equal(dash.querySelector("#bx-chart").getAttribute("src"),"/api/statistics/chart.png?demo=0");
+  assert.equal(dash.querySelector("#bx-classes").closest(".bx-widget").hidden,false,
+    "Las evidencias reales muestran distribución");
+  assert.equal(dash.querySelector("#bx-chart").closest(".bx-widget").hidden,false,
+    "Los gráficos reales permanecen visibles cuando tienen datos");
   assert.equal(dash.dataset.executiveMode,"overview");
   assert.equal(dash.querySelector(".bx-hero-status #header"),originalHeader,
     "La cabecera superior anterior debe integrarse al encabezado ejecutivo");
@@ -481,5 +487,41 @@ test("Wi-Fi camera permission denial shows Android recovery guide", async () => 
   assert.match(root.querySelector("#ip-mobile-notice").textContent,/Permiso de cámara denegado/i);
   assert.equal(root.querySelector("#ip-mobile-notice").dataset.level,"error");
   assert.equal(root.querySelector("#ip-mobile-permission-help").hidden,false);
+  cleanup();dom.window.close();
+});
+
+test("Empty monitoring evidence cards collapse without inventing metrics", async () => {
+  const dom = new JSDOM(
+    '<div id="root"><div class="bosqyn-satellite-dashboard">'+
+    '<div class="bosqyn-satellite-cards"><button id="bosqyn-mode-live"></button>'+
+    '<button id="bosqyn-mode-satellite"></button><button id="bosqyn-mode-ip"></button></div>'+
+    '<section id="bosqyn-satellite-center"><div id="bosqyn-satellite-map"></div></section>'+
+    '<section id="bosqyn-ip-panel" hidden></section></div>'+
+    '<section id="bosqyn-live-panel" hidden></section></div>',
+    {url:"https://bosqyn.example",runScripts:"outside-only"}
+  );
+  const w=dom.window,root=w.document.querySelector("#root");
+  w.Bosqyn={auth:{role:()=>"admin"}};
+  w.fetch=async url=>({ok:true,json:async()=>{
+    if(url==="/api/statistics")return {total:0,by_status:{PENDIENTE:0}};
+    if(url.startsWith("/api/alerts"))return {items:[]};
+    if(url==="/api/satellite/events")return {events:[]};
+    if(url==="/api/ip-cameras")return {items:[]};
+    return {feeds:{}};
+  }});
+  w.eval(fs.readFileSync("frontend/js/monitor-executive.js","utf8"));
+  const dash=root.querySelector(".bosqyn-satellite-dashboard");
+  const cleanup=w.Bosqyn.monitorExecutive.mount({
+    root,dashboard:dash,livePanel:root.querySelector("#bosqyn-live-panel"),
+    satCenter:dash.querySelector("#bosqyn-satellite-center"),
+    modeLive:dash.querySelector("#bosqyn-mode-live"),
+    modeSat:dash.querySelector("#bosqyn-mode-satellite"),getMap:()=>null
+  });
+  await wait();
+  assert.equal(dash.querySelector("#bx-classes").closest(".bx-widget").hidden,true);
+  assert.equal(dash.querySelector("#bx-chart").closest(".bx-widget").hidden,true);
+  assert.equal(dash.querySelector(".bosqyn-exec-alerts").classList.contains("is-empty"),true);
+  assert.ok(dash.querySelector("#bx-alert-feed").textContent.includes("Sin alertas recientes"));
+  assert.ok(!dash.textContent.includes("98%"));
   cleanup();dom.window.close();
 });
