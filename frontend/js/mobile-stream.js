@@ -165,6 +165,9 @@ Bosqyn.mobileStream=(()=>{
           video:{facingMode:{ideal:"environment"},width:{ideal:640},height:{ideal:480}},
           audio:audioOption?.checked?{echoCancellation:false,noiseSuppression:false,autoGainControl:false}:false
         });
+        // Mostrar la vista previa antes de play(): algunos Android no inician
+        // videoWidth/videoHeight cuando el elemento está en display:none.
+        box.classList.add("is-streaming");
         preview.srcObject=stream;
         await preview.play();
         status("Registrando cámara móvil segura… No necesitas URL 192.168.x.x.");
