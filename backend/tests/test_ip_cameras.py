@@ -219,7 +219,7 @@ class CameraHTTPTests(unittest.TestCase):
         self.assertFalse(any(camera["id"]==mobile_id for camera in agent))
         route=f"/api/ip-cameras/{mobile_id}/mobile/frame"
         self.assertEqual(self.call(route,"POST",JPEG,binary=True)[0],401)
-        self.assertEqual(self.call(route,"POST",JPEG,binary=True,cookie=cookie)[0],400)
+        self.assertEqual(self.call(route,"POST",JPEG,binary=True,cookie=cookie)[0],409)
         self.assertEqual(self.call(f"/api/ip-cameras/{mobile_id}/action","POST",
                                    {"action":"connect"},cookie=cookie)[0],200)
         self.assertEqual(self.call(route,"POST",JPEG,binary=True,cookie=cookie)[0],200)
