@@ -302,8 +302,8 @@ test("Executive copy is concise while functional controls and caveats remain", (
   assert.ok(ip.includes('id="ip-form"'), "IP camera registration remains");
   assert.ok(ip.includes('id="ip-grid"'), "IP camera preview remains");
   assert.ok(alerts.includes("Guarda una copia antes de aplicar retención"));
-  assert.ok(stats.includes("DATOS SIMULADOS"), "Demo data still clearly labeled");
-  assert.ok(statistics.includes("DEMOSTRACIÓN · Datos simulados"));
+  assert.ok(!stats.includes("DATOS SIMULADOS"), "Estadísticas no debe presentar resultados ficticios");
+  assert.ok(statistics.includes('"/api/statistics?days="'), "Los periodos usan registros reales");
 });
 
 test("Executive homepage uses only real server values and safe recent evidence", async () => {
@@ -380,4 +380,17 @@ test("Homepage never fabricates IP camera or satellite numbers without access", 
     cleanup();
     dom.window.close();
   }
+});
+
+test("Mobile 4G camera uses admin-only HTTPS uploads and no public stream URL", () => {
+  const mobile=fs.readFileSync("frontend/js/mobile-stream.js","utf8");
+  const ip=fs.readFileSync("frontend/js/pages/ip-cameras.js","utf8");
+  assert.ok(mobile.includes("getUserMedia"),"La cámara se obtiene del celular");
+  assert.ok(mobile.includes("Bosqyn.auth?.ensureAdmin"),"El emisor requiere administrador");
+  assert.ok(mobile.includes("X-Bosqyn-Action"),"Las cargas mantienen validación de origen");
+  assert.ok(mobile.includes("/mobile/frame"),"Fotogramas HTTPS hacia el backend");
+  assert.ok(mobile.includes("/mobile/audio"),"Audio PCM opcional hacia el backend");
+  assert.ok(ip.includes('id="ip-mobile-start"'),"Botón para activar datos móviles");
+  assert.ok(ip.includes('id="ip-mobile-audio"'),"El micrófono es opcional");
+  assert.ok(!mobile.includes("rtsp://"),"No se exponen puertos RTSP");
 });
