@@ -273,3 +273,18 @@ body.bosqyn-monitor-page #hero{display:none!important}
 .bosqyn-executive-monitor .bx-identity p{font-size:11px}
 .bosqyn-executive-monitor .bx-overline{font-size:8px}
 .bosqyn-executive-monitor #view:empty{display:none!important}
+
+/* Monitoreo: impedir que la cabecera global o su contenedor residual
+   ocupen el recuadro vacío por encima de Centro de Monitoreo. */
+body.bosqyn-monitor-page main > #hero,
+body.bosqyn-monitor-page main > #header{display:none!important}
+body.bosqyn-monitor-page main > #view{
+  padding-top:0!important;
+  margin-top:0!important;
+}
+body.bosqyn-monitor-page #view > .bosqyn-executive-monitor,
+body.bosqyn-monitor-page .bosqyn-executive-monitor > .bosqyn-satellite-dashboard{
+  padding-top:0!important;
+  margin-top:0!important;
+}
+body.bosqyn-monitor-page .bosqyn-exec-hero{margin-top:0!important}
