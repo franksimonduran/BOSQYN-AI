@@ -116,7 +116,12 @@ Bosqyn.mobileStream=(()=>{
       canvas.toBlob(blob=>blob?resolve(blob):reject(Error("No se pudo codificar la imagen")),"image/jpeg",0.65);
     });
     async function push(){
-      if(!running||!stream?.active||!cameraId)return;
+      if(!running||!cameraId)return;
+      if(!stream?.active||stream.getVideoTracks().every(track=>track.readyState!=="live")){
+        await stop();
+        status("La cámara del celular dejó de enviar imagen. Desbloquea el teléfono, revisa los permisos y vuelve a pulsar Transmitir.");
+        return;
+      }
       try{
         if(preview.readyState<2)throw Error("Esperando imagen del celular");
         const w=preview.videoWidth,h=preview.videoHeight;
