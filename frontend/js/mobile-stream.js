@@ -116,7 +116,15 @@ Bosqyn.mobileStream=(()=>{
         status("No se pudo iniciar: "+error.message);
       }finally{busy=false;if(!running)start.disabled=false;}
     }
-    const leave=()=>{stopLocal();};
+    const leave=()=>{
+      const id=cameraId;cameraId=null;
+      if(id)fetch("/api/ip-cameras/"+id+"/action",{
+        method:"POST",credentials:"same-origin",keepalive:true,
+        headers:{"Content-Type":"application/json","X-Bosqyn-Action":"1"},
+        body:JSON.stringify({action:"disconnect"})
+      }).catch(()=>{});
+      stopLocal();
+    };
     const authChange=()=>{if(running&&Bosqyn.auth?.role()!=="admin")stop();};
     start.addEventListener("click",begin);
     stopButton.addEventListener("click",stop);
