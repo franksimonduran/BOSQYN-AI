@@ -136,7 +136,7 @@ Bosqyn.mobileStream=(()=>{
         const result=await response.json().catch(()=>({}));
         if(!response.ok)throw Error(result.error||"HTTP "+response.status);
         failures=0;
-        status("Transmitiendo por Internet · 1 imagen por segundo · Mantén esta pestaña abierta.");
+        status("Cámara móvil #"+cameraId+" · Imágenes recibidas por BOSQYN AI · Mantén esta pestaña abierta en el celular y utiliza otro dispositivo para visualizar.");
       }catch(error){
         if(!running)return;
         failures++;
@@ -167,7 +167,7 @@ Bosqyn.mobileStream=(()=>{
         });
         preview.srcObject=stream;
         await preview.play();
-        status("Registrando cámara móvil segura…");
+        status("Registrando cámara móvil segura… No necesitas URL 192.168.x.x.");
         const list=await fetch("/api/ip-cameras",{credentials:"same-origin",cache:"no-store"});
         if(!list.ok)throw Error("No se pudo consultar las cámaras registradas");
         const items=(await list.json()).items||[];
@@ -179,14 +179,21 @@ Bosqyn.mobileStream=(()=>{
         cameraId=camera.id;
         await api("/api/ip-cameras/"+cameraId+"/action",{action:"connect"});
         running=true;failures=0;
-        if(audioOption?.checked)await openAudio();
+        if(audioOption?.checked) {
+          try { await openAudio(); }
+          catch(audioError) {
+            closeAudio();
+            stream?.getAudioTracks().forEach(track=>track.stop());
+            status("Micrófono no disponible: "+audioError.message+". Continuamos con video.");
+          }
+        }
         start.hidden=true;stopButton.hidden=false;box.classList.add("is-streaming");
         onRefresh?.();
         await push();
       }catch(error){
         const id=cameraId;cameraId=null;stopLocal();
         if(id)api("/api/ip-cameras/"+id+"/action",{action:"disconnect"}).catch(()=>{});
-        status("No se pudo iniciar: "+error.message);
+        status("No se pudo iniciar la transmisión 4G/5G: "+error.message+". Verifica permisos de cámara, Internet y sesión de administrador.");
       }finally{busy=false;if(!running)start.disabled=false;}
     }
     const leave=()=>{
