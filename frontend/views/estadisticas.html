@@ -1,78 +1,53 @@
-<section class="bosqyn-stats" aria-label="Estadísticas BOSQYN AI">
-  <header class="bosqyn-stats-header">
-    <h1>Estadísticas ambientales</h1>
-
+<section class="bosqyn-stats bosqyn-statistics-dashboard" aria-label="Centro de Estadísticas BOSQYN AI">
+  <header class="bsd-header">
+    <div><span class="bsd-eyebrow">BOSQYN AI · GUARDIANES DE NUESTROS BOSQUES</span>
+      <h1>Centro de Estadísticas</h1>
+      <p>Actividad forestal, evidencias y análisis de amenazas registradas.</p></div>
+    <div class="bsd-toolbar">
+      <label for="stats-days">Período</label>
+      <select id="stats-days" aria-label="Período de estadísticas">
+        <option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option><option value="90">Últimos 90 días</option>
+      </select>
+      <button type="button" id="stats-refresh">Actualizar</button>
+    </div>
   </header>
-  <div class="bosqyn-stats-grid">
-    <article class="bosqyn-stats-card"
-      ><span>Evidencias registradas</span
-      ><strong id="stats-total">—</strong></article
-    >
-    <article class="bosqyn-stats-card"
-      ><span>Pendientes de revisión</span
-      ><strong id="stats-pending">—</strong></article
-    >
-    <article class="bosqyn-stats-card"
-      ><span>Confirmadas manualmente</span
-      ><strong id="stats-confirmed">—</strong></article
-    >
-    <article class="bosqyn-stats-card"
-      ><span>Descartadas manualmente</span
-      ><strong id="stats-discarded">—</strong></article
-    >
+  <p id="stats-period" class="bsd-context">Evidencias del historial · últimos 7 días · UTC</p>
+  <div class="bsd-kpis" aria-label="Resumen del período">
+    <article class="bsd-kpi"><span>Evidencias registradas</span><strong id="stats-total">—</strong><small>Capturas guardadas</small></article>
+    <article class="bsd-kpi"><span>Incendio y humo</span><strong id="stats-fire">—</strong><small>Evidencias clasificadas</small></article>
+    <article class="bsd-kpi"><span>Tala</span><strong id="stats-logging">—</strong><small>Evidencias clasificadas</small></article>
+    <article class="bsd-kpi"><span>Pendientes de revisión</span><strong id="stats-pending">—</strong><small>Por verificar</small></article>
   </div>
-  <div class="bosqyn-stats-chart">
-    <div class="bosqyn-stats-chart-header">
-      <div
-        ><h2>Actividad registrada por día</h2
-        ><p class="bosqyn-stats-status" id="stats-period"
-          >Últimos siete días · hora UTC</p
-        ></div
-      >
-      <div class="bosqyn-stats-actions">
-        <button type="button" id="stats-refresh">Actualizar gráfico</button>
+  <div class="bsd-main-grid">
+    <article class="bsd-panel bsd-trend">
+      <header><h2>Actividad registrada por día</h2><p>Estados de las evidencias · Gráfico Matplotlib</p></header>
+      <img id="stats-chart" alt="Gráfico Matplotlib con evidencias por día y estado" />
+      <p class="bsd-help">Los conteos corresponden a evidencias guardadas, no a todas las predicciones realizadas.</p>
+    </article>
+    <article class="bsd-panel bsd-categories">
+      <header><h2>Detecciones por categoría</h2><p>Distribución de evidencias registradas</p></header>
+      <div id="stats-categories" class="bsd-category-list"><p class="bsd-muted">Consultando categorías…</p></div>
+    </article>
+  </div>
+  <div class="bsd-secondary-grid">
+    <article class="bsd-panel">
+      <header><h2>Verificación de alertas</h2><p>Revisión humana de las evidencias</p></header>
+      <div class="bsd-review-grid">
+        <div><span>Confirmadas</span><strong id="stats-confirmed">—</strong></div>
+        <div><span>Descartadas</span><strong id="stats-discarded">—</strong></div>
       </div>
-    </div>
-    <img
-      id="stats-chart"
-      alt="Gráfico de evidencias manuales y automáticas por día y estado"
-      loading="lazy"
-    />
-    <p class="bosqyn-stats-status" id="stats-message" role="status"
-      >Consultando estadísticas reales...</p
-    >
+      <div id="stats-review-bars" class="bsd-review-bars"></div>
+    </article>
+    <article class="bsd-panel">
+      <header><h2>Fuentes de evidencias</h2><p>Origen de los registros guardados</p></header>
+      <div id="stats-sources" class="bsd-source-list"><p class="bsd-muted">Consultando fuentes…</p></div>
+    </article>
+    <article class="bsd-panel">
+      <header><h2>Cámaras IP</h2><p>Estado actual de las conexiones</p></header>
+      <div id="stats-cameras" class="bsd-camera-status" role="status">Consultando cámaras…</div>
+      <p class="bsd-help">El seguimiento por cámara requiere registros asociados a cada dispositivo.</p>
+    </article>
   </div>
-  <section
-    class="bosqyn-stats-explainer"
-    aria-label="Categorías que reconoce BOSQYN AI"
-  >
-    <h2 style="font-size:13px;font-weight:800;color:#e9fced"
-      >Categorías disponibles en los modelos</h2
-    >
-    <div class="bosqyn-stats-class-grid">
-      <span class="bosqyn-stats-class-chip"
-        ><img src="img/deteccion/Humo.png" alt="" />Humo · visual</span
-      >
-      <span class="bosqyn-stats-class-chip"
-        ><img src="img/deteccion/Fuego.png" alt="" />Incendio · visual</span
-      >
-      <span class="bosqyn-stats-class-chip"
-        ><img src="img/deteccion/Bosque.png" alt="" />Normal · visual</span
-      >
-      <span class="bosqyn-stats-class-chip"
-        ><img src="img/deteccion/Tala.png" alt="" />Tala · visual</span
-      >
-      <span class="bosqyn-stats-class-chip"
-        ><img src="img/deteccion/Ir%20al%20bosque.png" alt="" />Ir al bosque ·
-        visual</span
-      >
-      <span class="bosqyn-stats-class-chip"
-        ><img src="img/deteccion/Tala.png" alt="" />Tala · audio</span
-      >
-      <span class="bosqyn-stats-class-chip"
-        ><img src="img/deteccion/Bosque.png" alt="" />Normal · audio</span
-      >
-    </div>
-
-  </section>
+  <div class="bsd-footer"><p id="stats-message" role="status" aria-live="polite">Consultando registros…</p>
+    <p>Confianza del modelo ≠ precisión validada. Las alertas requieren verificación humana.</p></div>
 </section>
