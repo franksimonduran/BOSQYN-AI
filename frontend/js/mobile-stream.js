@@ -1,5 +1,5 @@
-/* BOSQYN AI · Cámara del celular por Internet HTTPS.
-   Solo transmite fotogramas JPEG mientras esta pantalla permanezca abierta. */
+/* BOSQYN AI · Cámara de celular por Wi-Fi con salida HTTPS.
+   No requiere IP Webcam ni puente LAN. El Wi-Fi debe tener Internet para Render. */
 window.Bosqyn=window.Bosqyn||{};
 Bosqyn.mobileStream=(()=>{
   "use strict";
@@ -9,12 +9,20 @@ Bosqyn.mobileStream=(()=>{
     const preview=panel.querySelector("#ip-mobile-preview");
     const notice=panel.querySelector("#ip-mobile-notice");
     const audioOption=panel.querySelector("#ip-mobile-audio");
+    const wifiConfirm=panel.querySelector("#ip-mobile-wifi-confirm");
     const box=panel.querySelector("#ip-mobile-stream");
     if(!start||!stopButton||!preview||!notice||!box)return ()=>{};
     let running=false,busy=false,stream=null,cameraId=null,abort=null,timeout=null,failures=0;
     let audioContext=null,audioSource=null,audioProcessor=null,audioSamples=0,audioChunks=[],audioSending=false,audioDisabled=false;
     const canvas=document.createElement("canvas");
     const status=msg=>{notice.textContent=msg;};
+    const networkType=()=>navigator.connection?.type||navigator.mozConnection?.type||navigator.webkitConnection?.type||"";
+    function validateWifi(){
+      // connection.type no existe en gran parte de Android/iOS: confirmación
+      // explícita en la interfaz, sin fingir una detección fiable del Wi-Fi.
+      if(!wifiConfirm?.checked)throw Error("Conecta el celular a Wi-Fi, desactiva los datos móviles y marca la confirmación.");
+      if(networkType()==="cellular")throw Error("El navegador indica una red celular. Desactiva los datos móviles y conecta Wi-Fi.");
+    }
     const api=async(path,body)=>{
       const r=await fetch(path,{method:"POST",credentials:"same-origin",cache:"no-store",
         headers:{"Content-Type":"application/json","X-Bosqyn-Action":"1"},
@@ -141,14 +149,14 @@ Bosqyn.mobileStream=(()=>{
         const result=await response.json().catch(()=>({}));
         if(!response.ok)throw Error(result.error||"HTTP "+response.status);
         failures=0;
-        status("Cámara móvil #"+cameraId+" · Imágenes recibidas por BOSQYN AI · Mantén esta pestaña abierta en el celular y utiliza otro dispositivo para visualizar.");
+        status("Cámara Wi-Fi #"+cameraId+" conectada · Imágenes recibidas por BOSQYN AI. Mantén esta página abierta en el teléfono.");
       }catch(error){
         if(!running)return;
         failures++;
         status("No se pudo enviar la imagen: "+error.message);
         if(failures>=5){
           await stop();
-          status("Transmisión detenida tras varios errores de conexión. Revisa tu Internet e inicia nuevamente.");
+          status("Transmisión detenida. Comprueba que el Wi-Fi tenga Internet y vuelve a iniciar.");
           return;
         }
       }finally{abort=null;}
@@ -162,6 +170,7 @@ Bosqyn.mobileStream=(()=>{
       }
       busy=true;start.disabled=true;
       try{
+        validateWifi();
         if(!await Bosqyn.auth?.ensureAdmin("Inicia sesión como administrador para transmitir desde tu celular.")){
           return;
         }
@@ -175,13 +184,13 @@ Bosqyn.mobileStream=(()=>{
         box.classList.add("is-streaming");
         preview.srcObject=stream;
         await preview.play();
-        status("Registrando cámara móvil segura… No necesitas URL 192.168.x.x.");
+        status("Registrando cámara Wi-Fi por HTTPS… No necesitas dirección IP.");
         const list=await fetch("/api/ip-cameras",{credentials:"same-origin",cache:"no-store"});
         if(!list.ok)throw Error("No se pudo consultar las cámaras registradas");
         const items=(await list.json()).items||[];
         let camera=items.find(c=>c.protocol==="MOVIL/HTTPS"&&c.desired!=="on"&&Boolean(c.audio_enabled)===Boolean(audioOption?.checked));
         if(!camera){
-          const saved=await api("/api/ip-cameras/mobile",{name:"Celular por Internet",audio_enabled:Boolean(audioOption?.checked)});
+          const saved=await api("/api/ip-cameras/mobile",{name:"Celular Wi-Fi",audio_enabled:Boolean(audioOption?.checked)});
           camera=saved.camera;
         }
         cameraId=camera.id;
@@ -201,7 +210,7 @@ Bosqyn.mobileStream=(()=>{
       }catch(error){
         const id=cameraId;cameraId=null;stopLocal();
         if(id)api("/api/ip-cameras/"+id+"/action",{action:"disconnect"}).catch(()=>{});
-        status("No se pudo iniciar la transmisión 4G/5G: "+error.message+". Verifica permisos de cámara, Internet y sesión de administrador.");
+        status("No se pudo iniciar por Wi-Fi: "+error.message+" Comprueba cámara, conexión Wi-Fi y sesión de administrador.");
       }finally{busy=false;if(!running)start.disabled=false;}
     }
     const leave=()=>{
@@ -214,10 +223,17 @@ Bosqyn.mobileStream=(()=>{
       stopLocal();
     };
     const authChange=()=>{if(running&&Bosqyn.auth?.role()!=="admin")stop();};
+    const networkChange=()=>{
+      if(!running)return;
+      if(networkType()==="cellular"){
+        stop().then(()=>status("Transmisión detenida: el navegador cambió a datos móviles. Vuelve a conectarte a Wi-Fi."));
+      }
+    };
     start.addEventListener("click",begin);
     stopButton.addEventListener("click",stop);
     window.addEventListener("pagehide",leave);
     window.addEventListener("bosqyn:auth-changed",authChange);
+    (navigator.connection||navigator.mozConnection||navigator.webkitConnection)?.addEventListener?.("change",networkChange);
     return ()=>{
       const id=cameraId;cameraId=null;stopLocal();
       if(id)api("/api/ip-cameras/"+id+"/action",{action:"disconnect"}).catch(()=>{});
@@ -225,6 +241,7 @@ Bosqyn.mobileStream=(()=>{
       stopButton.removeEventListener("click",stop);
       window.removeEventListener("pagehide",leave);
       window.removeEventListener("bosqyn:auth-changed",authChange);
+      (navigator.connection||navigator.mozConnection||navigator.webkitConnection)?.removeEventListener?.("change",networkChange);
     };
   }
   return {mount};
