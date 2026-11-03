@@ -1,44 +1,55 @@
 # BOSQYN IA · Cámaras IP — conexión real mediante pasarela de red
 
-## Nuevo: cámara del celular por Internet 4G/5G (sin Wi-Fi)
+## Modo recomendado: celular por Wi-Fi con Internet, sin pasarela
 
-Esta opción es **distinta** de las cámaras HTTP/MJPEG, RTSP y ONVIF de la red local.
-No requiere instalar IP Webcam, tener una computadora intermediaria ni configurar
-una IP `192.168.x.x`. El navegador del celular transmite aproximadamente
-**1 JPEG por segundo** mediante HTTPS al servidor de BOSQYN AI en Render.
+Para convertir un celular Android en cámara de BOSQYN AI usa **Transmitir por Wi-Fi**.
+Esta modalidad aprovecha el navegador y el HTTPS de Render. **No requiere datos
+móviles, IP Webcam, direcciones 192.168.x.x ni una computadora intermediaria.**
 
-### Desde el celular que actuará como cámara
+**Importante:** La red Wi-Fi necesita conexión a Internet para llegar al servidor
+de BOSQYN AI en Render. Una red Wi-Fi aislada, sin acceso a Internet, no sirve
+para este modo; para vigilancia LAN desconectada haría falta un servidor local.
 
-1. Activa los **datos móviles** y entra a **https://bosqyn-ai.onrender.com**.
-2. Inicia sesión como **Administrador** desde ese mismo celular.
-3. Abre **Monitoreo → Cámaras IP → Conectar celular por Internet**.
-4. Opcional: marca **Transmitir también el micrófono** si deseas análisis acústico.\n5. Pulsa **Transmitir desde este celular** y autoriza los permisos del navegador.
-6. Mantén la página abierta en primer plano y el celular conectado a Internet.
-7. Desde otro dispositivo, inicia sesión como Administrador en BOSQYN AI para
-   consultar la cámara recién registrada y usar las herramientas de monitoreo.
-8. Pulsa **Detener transmisión** en el celular para apagar la cámara.
+### Conectar el teléfono por Wi-Fi
 
-Las URL privadas previas no funcionarán por Internet; esta opción utiliza la
-cámara física de tu teléfono y una conexión HTTPS saliente.
+1. En el celular, **activa Wi-Fi, conecta una red con Internet y desactiva
+   los datos móviles** (para evitar un cambio automático a la red celular).
+2. Abre **https://bosqyn-ai.onrender.com** en Chrome o un navegador moderno.
+3. Inicia sesión como **Administrador**.
+4. Ve a **Monitoreo → Cámaras IP → Conectar celular por Wi-Fi**.
+5. Marca la casilla «Confirmo que estoy conectado a Wi-Fi y desactivé los
+   datos móviles».
+6. Activa el micrófono solo si deseas análisis acústico y pulsar
+   **Transmitir por Wi-Fi**. Acepta permisos de cámara y micrófono (si aplica).
+7. Mantén esta página visible, el teléfono desbloqueado y la red Wi-Fi activa.
+8. Desde **otro dispositivo**, accede a BOSQYN AI como administrador y abre
+   **Monitoreo → Cámaras IP → Celular Wi-Fi** para ver el flujo y activar la IA.
+9. Al terminar, pulsa **Detener transmisión** en el teléfono.
 
-### Seguridad y límites
+**No utilices el formulario «Enlace de cámara IP» para este modo.** Ese campo
+solo sirve para cámaras IP privadas con una pasarela de red local. Una URL como
+`http://192.168.1.101:8080/video` no se puede abrir desde Render sin pasarela.
 
-- Los fotogramas están protegidos por **sesión administradora** y validación del
-  **mismo origen**. No se habilita subida anónima ni acceso público a las imágenes.
-- La ruta `POST /api/ip-cameras/mobile` registra la fuente `MOVIL/HTTPS`.
-  La ruta `POST /api/ip-cameras/{id}/mobile/frame` acepta únicamente JPEG
-  de hasta 480 000 bytes y limita la frecuencia a aproximadamente 1 imagen/s.
-- La ruta `POST /api/ip-cameras/{id}/mobile/audio` solo admite audio de\n  cámaras móviles autorizadas que lo habilitaron al registrarse.\n- No hay necesidad de divulgar credenciales, abrir puertos, usar túneles inseguros
-  ni configurar un token en el teléfono.
-- No hay transmisión continua cuando se cierra o suspende la pestaña; Android
-  puede pausar el navegador al bloquear la pantalla o cambiar de aplicación.
-- El micrófono es **opcional**: si se activa, el navegador envía tramos de\n  aproximadamente 3 segundos de audio PCM16 mono a 16 kHz al modelo acústico\n  de BOSQYN AI. Si ese modelo no está disponible, continúa solo el video.\n  El permiso de micrófono es independiente y nunca se activa sin selección.
-- Para varias cámaras, los fotogramas se almacenan temporalmente en la memoria
-  del proceso Render y solo están disponibles mientras ese proceso esté activo.
-  No equivale a streaming de video 30 fps ni a grabación ininterrumpida.
-- El teléfono consume datos móviles y batería. Evita dejarlo sin supervisión
-  o exponerlo a condiciones ambientales peligrosas.
+### Funcionamiento, privacidad y límites
 
+- La cámara móvil registra una fuente interna `MOVIL/HTTPS` (nombre visible:
+  «Celular Wi-Fi») y envía aproximadamente **1 JPEG por segundo** por HTTPS.
+  No se transmite vídeo continuo de 30 FPS.
+- La captura requiere **sesión administradora autenticada** y validación del
+  mismo origen. El receptor no descarga URLs proporcionadas por terceros.
+- El navegador **no puede determinar de manera fiable Wi-Fi frente a datos
+  móviles en todos los dispositivos**: la casilla pide confirmación explícita;
+  en navegadores que informan del tipo de red se rechaza la conexión celular.
+  Para garantizar que no se gasten datos móviles, desactívalos en Android.
+- El audio es **optativo** y se envía como PCM16 mono 16 kHz en fragmentos de
+  aproximadamente 3 segundos. Depende de la disponibilidad del modelo acústico.
+- El teléfono debe seguir abierto y con permisos. Android puede pausar la cámara
+  si la pantalla se apaga o el navegador pasa a segundo plano.
+- La imagen más reciente se almacena temporalmente **en memoria del servidor**
+  y se pierde si Render reinicia; no es una solución de grabación continua.
+- El uso prolongado consume batería y transferencia de datos **por Wi-Fi**.
+
+## Cámaras IP convencionales (pasarela local)
 
 Este módulo se agrega a **Monitoreo → Cámaras IP**, sin reemplazar la webcam,
 detección acústica existente, alertas, estadísticas, Leaflet, NASA FIRMS o NOAA.
@@ -46,10 +57,10 @@ Se implementa sobre el backend original de Python/SQLite y el frontend original
 HTML/CSS/JS. No es un simulador. Si no existe un dispositivo accesible, muestra
 **Sin señal**.
 
-## Arquitectura segura (importante para Railway)
+## Arquitectura segura (importante para Render)
 
 Las direcciones `192.168.x.x`, `172.16-31.x.x` y `10.x.x.x` son privadas.
-**Railway no puede abrir directamente una conexión a ellas**. En lugar de
+**Render no puede abrir directamente una conexión a ellas**. En lugar de
 hacer que el servidor visite URLs aportadas por usuarios (riesgo SSRF):
 
 ```text
@@ -58,7 +69,7 @@ Android / Cámara IP --RTSP o HTTP/MJPEG--> Agente FFmpeg en PC/Raspberry Pi
                        |
                        | POST HTTPS (token de pasarela, solo salida)
                        v
-               BOSQYN IA Railway
+               BOSQYN IA Render
            Fotograma JPEG en memoria
                        |
                        | GET autenticado (misma web)
@@ -78,7 +89,7 @@ Railway. Para video de alta tasa sería necesaria una pasarela WebRTC/HLS adicio
 ## Instalación en el servidor
 
 Añadir a la instalación actual `cryptography>=43,<47` (está incluido en
-`requirements.txt`). Mantener los secretos **solo en Railway → Variables**:
+`requirements.txt`). Mantener los secretos **solo en Render → Environment**:
 
 - `BOSQYN_IP_CAMERA_KEY`: clave Fernet de cifrado de URL, usuario y contraseña.
 - `BOSQYN_IP_BRIDGE_TOKEN`: token aleatorio de al menos **32 caracteres**, compartido únicamente con el agente local.
