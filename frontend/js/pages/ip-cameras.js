@@ -238,8 +238,9 @@ function mount(dashboard,stopWebcam){
     '<div class="bosqyn-mobile-actions"><button type="button" id="ip-mobile-start">Transmitir desde este celular</button>'+
     '<button type="button" id="ip-mobile-stop" hidden>Detener transmisión</button></div></div>'+
     '<video id="ip-mobile-preview" autoplay muted playsinline aria-label="Vista previa de cámara móvil"></video>'+
+    '<label class="bosqyn-mobile-audio-option"><input type="checkbox" id="ip-mobile-audio"> Transmitir también el micrófono (análisis de sonidos forestales)</label>'+
     '<p id="ip-mobile-notice" role="status">Disponible solo al abrir BOSQYN AI en el dispositivo que actuará como cámara. Mantén esta pantalla abierta.</p>'+
-    '<p class="bosqyn-ip-muted">Envía aproximadamente una imagen JPEG por segundo mediante HTTPS. En esta versión el audio móvil directo no se transmite.</p>'+
+    '<p class="bosqyn-ip-muted">Envía aproximadamente una imagen JPEG por segundo mediante HTTPS. El audio es opcional y depende de que el modelo acústico esté disponible en el servidor.</p>'+
    '</section>'+
   '<form id="ip-form" class="bosqyn-ip-form bosqyn-ip-quick-form" hidden>'+
    '<p class="bosqyn-ip-intro">Pega la dirección de transmisión de tu cámara o celular. Solo necesitas ese enlace.</p>'+
