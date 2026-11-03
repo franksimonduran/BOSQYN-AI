@@ -302,8 +302,10 @@ test("Executive copy is concise while functional controls and caveats remain", (
   assert.ok(ip.includes('id="ip-form"'), "IP camera registration remains");
   assert.ok(ip.includes('id="ip-grid"'), "IP camera preview remains");
   assert.ok(alerts.includes("Guarda una copia antes de aplicar retención"));
-  assert.ok(stats.includes("DATOS SIMULADOS"), "Demo data still clearly labeled");
-  assert.ok(statistics.includes("DEMOSTRACIÓN · Datos simulados"));
+  assert.ok(!stats.includes("stats-demo-toggle"), "No demonstration control remains");
+  assert.ok(!stats.includes("stats-demo-notice"), "No simulated-data banner remains");
+  assert.ok(!statistics.includes("demo = true"), "No implicit demo mode with empty data");
+  assert.ok(statistics.includes("/api/statistics/chart.png?demo=0"), "Statistics only chart real data");
 });
 
 test("Executive homepage uses only real server values and safe recent evidence", async () => {
@@ -376,6 +378,44 @@ test("Homepage never fabricates IP camera or satellite numbers without access", 
     assert.equal(root.querySelector("[data-home-cameras]").textContent,"—");
     assert.ok(!urls.includes("/api/ip-cameras"), "Guest must never request admin camera credentials");
     assert.ok(!root.textContent.includes("128"), "No seeded KPI counts");
+  } finally {
+    cleanup();
+    dom.window.close();
+  }
+});
+
+test("Statistics never show a simulated graph, including when no evidence exists", async () => {
+  const { dom, w, root } = setup("estadisticas");
+  const urls = [];
+  w.URL.createObjectURL = () => "blob:https://bosqyn.example/real-chart";
+  w.URL.revokeObjectURL = () => {};
+  w.fetch = async (url) => {
+    urls.push(url);
+    if (url === "/api/statistics") {
+      return {
+        ok: true,
+        json: async () => ({ total: 0, by_status: {} }),
+      };
+    }
+    if (url.startsWith("/api/statistics/chart.png?demo=0")) {
+      return {
+        ok: true,
+        headers: { get: () => "image/png" },
+        blob: async () => new w.Blob(["PNG"], { type: "image/png" }),
+      };
+    }
+    throw Error("Unexpected request: " + url);
+  };
+  w.eval(fs.readFileSync("frontend/js/pages/statistics.js", "utf8"));
+  const cleanup = w.Bosqyn.pages.estadisticas(root);
+  await wait();
+  try {
+    assert.equal(root.querySelector("#stats-total").textContent, "0");
+    assert.match(root.querySelector("#stats-message").textContent, /Sin evidencias registradas/);
+    assert.equal(root.querySelector("#stats-chart").getAttribute("src"), "blob:https://bosqyn.example/real-chart");
+    assert.ok(!root.querySelector("#stats-demo-toggle"));
+    assert.ok(!root.querySelector("#stats-demo-notice"));
+    assert.ok(urls.every(url => !url.includes("demo=1")));
   } finally {
     cleanup();
     dom.window.close();
