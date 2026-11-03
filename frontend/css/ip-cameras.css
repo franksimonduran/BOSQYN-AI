@@ -68,3 +68,17 @@
  .bosqyn-ip-quick-form .bosqyn-ip-advanced-grid{grid-template-columns:minmax(0,1fr)}
  .bosqyn-ip-quick-form .bosqyn-ip-form-actions button{flex:1}
 }
+
+/* Cámara móvil por Internet (HTTPS / datos móviles): una tarjeta de inicio sencilla. */
+.bosqyn-mobile-stream{margin:14px 0;padding:15px;border:1px solid #32764e;border-radius:12px;background:linear-gradient(120deg,#0b3e2b,#052419);color:#ecfff3}
+.bosqyn-mobile-stream-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}
+.bosqyn-mobile-stream h3{font-size:14px;font-weight:800;margin:0 0 6px;color:#edfff2}
+.bosqyn-mobile-stream-top p{margin:0;font-size:11px;color:#b9ddc7;line-height:1.6}
+.bosqyn-mobile-actions{display:flex;gap:9px;flex-wrap:wrap}
+.bosqyn-ip-panel #ip-mobile-start{background:#148552;border-color:#4fc58a;padding:12px 16px}
+.bosqyn-ip-panel #ip-mobile-stop{background:#763a29;border-color:#df8b69;padding:12px 16px}
+.bosqyn-ip-panel #ip-mobile-start[hidden],.bosqyn-ip-panel #ip-mobile-stop[hidden]{display:none!important}
+.bosqyn-mobile-stream video{display:none;width:100%;max-width:540px;max-height:330px;object-fit:contain;background:#010c08;border-radius:9px;margin:12px 0 6px}
+.bosqyn-mobile-stream.is-streaming video{display:block}
+.bosqyn-mobile-stream #ip-mobile-notice{font-size:11px;line-height:1.6;color:#9ce9b9;margin:9px 0}
+@media(max-width:650px){.bosqyn-mobile-stream{padding:12px}.bosqyn-mobile-stream-top{align-items:stretch;flex-direction:column}.bosqyn-mobile-actions button{width:100%}}
