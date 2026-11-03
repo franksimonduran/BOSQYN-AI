@@ -85,3 +85,8 @@
 
 .bosqyn-mobile-audio-option{display:flex;align-items:center;gap:9px;margin-top:12px;font-size:11px;font-weight:700;color:#d1f4e0;cursor:pointer}
 .bosqyn-mobile-audio-option input{accent-color:#3cdb91;width:16px;height:16px;flex:none}
+
+/* Confirmar explícitamente Wi-Fi: el navegador no siempre expone el tipo de red. */
+.bosqyn-mobile-wifi-confirm{display:flex;align-items:center;gap:10px;margin:12px 0;padding:10px 12px;border:1px solid #337951;border-radius:9px;background:rgba(7,54,34,.75);color:#e5fff0;font-size:12px;font-weight:650;line-height:1.45;cursor:pointer}
+.bosqyn-mobile-wifi-confirm input{width:18px;height:18px;flex:none;accent-color:#36d98c}
+.bosqyn-mobile-wifi-confirm:focus-within{outline:2px solid #81edab;outline-offset:2px}
