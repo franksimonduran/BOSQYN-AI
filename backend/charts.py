@@ -43,7 +43,7 @@ def render_activity_png(daily: list[dict], *, demo: bool = False) -> bytes:
     import matplotlib.pyplot as plt
 
     with _CHART_LOCK:
-        labels = [row["date"][5:] for row in daily]
+        labels = [row["date"][5:] for row in daily]\n        # Evita saturar el eje X al consultar 30 o 90 días.\n        tick_step = max(1, (len(labels) + 11) // 12)
         states = [
             ("PENDIENTE", "Pendientes", "#F4B959"),
             ("CONFIRMADA", "Confirmadas", "#30D98A"),
@@ -68,7 +68,7 @@ def render_activity_png(daily: list[dict], *, demo: bool = False) -> bytes:
                 )
                 bottoms = [before + value for before, value in zip(bottoms, heights)]
             highest = max(bottoms, default=0)
-            ax.set_ylim(0, max(3, highest * 1.22 + 1))
+            ax.set_ylim(0, max(3, highest * 1.22 + 1))\n            ax.set_xticks(list(range(0, len(labels), tick_step)))\n            ax.set_xticklabels(labels[::tick_step])
             ax.set_ylabel(
                 "Capturas registradas", color="#AFD4C0", fontsize=10, labelpad=9
             )
@@ -88,7 +88,7 @@ def render_activity_png(daily: list[dict], *, demo: bool = False) -> bytes:
             )
             ax.set_title(
                 ("DATOS SIMULADOS · actividad ficticia · 7 días (UTC)"
-                 if demo else "Actividad real del historial · últimos 7 días (UTC)"),
+                 if demo else f"Actividad real del historial · últimos {len(daily)} días (UTC)"),
                 fontsize=13,
                 fontweight="bold",
                 color="#F4FFF8",
