@@ -157,8 +157,8 @@ class EvidenceStore:
 
     def activity_by_day(self, days: int = 7):
         """Read-only last-N-UTC-days breakdown of stored manual captures."""
-        if not 1 <= days <= 31:
-            raise ValueError("El periodo debe tener entre 1 y 31 días")
+        if days not in (7, 30, 90):
+            raise ValueError("El periodo debe ser 7, 30 o 90 días")
         today = datetime.now(timezone.utc).date()
         start = today - timedelta(days=days - 1)
         data = {
@@ -182,6 +182,50 @@ class EvidenceStore:
             status = row["status"]
             if day in data and status in ("PENDIENTE", "CONFIRMADA", "DESCARTADA"):
                 data[day][status] = int(row["total"])
+        return list(data.values())
+
+    def period_summary(self, days: int = 7):
+        """Aggregate persisted evidence in the last N UTC dates; read-only."""
+        if days not in (7, 30, 90):
+            raise ValueError("El periodo debe ser 7, 30 o 90 días")
+        start = (datetime.now(timezone.utc).date() - timedelta(days=days - 1)).isoformat()
+        with self.connect() as conn:
+            rows = conn.execute(
+                "SELECT category, source, status, COUNT(*) AS n FROM alerts "
+                "WHERE substr(occurred_at,1,10)>=? GROUP BY category,source,status",
+                (start,),
+            ).fetchall()
+        by_category, by_source, by_status = {}, {}, {}
+        for row in rows:
+            n = int(row["n"])
+            for dest, key in ((by_category,row["category"]), (by_source,row["source"]),
+                              (by_status,row["status"])):
+                dest[key] = dest.get(key, 0) + n
+        return {"total": sum(by_category.values()), "by_category": by_category,
+                "by_source": by_source, "by_status": by_status,
+                "days": days, "timezone": "UTC"}
+
+    def category_activity_by_day(self, days: int = 7):
+        """Category counts per UTC day, including dates without evidence."""
+        if days not in (7, 30, 90):
+            raise ValueError("El periodo debe ser 7, 30 o 90 días")
+        start = datetime.now(timezone.utc).date() - timedelta(days=days - 1)
+        results = [(start + timedelta(days=i)).isoformat() for i in range(days)]
+        data = {day: {"date":day, "HUMO":0, "INCENDIO":0, "TALA":0,
+                      "NORMAL":0, "IR_AL_BOSQUE":0, "OTRAS":0} for day in results}
+        with self.connect() as conn:
+            rows = conn.execute(
+                "SELECT substr(occurred_at,1,10) AS day,category,COUNT(*) AS n "
+                "FROM alerts WHERE substr(occurred_at,1,10)>=? GROUP BY day,category",
+                (start.isoformat(),),
+            ).fetchall()
+        for row in rows:
+            day = row["day"]
+            category = str(row["category"]).upper()
+            if category not in ("HUMO","INCENDIO","TALA","NORMAL","IR_AL_BOSQUE"):
+                category = "OTRAS"
+            if day in data:
+                data[day][category] += int(row["n"])
         return list(data.values())
 
     def statistics(self):
