@@ -395,10 +395,22 @@ Bosqyn.pages.monitoreo = function (root) {
     for (const item of items) {
       const option = document.createElement("option");
       option.value = String(item.id);
-      option.textContent = item.name + " · " + (item.connected ? "Conectada" : "Sin señal");
+      option.textContent = item.name + " · " +
+        (item.protocol === "MOVIL/HTTPS" ? "Celular 4G/5G" : "IP local") +
+        " · " + (item.connected ? "Transmitiendo" : "Sin señal");
       select.append(option);
     }
-    if (items.some(item => String(item.id) === previous)) select.value = previous;
+    if (items.some(item => String(item.id) === previous)) {
+      select.value = previous;
+    } else {
+      // Prefer the live 4G/5G camera; older private-IP cameras have no cloud feed.
+      const mobile = items.find(item => item.protocol === "MOVIL/HTTPS" && item.connected);
+      if (mobile) {
+        select.value = String(mobile.id);
+        selectedId = mobile.id;
+        if (!active) status.textContent = "Celular por Internet disponible. Pulsa «Conectar cámara IP» para verlo y activar la IA.";
+      }
+    }
     if (!items.length && !active)
       status.textContent = "Agrega una cámara IP y activa su pasarela local.";
     return items;
@@ -517,7 +529,7 @@ Bosqyn.pages.monitoreo = function (root) {
       selectedId = id; active = true; select.disabled = true; activeCamera = null; lastFrame = 0;
       const session = ++mediaSession;
       button.textContent = "Desconectar cámara IP";
-      status.textContent = "Conectando · Esperando señal IP.";
+      status.textContent = "Abriendo la señal seleccionada; la cámara del celular debe seguir transmitiendo.";
       await refresh(session, id);
       monitorTimer = setInterval(() => refresh(session, id), 1700);
     } catch (err) {
