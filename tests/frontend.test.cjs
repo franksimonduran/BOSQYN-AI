@@ -394,3 +394,36 @@ test("Mobile 4G camera uses admin-only HTTPS uploads and no public stream URL", 
   assert.ok(ip.includes('id="ip-mobile-audio"'),"El micrófono es opcional");
   assert.ok(!mobile.includes("rtsp://"),"No se exponen puertos RTSP");
 });
+
+test("Wi-Fi phone streaming rejects unconfirmed or cellular connections", async () => {
+  const dom = new JSDOM(
+    '<section id="panel"><div id="ip-mobile-stream">'+
+    '<button id="ip-mobile-start">Transmitir por Wi-Fi</button>'+
+    '<button id="ip-mobile-stop" hidden>Detener</button>'+
+    '<video id="ip-mobile-preview"></video>'+
+    '<input type="checkbox" id="ip-mobile-wifi-confirm">'+
+    '<input type="checkbox" id="ip-mobile-audio">'+
+    '<p id="ip-mobile-notice"></p></div></section>',
+    {url:"https://bosqyn.example",runScripts:"outside-only"}
+  );
+  const w=dom.window;
+  Object.defineProperty(w,"isSecureContext",{value:true,configurable:true});
+  let opens=0;
+  Object.defineProperty(w.navigator,"mediaDevices",{configurable:true,value:{
+    getUserMedia:async()=>{opens++;throw Error("No debe abrir la cámara");}
+  }});
+  Object.defineProperty(w.navigator,"connection",{configurable:true,value:{type:"cellular"}});
+  w.Bosqyn={auth:{ensureAdmin:async()=>true}};
+  w.eval(fs.readFileSync("frontend/js/mobile-stream.js","utf8"));
+  const root=w.document.querySelector("#panel");
+  const cleanup=w.Bosqyn.mobileStream.mount(root,()=>{});
+  const button=root.querySelector("#ip-mobile-start");
+  button.click();await wait();
+  assert.match(root.querySelector("#ip-mobile-notice").textContent,/conecta el celular a Wi-Fi/i);
+  const consent=root.querySelector("#ip-mobile-wifi-confirm");
+  consent.checked=true;
+  button.click();await wait();
+  assert.match(root.querySelector("#ip-mobile-notice").textContent,/red celular/i);
+  assert.equal(opens,0,"No puede solicitar cámara ni transmitir por datos móviles conocidos");
+  cleanup();dom.window.close();
+});
