@@ -204,9 +204,10 @@ Bosqyn.pages.monitoreo = function (root) {
     })
     .catch(() => {
       const target = dashboard.querySelector("#bosqyn-satellite-map");
-      if (!disposed)
-        target.textContent =
-          "No se pudo cargar el mapa. Revisa la conexión de internet.";
+      if (!disposed) {
+        target.textContent = "Mapa satelital no disponible. Revisa la conexión a Internet.";
+        target.classList.add("bosqyn-map-unavailable");
+      }
     });
   refreshSatellite();
   satelliteTimer = setInterval(refreshSatellite, 60000);
