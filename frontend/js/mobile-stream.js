@@ -8,6 +8,8 @@ Bosqyn.mobileStream=(()=>{
     const stopButton=panel.querySelector("#ip-mobile-stop");
     const preview=panel.querySelector("#ip-mobile-preview");
     const notice=panel.querySelector("#ip-mobile-notice");
+    const permissionHelp=panel.querySelector("#ip-mobile-permission-help");
+    const steps=Array.from(panel.querySelectorAll(".bosqyn-ip-steps span"));
     const audioOption=panel.querySelector("#ip-mobile-audio");
     const wifiConfirm=panel.querySelector("#ip-mobile-wifi-confirm");
     const box=panel.querySelector("#ip-mobile-stream");
@@ -15,7 +17,32 @@ Bosqyn.mobileStream=(()=>{
     let running=false,busy=false,stream=null,cameraId=null,abort=null,timeout=null,failures=0;
     let audioContext=null,audioSource=null,audioProcessor=null,audioSamples=0,audioChunks=[],audioSending=false,audioDisabled=false;
     const canvas=document.createElement("canvas");
-    const status=msg=>{notice.textContent=msg;};
+    const status=(msg,level="info")=>{
+      notice.textContent=msg;
+      notice.dataset.level=level;
+    };
+    function stage(index){
+      steps.forEach((step,i)=>{
+        step.classList.toggle("is-current",i===index);
+        step.classList.toggle("is-done",i<index);
+      });
+    }
+    function explainError(error){
+      const name=String(error?.name||"");
+      const message=String(error?.message||"");
+      if(name==="NotAllowedError"||name==="PermissionDeniedError"||/permission denied|permission dismissed|notallowed/i.test(message)){
+        if(permissionHelp)permissionHelp.hidden=false;
+        return "Permiso de cámara denegado. Habilita la cámara para este sitio en Chrome y en los permisos de Android; después vuelve a intentarlo.";
+      }
+      if(name==="NotFoundError"||name==="DevicesNotFoundError")
+        return "No se detecta una cámara disponible en este dispositivo.";
+      if(name==="NotReadableError"||name==="TrackStartError")
+        return "La cámara está ocupada por otra aplicación o no puede iniciarse. Cierra otras aplicaciones de cámara.";
+      if(name==="OverconstrainedError")return "Este dispositivo no admite la configuración solicitada para la cámara.";
+      if(name==="SecurityError")return "El navegador bloqueó el acceso. Abre BOSQYN AI directamente por HTTPS.";
+      if(name==="AbortError")return "La cámara interrumpió la inicialización. Comprueba sus permisos.";
+      return message||"Error desconocido al abrir la cámara";
+    }
     const networkType=()=>navigator.connection?.type||navigator.mozConnection?.type||navigator.webkitConnection?.type||"";
     function validateWifi(){
       // connection.type no existe en gran parte de Android/iOS: confirmación
@@ -109,6 +136,7 @@ Bosqyn.mobileStream=(()=>{
       preview.pause();preview.srcObject=null;
       start.disabled=false;start.hidden=false;stopButton.hidden=true;
       box.classList.remove("is-streaming");
+      stage(0);
     }
     async function stop(){
       const id=cameraId;cameraId=null;
@@ -155,7 +183,8 @@ Bosqyn.mobileStream=(()=>{
         const result=await response.json().catch(()=>({}));
         if(!response.ok)throw Error(result.error||"HTTP "+response.status);
         failures=0;
-        status("Cámara Wi-Fi #"+cameraId+" conectada · Imágenes recibidas por BOSQYN AI. Mantén esta página abierta en el teléfono.");
+        stage(3);
+        status("Cámara Wi-Fi #"+cameraId+" conectada · Imágenes recibidas por BOSQYN AI. Mantén esta página abierta en el teléfono.","success");
       }catch(error){
         if(!running)return;
         failures++;
@@ -175,12 +204,15 @@ Bosqyn.mobileStream=(()=>{
         return;
       }
       busy=true;start.disabled=true;
+      if(permissionHelp)permissionHelp.hidden=true;
+      stage(0);
       try{
         validateWifi();
+        stage(1);
         if(!await Bosqyn.auth?.ensureAdmin("Inicia sesión como administrador para transmitir desde tu celular.")){
           return;
         }
-        status("Solicitando permiso para usar la cámara…");
+        status("Solicitando acceso a la cámara. Acepta el permiso en tu teléfono.");
         const videoConstraints={facingMode:{ideal:"environment"},width:{ideal:640},height:{ideal:480}};
         try{
           stream=await navigator.mediaDevices.getUserMedia({
@@ -197,6 +229,7 @@ Bosqyn.mobileStream=(()=>{
         // Mostrar la vista previa antes de play(): algunos Android no inician
         // videoWidth/videoHeight cuando el elemento está en display:none.
         box.classList.add("is-streaming");
+        stage(2);
         preview.srcObject=stream;
         await preview.play();
         status("Registrando cámara Wi-Fi por HTTPS… No necesitas dirección IP.");
@@ -225,7 +258,7 @@ Bosqyn.mobileStream=(()=>{
       }catch(error){
         const id=cameraId;cameraId=null;stopLocal();
         if(id)api("/api/ip-cameras/"+id+"/action",{action:"disconnect"}).catch(()=>{});
-        status("No se pudo iniciar por Wi-Fi: "+error.message+" Comprueba cámara, conexión Wi-Fi y sesión de administrador.");
+        status("No se pudo iniciar: "+explainError(error),"error");
       }finally{busy=false;if(!running)start.disabled=false;}
     }
     const leave=()=>{
