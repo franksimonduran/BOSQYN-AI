@@ -187,6 +187,13 @@ function render(items){
 }
 async function refresh(){
  if(!active)return;
+ // El listado requiere administrador: no consultar continuamente con sesión invitada.
+ if(Bosqyn.auth?.role()!=="admin"){
+   render([]);
+   $("ip-events")?.replaceChildren();
+   status("Inicia sesión como administrador para gestionar cámaras IP.");
+   return;
+ }
  try{
    const [cameras,history]=await Promise.all([api("/api/ip-cameras"),api("/api/ip-cameras/events")]);
    if(!active)return;
@@ -199,7 +206,7 @@ async function refresh(){
      events.append(line);
    }
  }catch(err){
-   if(active)status("Acceso administrador requerido. "+err.message);
+   if(active)status("No se pudo consultar las cámaras: "+err.message);
  }
 }
 function mount(dashboard,stopWebcam){
