@@ -49,7 +49,7 @@ Bosqyn.pages = Bosqyn.pages || {};
     try {
       let body = cache.get(name);
       if (!body) {
-        let response = await fetch("views/" + name + ".html");
+        let response = await fetch("views/" + name + ".html?v=20261102-ip-multicam");
         if (!response.ok) throw Error("HTTP " + response.status);
         body = await response.text();
         cache.set(name, body);
