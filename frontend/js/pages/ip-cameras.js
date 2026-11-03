@@ -150,7 +150,10 @@ function card(camera){
    tag.classList.toggle("is-online",!!c.connected);
    meta.textContent=c.protocol+" · "+c.kind+" · Puerto "+c.port+
      " · Última imagen: "+fmt(c.last_frame_at);
-   test.textContent="Prueba: "+(c.last_test?.status||"no realizada");
+   test.textContent=c.protocol==="MOVIL/HTTPS"?"Conexión: transmisión segura desde navegador":
+     "Prueba: "+(c.last_test?.status||"no realizada");
+   const testButton=buttons.querySelector('[data-action="test"]');
+   if(testButton){testButton.disabled=c.protocol==="MOVIL/HTTPS";testButton.title=c.protocol==="MOVIL/HTTPS"?"La prueba se hace enviando imágenes desde el celular":"";}
    audio.textContent=c.audio_result?
      "Audio "+c.audio_result.class+" "+Math.round(Number(c.audio_result.confidence||0)*100)+
        "% · clase original "+c.audio_result.original_class:
