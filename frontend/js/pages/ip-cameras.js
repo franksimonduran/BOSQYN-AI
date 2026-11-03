@@ -310,6 +310,12 @@ function mount(dashboard,stopWebcam){
     '<video id="ip-mobile-preview" autoplay muted playsinline aria-label="Vista previa de cámara móvil"></video>'+
     '<label class="bosqyn-mobile-audio-option"><input type="checkbox" id="ip-mobile-audio"> Transmitir también el micrófono (análisis de sonidos forestales)</label>'+
     '<p id="ip-mobile-notice" role="status">Usa este botón desde el teléfono emisor. Para ver las imágenes en otro equipo, deja abierta esta página en el celular y entra a Monitoreo desde el segundo dispositivo.</p>'+
+    '<div id="ip-mobile-permission-help" class="bosqyn-ip-permission-help" hidden><strong>Acceso a la cámara bloqueado</strong>'+
+     '<p>La solicitud de acceso fue rechazada por el navegador o el sistema operativo. Comprueba estos pasos:</p>'+
+     '<ol><li>En Chrome toca el icono de permisos junto a la dirección web → Cámara → Permitir.</li>'+
+     '<li>En Android abre Ajustes → Aplicaciones → Chrome → Permisos → Cámara → Permitir.</li>'+
+     '<li>Cierra cualquier aplicación que esté usando la cámara, vuelve a BOSQYN AI y pulsa Transmitir por Wi-Fi.</li>'+
+     '<li>Si el problema aparece al activar audio, desmarca el micrófono y prueba solo con imagen.</li></ol></div>'+
     '<p class="bosqyn-ip-muted">Envía aproximadamente una imagen por segundo mediante HTTPS. No necesitas introducir una IP 192.168.x.x para este modo. El audio es opcional y depende del modelo del servidor.</p>'+
    '</section>'+
   '<form id="ip-form" class="bosqyn-ip-form bosqyn-ip-quick-form" hidden>'+
