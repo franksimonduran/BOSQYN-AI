@@ -90,3 +90,150 @@
 .bosqyn-mobile-wifi-confirm{display:flex;align-items:center;gap:10px;margin:12px 0;padding:10px 12px;border:1px solid #337951;border-radius:9px;background:rgba(7,54,34,.75);color:#e5fff0;font-size:12px;font-weight:650;line-height:1.45;cursor:pointer}
 .bosqyn-mobile-wifi-confirm input{width:18px;height:18px;flex:none;accent-color:#36d98c}
 .bosqyn-mobile-wifi-confirm:focus-within{outline:2px solid #81edab;outline-offset:2px}
+
+
+/* BOSQYN AI | Centro de Cámaras Inteligentes · interfaz corporativa (2026-11) */
+.bosqyn-ip-panel{
+  --ip-panel:#071d16;--ip-surface:#0b2b20;--ip-edge:#254d39;--ip-muted:#9dbdac;
+  --ip-green:#43d58c;--ip-soft:#e5ffef;
+  padding:clamp(14px,2.5vw,28px)!important;
+  border:1px solid #274b39!important;border-radius:18px!important;
+  background:linear-gradient(145deg,#0b3023 0%,#061a14 58%,#071d16 100%)!important;
+  color:#e9fbf0;min-width:0
+}
+.bosqyn-ip-panel [hidden]{display:none!important}
+.bosqyn-ip-panel h2,.bosqyn-ip-panel h3{letter-spacing:-.035em}
+.bosqyn-ip-dashboard-head{padding:4px 0 18px;border-bottom:1px solid #2a4b38}
+.bosqyn-ip-heading-kicker,.bosqyn-ip-section-number{
+  display:block;font-size:10px;letter-spacing:.14em;font-weight:800;color:#64dca2;margin-bottom:9px
+}
+.bosqyn-ip-toolbar{align-items:center;margin:0 0 19px;gap:12px}
+.bosqyn-ip-toolbar h2{font-size:clamp(20px,2.3vw,29px);line-height:1.2;font-weight:850;letter-spacing:-.035em;color:#f0fff5}
+.bosqyn-ip-toolbar h2 span{color:#75e4a8}
+.bosqyn-ip-toolbar p{color:#accbb8;font-size:12px;line-height:1.6;margin-top:7px}
+.bosqyn-ip-dashboard-mark{width:56px;height:56px;display:grid;place-items:center;border-radius:15px;
+  border:1px solid #326e4f;background:#164b33;color:#83efb7;font-size:29px;flex:none}
+.bosqyn-ip-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.bosqyn-ip-kpi{min-width:0;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;
+ align-items:center;column-gap:11px;row-gap:0;border-radius:12px;padding:12px 14px;
+ background:linear-gradient(145deg,#123c2b,#0a2a20);border:1px solid #28543b}
+.bosqyn-ip-kpi>span{grid-row:1/3;width:38px;height:38px;display:grid;place-items:center;background:#184b34;
+ color:#85e8ad;border-radius:10px;font-size:19px}
+.bosqyn-ip-kpi strong{font-weight:820;font-size:23px;line-height:1;color:#f0fff5;font-variant-numeric:tabular-nums}
+.bosqyn-ip-kpi small{font-size:10px;color:#a6cbb6;margin-top:5px}
+.bosqyn-ip-onboarding{padding:21px 0 0}
+.bosqyn-ip-onboarding-head h3,.bosqyn-ip-section-heading h3{font-size:16px;font-weight:800;color:#f3fff7}
+.bosqyn-ip-onboarding-head p{font-size:12px;color:#afccba;line-height:1.6;margin-top:5px}
+.bosqyn-ip-methods{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin:15px 0 12px}
+.bosqyn-ip-panel .bosqyn-ip-method{min-width:0!important;text-align:left;display:grid;grid-template-columns:46px 1fr;
+  grid-template-rows:1fr 1fr;align-items:center;gap:0 12px;padding:15px!important;
+  background:#0d2c21!important;border:1px solid #30533f!important;border-radius:13px!important;
+  box-shadow:none!important;transition:border-color .15s,background .15s,transform .15s}
+.bosqyn-ip-panel .bosqyn-ip-method:hover{transform:translateY(-1px);background:#123e2c!important}
+.bosqyn-ip-panel .bosqyn-ip-method.is-active{background:#184630!important;border-color:#4abd80!important;
+  box-shadow:inset 0 0 0 1px rgba(100,220,156,.22)!important}
+.bosqyn-ip-method-icon{grid-row:1/3;width:42px;height:42px;display:grid;place-items:center;border-radius:11px;
+ background:#1c5339;color:#a5f8c3;font-size:25px}
+.bosqyn-ip-method strong{font-size:13px;font-weight:800;color:#f1fff5;line-height:1.3}
+.bosqyn-ip-method small{font-size:11px;font-weight:500;color:#a3c4b1;margin-top:3px;line-height:1.35}
+.bosqyn-mobile-stream{border:1px solid #37704e!important;border-radius:15px!important;
+ background:linear-gradient(128deg,#113a29,#08261d)!important;margin:12px 0 20px;padding:clamp(15px,2vw,22px)!important}
+.bosqyn-ip-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:19px}
+.bosqyn-ip-steps span{min-width:0;padding:8px 6px;border-radius:7px;background:#102c22;
+  color:#8db9a1;border:1px solid #244b36;font-size:10px;font-weight:750;text-align:center}
+.bosqyn-ip-steps span.is-current,.bosqyn-ip-steps span.is-done{border-color:#48af78;color:#c5fbd6;background:#164b33}
+.bosqyn-mobile-stream-top{align-items:center;gap:14px}
+.bosqyn-mobile-stream h3{font-size:16px;margin-bottom:7px}
+.bosqyn-mobile-stream-top p{font-size:12px;max-width:560px;color:#b9d6c4}
+.bosqyn-ip-panel #ip-mobile-start,.bosqyn-ip-panel #ip-mobile-stop{
+  padding:12px 17px;min-height:44px;font-size:12px;border-radius:9px}
+.bosqyn-ip-panel #ip-mobile-start{background:#16834d;border-color:#50cd8d}
+.bosqyn-mobile-wifi-confirm{padding:13px!important;margin-top:17px!important;border:1px solid #3b7252!important;
+  border-radius:10px!important;max-width:100%;font-size:12px!important}
+.bosqyn-mobile-audio-option{margin:12px 0 6px;font-size:12px;font-weight:650;line-height:1.5}
+.bosqyn-mobile-stream video{max-width:100%;max-height:420px;width:100%;aspect-ratio:16/9;object-fit:contain;
+ border:1px solid #3f6e50;margin:16px 0 10px;border-radius:12px;background:#03110a}
+.bosqyn-ip-panel #ip-mobile-notice{font-size:12px!important;line-height:1.6!important;
+ color:#ccebd8!important;background:#0b2c1f;border-radius:9px;padding:12px 13px;border:1px solid #2a6444;margin:13px 0}
+.bosqyn-ip-panel #ip-mobile-notice[data-level="error"]{color:#ffdcbb!important;
+ background:#38251b;border-color:#8e5d34}
+.bosqyn-ip-panel #ip-mobile-notice[data-level="success"]{color:#b9f7d2!important;border-color:#368757}
+.bosqyn-ip-permission-help{padding:14px 15px;background:#34251b;border:1px solid #9b633e;
+ border-radius:12px;margin:13px 0;color:#ffdfc2;font-size:12px;line-height:1.65}
+.bosqyn-ip-permission-help strong{display:block;font-weight:820;margin-bottom:7px}
+.bosqyn-ip-permission-help ol{padding-left:20px;margin:5px 0}
+.bosqyn-ip-permission-help li{margin:4px 0}
+.bosqyn-ip-permission-help[hidden]{display:none!important}
+.bosqyn-ip-form:not([hidden]){padding:19px!important;border:1px solid #38694d!important;
+ background:#0b2c21!important;border-radius:14px!important;margin:12px 0 20px!important}
+.bosqyn-ip-form label{font-size:12px}
+.bosqyn-ip-form input,.bosqyn-ip-form select{min-height:42px;font-size:12px}
+.bosqyn-ip-section-heading{display:flex;justify-content:space-between;align-items:end;gap:15px;
+ border-top:1px solid #2c533b;padding-top:23px;margin:22px 0 14px}
+.bosqyn-ip-section-heading h3{font-size:17px}
+.bosqyn-ip-device-count{font-size:11px;color:#a3c5b3}
+.bosqyn-ip-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:15px;margin:0 0 22px}
+.bosqyn-ip-card{background:linear-gradient(152deg,#103629 0%,#081e17 92%)!important;
+ padding:15px!important;border-radius:15px!important;border:1px solid #2a6042!important;
+ box-shadow:0 12px 28px rgba(0,0,0,.1)}
+.bosqyn-ip-head{align-items:start;margin-bottom:12px;gap:13px}
+.bosqyn-ip-name{display:flex;flex-direction:column;min-width:0;gap:5px}
+.bosqyn-ip-name strong{font-size:14px;line-height:1.3;color:#f1fff5}
+.bosqyn-ip-source{font-size:9px;font-weight:750;letter-spacing:.1em;color:#8bbca3}
+.bosqyn-ip-tag{font-size:10px;font-weight:750;flex:none}
+.bosqyn-ip-screen{min-height:0;aspect-ratio:16/9;border:1px solid #173c2c!important;border-radius:11px!important;
+ background:radial-gradient(ellipse at 50% 28%,#103025 0%,#03110a 72%)!important}
+.bosqyn-ip-screen>img{position:absolute;inset:0;width:100%;height:100%;max-height:none;object-fit:contain}
+.bosqyn-ip-screen-label{position:absolute;left:12px;top:11px;z-index:2;font-size:9px;font-weight:800;
+ color:#a1ceb3;letter-spacing:.065em;background:rgba(3,20,12,.72);border:1px solid #245038;
+ padding:6px 9px;border-radius:20px}
+.bosqyn-ip-screen-pulse{display:inline-block;width:7px;height:7px;background:#6ce1a1;border-radius:50%;margin-right:5px}
+.bosqyn-ip-empty-screen{display:flex;align-items:center;justify-content:center;flex-direction:column;
+ gap:8px;padding:46px 23px 20px;text-align:center;min-width:0}
+.bosqyn-ip-empty-screen strong{font-size:13px;color:#e6f4e8}
+.bosqyn-ip-empty-screen p{font-size:11px;line-height:1.55;color:#a2c2ad;margin:0;max-width:360px}
+.bosqyn-ip-video-icon{font-size:32px;color:#7aaa8b;line-height:1}
+.bosqyn-ip-muted{font-size:11px}
+.bosqyn-ip-card>p.bosqyn-ip-muted{margin:10px 0 0}
+.bosqyn-ip-ai-status{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0 10px}
+.bosqyn-ip-ai-stat{display:flex;align-items:center;gap:9px;padding:11px 10px;
+ background:#12372a;border:1px solid #29523c;border-radius:9px;min-width:0}
+.bosqyn-ip-ai-icon{font-size:17px;color:#8de4ae;line-height:1}
+.bosqyn-ip-ai-stat>span:last-child{display:flex;flex-direction:column;min-width:0;gap:3px}
+.bosqyn-ip-ai-stat small{font-size:9px;font-weight:800;letter-spacing:.08em;color:#9fbda9}
+.bosqyn-ip-ai-stat strong,.bosqyn-ip-ai-stat p{font-size:11px;font-weight:700;color:#e3f9e9;margin:0;overflow-wrap:anywhere}
+.bosqyn-ip-detection{margin:9px 0!important;border-color:#2d6546!important;background:#0a291d;padding:11px!important}
+.bosqyn-ip-detection [data-vision-warning]{font-size:10px}
+.bosqyn-ip-buttons{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+.bosqyn-ip-buttons button{flex:1 1 115px;min-height:37px;background:#144934;border:1px solid #337755}
+.bosqyn-ip-buttons button[data-action="connect"],.bosqyn-ip-buttons button[data-action="ai"]{background:#117745;border-color:#3fc781}
+.bosqyn-ip-buttons button[hidden]{display:none!important}
+.bosqyn-ip-panel .bosqyn-ip-secondary{margin:12px 0 0;border:1px solid #2d523c;
+ border-radius:9px;background:#0a291d;padding:0}
+.bosqyn-ip-secondary summary{display:flex;justify-content:space-between;align-items:center;
+ cursor:pointer;padding:10px 13px;color:#b5d5c3;font-size:11px;font-weight:700;list-style:none}
+.bosqyn-ip-secondary summary::-webkit-details-marker{display:none}
+.bosqyn-ip-secondary[open] summary{border-bottom:1px solid #28543c}
+.bosqyn-ip-secondary-buttons{padding:10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.bosqyn-ip-secondary-buttons button{font-size:11px;min-width:0;padding:9px;background:#123728}
+.bosqyn-ip-secondary-buttons button[data-action="delete"]{background:#3a211e;border-color:#815443;color:#ffddd5}
+.bosqyn-ip-history{margin-top:14px;border:1px solid #2b563b!important;background:#0b291e;border-radius:12px;
+ padding:13px 16px!important}
+.bosqyn-ip-history>summary{font-size:12px;font-weight:750;color:#cee7d6}
+.bosqyn-ip-events p{font-size:11px;line-height:1.5}
+.bosqyn-ip-no-events{color:#a4c9b4;font-size:11px;padding:11px 0}
+@media(max-width:680px){
+ .bosqyn-ip-panel{padding:13px!important;border-radius:12px!important}
+ .bosqyn-ip-toolbar h2{font-size:22px}
+ .bosqyn-ip-dashboard-mark{display:none}
+ .bosqyn-ip-kpi{padding:11px 8px;gap:3px;grid-template-columns:1fr}
+ .bosqyn-ip-kpi>span{width:28px;height:28px;grid-row:1;font-size:15px}
+ .bosqyn-ip-kpi strong{font-size:22px}
+ .bosqyn-ip-kpi small{font-size:10px}
+ .bosqyn-ip-methods{grid-template-columns:1fr}
+ .bosqyn-ip-methods .bosqyn-ip-method{grid-template-columns:42px 1fr}
+ .bosqyn-ip-steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .bosqyn-mobile-stream{padding:13px!important}
+ .bosqyn-ip-section-heading{align-items:start;flex-direction:column}
+ .bosqyn-ip-grid{grid-template-columns:1fr}
+}
