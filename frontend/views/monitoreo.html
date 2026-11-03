@@ -25,10 +25,9 @@
     class="bosqyn-unified-camera relative overflow-hidden rounded-[8px] border border-white/10"
     ><img
       id="live-img"
-      src="img/live.jpg"
       alt=""
       class="h-full w-full object-cover " /><span
-      id="live-badge"
+      id="live-badge" style="display:none"
       class="absolute left-[11px] top-[10px] flex h-[22px] items-center gap-[6px] rounded-[5px] bg-[#e11d2e] px-[8px] text-[9px] font-extrabold text-white"
       ><i class="h-[6px] w-[6px] rounded-full bg-white"></i>EN VIVO</span
     ><span
@@ -73,7 +72,7 @@
           data-vision-class
           >ESPERANDO IA</div
         ><div class="mt-[5px] text-[8px] text-[#cbd8d1]" data-vision-detail
-          >Conecta una cámara IP para iniciar la clasificación</div
+          >Conecta una cámara IP</div
         ><span
           class="mt-[7px] inline-block rounded-[4px] bg-[#f97316] px-[8px] py-[3px] text-[7.5px] font-extrabold text-[#2a1200]"
           data-vision-warning
@@ -95,7 +94,7 @@
       <p id="audio-top" class="bosqyn-audio-top">Sin predicciones de audio</p>
       <div id="audio-bars" class="bosqyn-audio-bars" aria-live="polite">
         <p class="bosqyn-audio-placeholder"
-          >Esperando audio proporcionado por la cámara IP.</p
+          >Esperando audio de la cámara IP.</p
         >
       </div>
     </section></div
@@ -122,12 +121,12 @@
     class="card flex h-[44px] items-center justify-between !rounded-[9px] px-[14px] text-[10px] font-semibold text-white"
     >Sonido de alerta
     <button
-      id="btn-sound"
+      id="btn-sound" type="button" aria-label="Sonido de alerta" aria-pressed="true"
       class="relative h-[16px] w-[28px] rounded-full transition-colors bg-[#22c55e]"
       ><span
         class="absolute top-[2px] h-[12px] w-[12px] rounded-full bg-white transition-all left-[14px]"
       ></span></button></div
-  ><button id="btn-add-ip-camera" type="button" class="h-[44px] rounded-[9px] border border-emerald-400/40 bg-emerald-950/70 px-4 text-[11px] font-bold text-emerald-100 hover:bg-emerald-900">+ Añadir cámara IP</button
+  ><button id="btn-add-ip-camera" type="button" class="h-[44px] rounded-[9px] border border-emerald-400/40 bg-emerald-950/70 px-4 text-[11px] font-bold text-emerald-100 hover:bg-emerald-900">+ Añadir cámara por IP</button
 ></div>
 <div class="bosqyn-multimodal-state" id="multimodal-insight" role="status">
   Detecciones sujetas a verificación humana.

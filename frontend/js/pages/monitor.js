@@ -234,7 +234,7 @@ Bosqyn.pages.monitoreo = function (root) {
     '<option value="">Consultando cámaras registradas…</option></select>' +
     '<button type="button" id="bosqyn-live-ip-reload">Actualizar cámaras</button>';
   visualGrid?.before(controls);
-  // Abrir el módulo de gestión y su formulario sin duplicar configuraciones.
+  // Abrir la configuración de la cámara IP del celular.
   root.querySelector("#btn-add-ip-camera")?.addEventListener("click", () => {
     // El dashboard ejecutivo elimina las pestañas: abrir el panel real.
     const cameraPanel = dashboard.querySelector("#bosqyn-ip-panel");
@@ -243,9 +243,8 @@ Bosqyn.pages.monitoreo = function (root) {
       return;
     }
     cameraPanel.hidden = false;
-    const addButton = cameraPanel.querySelector("#ip-add-camera");
-    if (addButton?.getAttribute("aria-expanded") !== "true") addButton?.click();
-    cameraPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    cameraPanel.querySelector("#ip-add-camera")?.click();
+    cameraPanel.querySelector("#ip-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
   const select = controls.querySelector("#bosqyn-live-ip-select");
   const noFeed = document.createElement("p");
@@ -340,7 +339,7 @@ Bosqyn.pages.monitoreo = function (root) {
     Bosqyn.vision?.stop();
     Bosqyn.vision?.reset(root);
     const tip = root.querySelector("[data-vision-detail]");
-    if (tip) tip.textContent = "Conecta una cámara IP para iniciar la clasificación";
+    if (tip) tip.textContent = "Conecta una cámara IP";
     if (captureTimer) { clearTimeout(captureTimer); captureTimer = null; }
     if (stream) stream.getTracks().forEach(track => track.stop());
     stream = null;
@@ -353,7 +352,7 @@ Bosqyn.pages.monitoreo = function (root) {
   function stop() {
     mediaSession++;
     active = false; starting = false;
-    if (monitorTimer) { clearInterval(monitorTimer); monitorTimer = null; }
+    if (monitorTimer) { clearTimeout(monitorTimer); monitorTimer = null; }
     resetVideo(); clearAudio();
     if (lastFrameUrl) { URL.revokeObjectURL(lastFrameUrl); lastFrameUrl = null; }
     image.removeAttribute("src");
@@ -466,6 +465,32 @@ Bosqyn.pages.monitoreo = function (root) {
       const frame = new Image();
       frame.onload = async () => {
         if (!active || session !== mediaSession) { URL.revokeObjectURL(url); return; }
+        // Una imagen casi negra no permite afirmar que no hay amenazas.
+        let dark = false;
+        try {
+          const sample = document.createElement("canvas");
+          sample.width = 16; sample.height = 16;
+          const context = sample.getContext("2d", { willReadFrequently: true });
+          context.drawImage(frame, 0, 0, 16, 16);
+          const pixels = context.getImageData(0, 0, 16, 16).data;
+          let darkPixels = 0;
+          for (let i = 0; i < pixels.length; i += 4)
+            if (pixels[i] < 16 && pixels[i + 1] < 16 && pixels[i + 2] < 16) darkPixels++;
+          dark = darkPixels / (pixels.length / 4) >= 0.98;
+        } catch { /* Si no se puede examinar el fotograma, no inferir su contenido. */ }
+        if (dark) {
+          if (video || canvas) resetVideo();
+          URL.revokeObjectURL(url);
+          image.style.display = "none";
+          noFeed.textContent = "IMAGEN OSCURA · Comprueba la cámara y la iluminación";
+          noFeed.hidden = false;
+          if (badge) badge.style.display = "none";
+          if (mediaSource) mediaSource.textContent = "Cámara IP · imagen oscura";
+          status.textContent = "La cámara envía una imagen oscura; la clasificación visual está detenida.";
+          status.classList.add("bosqyn-camera-error");
+          lastFrame = Date.now();
+          return;
+        }
         image.src = url;
         image.style.display = "";
         noFeed.hidden = true;
@@ -478,7 +503,7 @@ Bosqyn.pages.monitoreo = function (root) {
           await ensureVisualStream(frame);
         }
         status.classList.remove("bosqyn-camera-error");
-        status.textContent = "Cámara IP conectada · IA visual activa";
+        status.textContent = "Cámara IP conectada · comprobando análisis visual";
         if (mediaSource) mediaSource.textContent = "Cámara IP: " + (activeCamera?.name || id);
         lastFrame = Date.now();
       };
@@ -516,6 +541,11 @@ Bosqyn.pages.monitoreo = function (root) {
         status.textContent = error.message || "Sin conexión con el servidor de cámaras IP.";
     }
   }
+  async function refreshLoop(session, id) {
+    await refresh(session, id);
+    if (active && session === mediaSession)
+      monitorTimer = setTimeout(() => refreshLoop(session, id), 350);
+  }
   async function start() {
     if (starting || active) return;
     const id = Number(select.value);
@@ -531,8 +561,7 @@ Bosqyn.pages.monitoreo = function (root) {
       const session = ++mediaSession;
       button.textContent = "Desconectar cámara IP";
       status.textContent = "Abriendo la señal seleccionada; la cámara del celular debe seguir transmitiendo.";
-      await refresh(session, id);
-      monitorTimer = setInterval(() => refresh(session, id), 1700);
+      refreshLoop(session, id);
     } catch (err) {
       status.textContent = err.message; status.classList.add("bosqyn-camera-error");
     } finally { starting = false; button.disabled = false; }
@@ -555,6 +584,7 @@ Bosqyn.pages.monitoreo = function (root) {
     sound = !sound;
     Bosqyn.operations?.setSound(sound);
     const knob = soundButton.firstElementChild;
+    soundButton.setAttribute("aria-pressed", String(sound));
     soundButton.classList.toggle("bg-[#22c55e]", sound);
     soundButton.classList.toggle("bg-white/15", !sound);
     knob?.classList.toggle("left-[14px]", sound);

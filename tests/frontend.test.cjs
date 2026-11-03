@@ -129,6 +129,90 @@ test("Manual capture button is absent from monitoring", () => {
   const html = fs.readFileSync("frontend/views/monitoreo.html", "utf8");
   assert.ok(!html.includes("Capturar imagen"));
 });
+test("External demo images remain separate from real alert records", () => {
+  const { dom, root } = setup("alertas");
+  const gallery = root.querySelector(".bosqyn-demo-gallery");
+  assert.match(gallery.textContent, /No son detecciones de BOSQYN/);
+  assert.equal(gallery.querySelectorAll("figure").length, 9);
+  assert.equal(root.querySelector("[data-records]").contains(gallery), false);
+  for (const image of gallery.querySelectorAll("img")) {
+    const bytes = fs.readFileSync("frontend/" + image.getAttribute("src"));
+    assert.equal(bytes.subarray(0, 2).toString("hex"), "ffd8");
+  }
+  dom.window.close();
+});
+test("Disconnected monitoring never starts with a live image or badge", () => {
+  const { dom, root } = setup("monitoreo");
+  assert.equal(root.querySelector("#live-img").hasAttribute("src"), false);
+  assert.equal(root.querySelector("#live-badge").style.display, "none");
+  assert.equal(root.querySelector("#btn-sound").getAttribute("aria-pressed"), "true");
+  dom.window.close();
+});
+
+test("Failed view load can be retried", async () => {
+  const dom = new JSDOM('<div id="app"><div id="hero"></div><div id="header"></div><div id="view"></div></div>',
+    { url: "https://bosqyn.example", runScripts: "outside-only" });
+  const w = dom.window;
+  let attempts = 0;
+  w.fetch = async () => ++attempts === 1
+    ? { ok: false, status: 503 }
+    : { ok: true, text: async () => '<h1>Inicio recuperado</h1>' };
+  w.console.error = () => {};
+  w.eval(fs.readFileSync("frontend/js/app.js", "utf8"));
+  await wait();
+  w.document.querySelector("[data-retry-view]").click();
+  await wait();
+  assert.equal(w.document.querySelector("#view h1").textContent, "Inicio recuperado");
+  dom.window.close();
+});
+
+test("Returning to current view cancels an older pending navigation", async () => {
+  const dom = new JSDOM('<div id="app"><div id="hero"></div><div id="header"></div><div id="view"></div><button data-nav="alertas"></button><button data-nav="inicio"></button></div>',
+    { url: "https://bosqyn.example", runScripts: "outside-only" });
+  const w = dom.window;
+  let finish;
+  w.fetch = (url) => url.includes("alertas")
+    ? new Promise((resolve) => { finish = resolve; })
+    : Promise.resolve({ ok: true, text: async () => '<h1>Inicio</h1>' });
+  w.eval(fs.readFileSync("frontend/js/app.js", "utf8"));
+  await wait();
+  w.location.hash = "#alertas";
+  await wait();
+  w.location.hash = "#inicio";
+  await wait();
+  finish({ ok: true, text: async () => '<h1>Alertas</h1>' });
+  await wait();
+  assert.equal(w.document.querySelector("#view h1").textContent, "Inicio");
+  dom.window.close();
+});
+
+test("History network errors offer retry rather than login", async () => {
+  const { dom, w, root } = setup("alertas");
+  w.fetch = async () => { throw Error("Sin conexión"); };
+  w.eval(fs.readFileSync("frontend/js/pages/alerts.js", "utf8"));
+  const cleanup = w.Bosqyn.pages.alertas(root);
+  await wait();
+  assert.match(root.querySelector("[data-records]").textContent, /Reintentar/);
+  assert.doesNotMatch(root.querySelector("[data-records]").textContent, /Acceder/);
+  cleanup(); dom.window.close();
+});
+
+test("Invalid detection confidence or future timestamps cannot save incidents", async () => {
+  const { dom, w, root } = setup("monitoreo");
+  let posts = 0;
+  w.Bosqyn = { auth: { status: async () => true } };
+  w.fetch = async () => { posts++; return { ok: true, json: async () => ({ id: 1 }) }; };
+  w.eval(fs.readFileSync("frontend/js/features/operations.js", "utf8"));
+  const cleanup = w.Bosqyn.operations.mount(root, () => ({ videoWidth: 640, videoHeight: 480 }));
+  for (const detail of [
+    { className: "Humo", probability: NaN, timestamp: Date.now() },
+    { className: "Humo", probability: 1.1, timestamp: Date.now() },
+    { className: "Humo", probability: 0.95, timestamp: Date.now() + 60000 },
+  ]) for (let i = 0; i < 3; i++) root.dispatchEvent(new w.CustomEvent("bosqyn:visual-detection", { detail }));
+  await wait();
+  assert.equal(posts, 0);
+  cleanup(); dom.window.close();
+});
 test("Bell shows pending threat count and opens real notifications", async () => {
   const dom = new JSDOM(
       '<button id="bosqyn-notifications" aria-expanded="false">Campana<span id="bosqyn-notification-count" hidden></span></button>',
@@ -413,6 +497,7 @@ test("Wi-Fi phone streaming rejects unconfirmed or cellular connections", async 
     {url:"https://bosqyn.example",runScripts:"outside-only"}
   );
   const w=dom.window;
+  Object.defineProperty(w.navigator,"userAgent",{value:"Mozilla/5.0 (Linux; Android 13) Mobile",configurable:true});
   Object.defineProperty(w,"isSecureContext",{value:true,configurable:true});
   let opens=0;
   Object.defineProperty(w.navigator,"mediaDevices",{configurable:true,value:{
@@ -452,9 +537,14 @@ test("Premium camera center mounts real KPIs, setup methods, and device sections
   assert.equal(root.querySelector("#ip-count-total").textContent,"01");
   assert.equal(root.querySelector("#ip-count-online").textContent,"00");
   assert.ok(root.querySelector("#ip-mobile-permission-help").hidden);
+  assert.equal(root.querySelector("#ip-mobile-stream").hidden,true);
+  assert.equal(root.querySelector("#ip-form").hidden,false);
   assert.ok(root.querySelector("#ip-mobile-wifi-confirm"));
   assert.ok(root.querySelector(".bosqyn-ip-secondary summary"));
+  assert.equal(root.querySelector(".bosqyn-ip-screen").hidden, true);
   assert.ok(root.querySelector("[data-action='delete']"));
+  assert.equal(root.querySelector("#ip-add-camera").hidden, true);
+  assert.match(root.querySelector(".bosqyn-ip-onboarding").textContent, /Usar cámara del celular/);
   assert.ok(!root.querySelector("[data-action='delete']").closest(".bosqyn-ip-buttons"));
   root.querySelector("#ip-add-camera").click();
   assert.equal(root.querySelector("#ip-form").hidden,false);
@@ -475,6 +565,7 @@ test("Wi-Fi camera permission denial shows Android recovery guide", async () => 
     '<p id="ip-mobile-notice"></p><div id="ip-mobile-permission-help" hidden></div>'+
     '</div></section>',{url:"https://bosqyn.example",runScripts:"outside-only"});
   const w=dom.window;
+  Object.defineProperty(w.navigator,"userAgent",{value:"Mozilla/5.0 (Linux; Android 13) Mobile",configurable:true});
   Object.defineProperty(w,"isSecureContext",{value:true,configurable:true});
   Object.defineProperty(w.navigator,"mediaDevices",{value:{
     getUserMedia:async()=>{const e=new Error("Permission denied");e.name="NotAllowedError";throw e;}
@@ -488,6 +579,25 @@ test("Wi-Fi camera permission denial shows Android recovery guide", async () => 
   assert.equal(root.querySelector("#ip-mobile-notice").dataset.level,"error");
   assert.equal(root.querySelector("#ip-mobile-permission-help").hidden,false);
   cleanup();dom.window.close();
+});
+
+test("Desktop cannot request the webcam through phone streaming", async () => {
+  const dom = new JSDOM('<section id="panel"><div id="ip-mobile-stream"><button id="ip-mobile-start">Transmitir</button><button id="ip-mobile-stop" hidden>Detener</button><video id="ip-mobile-preview"></video><input id="ip-mobile-wifi-confirm" type="checkbox" checked><p id="ip-mobile-notice"></p></div></section>',
+    { url: "https://bosqyn.example", runScripts: "outside-only" });
+  const w = dom.window;
+  Object.defineProperty(w.navigator, "userAgent", { value: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", configurable: true });
+  Object.defineProperty(w, "isSecureContext", { value: true, configurable: true });
+  let requests = 0;
+  Object.defineProperty(w.navigator, "mediaDevices", { value: { getUserMedia: async () => { requests++; } }, configurable: true });
+  w.Bosqyn = { auth: { ensureAdmin: async () => true } };
+  w.eval(fs.readFileSync("frontend/js/features/mobile-stream.js", "utf8"));
+  const root = w.document.querySelector("#panel");
+  const cleanup = w.Bosqyn.mobileStream.mount(root, () => {});
+  root.querySelector("#ip-mobile-start").click();
+  await wait();
+  assert.equal(requests, 0);
+  assert.match(root.querySelector("#ip-mobile-notice").textContent, /abre esta página en tu celular/i);
+  cleanup(); dom.window.close();
 });
 
 test("Empty monitoring evidence cards collapse without inventing metrics", async () => {

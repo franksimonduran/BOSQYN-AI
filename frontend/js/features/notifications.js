@@ -60,7 +60,11 @@ window.Bosqyn = window.Bosqyn || {};
         list.append(link);
       }
     } catch {
+      if (run !== sequence) return;
+      badge.hidden = true;
+      bell.setAttribute("aria-label", "Notificaciones: estado no disponible");
       message.textContent = "No se pudieron actualizar las notificaciones.";
+      list.replaceChildren();
     }
   }
   function close() {

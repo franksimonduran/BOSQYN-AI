@@ -27,7 +27,11 @@ Bosqyn.pages.alertas = function (root) {
       body: body ? JSON.stringify(body) : undefined,
     });
     const data = await response.json();
-    if (!response.ok) throw Error(data.error || "Error del servidor");
+    if (!response.ok) {
+      const error = Error(data.error || "Error del servidor");
+      error.status = response.status;
+      throw error;
+    }
     return data;
   }
   async function load() {
@@ -134,11 +138,13 @@ Bosqyn.pages.alertas = function (root) {
         $("[data-next]").disabled = true;
         list.replaceChildren();
         message.textContent = e.message;
-        list.append(
-          button("Acceder", async () => {
+        if (e.status === 401 || e.status === 403) {
+          list.append(button("Acceder", async () => {
             if (await Bosqyn.auth.ensure()) load();
-          }),
-        );
+          }));
+        } else {
+          list.append(button("Reintentar", load));
+        }
       }
     }
   }

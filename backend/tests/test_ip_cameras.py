@@ -40,6 +40,7 @@ class CameraValidationTests(unittest.TestCase):
     def test_agent_ffmpeg_and_non_https_rejected(self):
         self.assertIn("-frames:v",ffmpeg_cmd("rtsp://192.168.1.20/live",single=True))
         self.assertIn("-rtsp_transport",ffmpeg_cmd("rtsp://192.168.1.20/live"))
+        self.assertTrue(any("fps=3,scale=" in arg for arg in ffmpeg_cmd("http://192.168.1.20/video")))
         with patch("backend.ip_camera_bridge.shutil.which",return_value="/usr/bin/ffmpeg"):
             with self.assertRaises(ValueError):
                 Bridge("http://example.com",TOKEN)

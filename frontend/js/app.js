@@ -3,7 +3,6 @@ Bosqyn.pages = Bosqyn.pages || {};
 (function () {
   "use strict";
   const routes = ["inicio", "monitoreo", "alertas", "estadisticas"],
-    app = document.getElementById("app"),
     view = document.getElementById("view"),
     hero = document.getElementById("hero"),
     header = document.getElementById("header"),
@@ -21,35 +20,18 @@ Bosqyn.pages = Bosqyn.pages || {};
   let current = "",
     cleanup = null,
     request = 0;
-  // Evita ampliar excesivamente el dashboard en pantallas de escritorio: el zoom
-  // anterior (1.75) ocultaba en la primera vista los accesos rápidos inferiores.
-  // Un máximo de 1.15 reproduce la composición compacta aprobada para BOSQYN AI.
-  function resize() {
-    const w = innerWidth,
-      h = innerHeight;
-    if (w < 768) {
-      app.style.zoom = 1;
-      app.style.width = "100%";
-      app.style.height = "100dvh";
-      return;
-    }
-    let z = Math.max(1, Math.min(w / 768, h / 512, 1.15));
-    app.style.zoom = z;
-    app.style.width = w / z + "px";
-    app.style.height = h / z + "px";
-  }
   function selected() {
     let name = location.hash.slice(1);
     return routes.includes(name) ? name : "inicio";
   }
   async function show(name) {
     if (!routes.includes(name)) name = "inicio";
-    if (name === current) return;
     const req = ++request;
+    if (name === current) return;
     try {
       let body = cache.get(name);
       if (!body) {
-        let response = await fetch("views/" + name + ".html?v=20261102-ip-multicam");
+        let response = await fetch("views/" + name + ".html?v=20261103-single-view");
         if (!response.ok) throw Error("HTTP " + response.status);
         body = await response.text();
         cache.set(name, body);
@@ -74,8 +56,12 @@ Bosqyn.pages = Bosqyn.pages || {};
       if (typeof Bosqyn.tickClock === "function") Bosqyn.tickClock();
     } catch (error) {
       if (req !== request) return;
+      if (typeof cleanup === "function") cleanup();
+      cleanup = null;
+      current = "";
       view.innerHTML =
-        '<div role="alert" class="bosqyn-info">No se pudo cargar la vista. Usa un servidor local: python -m backend.server.</div>';
+        '<div role="alert" class="bosqyn-info">No se pudo cargar la vista. Comprueba la conexión con el servidor. <button type="button" data-retry-view>Reintentar</button></div>';
+      view.querySelector("[data-retry-view]").addEventListener("click", () => show(name));
       console.error(error);
     }
   }
@@ -87,10 +73,8 @@ Bosqyn.pages = Bosqyn.pages || {};
     }),
   );
   addEventListener("hashchange", () => show(selected()));
-  addEventListener("resize", resize);
   addEventListener("beforeunload", () => {
     if (typeof cleanup === "function") cleanup();
   });
-  resize();
   show(selected());
 })();

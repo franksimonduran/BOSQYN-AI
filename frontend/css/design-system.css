@@ -1,0 +1,152 @@
+/* Sistema visual compartido. La lógica y los estados permanecen en sus módulos. */
+:root {
+  --forest-bg: #061510;
+  --forest-panel: #0b211a;
+  --forest-border: rgba(145, 198, 165, .19);
+  --forest-text: #eef7f1;
+  --forest-muted: #b0c9bb;
+  --forest-accent: #79db9f;
+  --forest-gold: #dfc393;
+}
+
+#app > div {
+  background: radial-gradient(ellipse at 80% 0%, #103327 0%, #071912 42%, #05120e 100%);
+  border-color: var(--forest-border);
+}
+#app aside {
+  background: linear-gradient(180deg, #0b2119, #06140f 75%);
+  border-color: var(--forest-border);
+}
+#app nav[aria-label="Navegación principal"] { gap: 6px }
+#app nav[aria-label="Navegación principal"] button {
+  min-height: 40px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+#app nav[aria-label="Navegación principal"] button[aria-current="page"] {
+  background: linear-gradient(105deg, #186c44, #124f35);
+  border-color: rgba(126, 227, 166, .4);
+  box-shadow: inset 3px 0 #83e4aa, 0 7px 18px rgba(0, 0, 0, .15);
+}
+#header { min-height: 58px; border-bottom: 1px solid rgba(145, 198, 165, .1) }
+#view { padding-bottom: 28px }
+
+/* Una sola zona principal de desplazamiento, sin escalado por zoom. */
+#app { height: 100vh; height: 100dvh; min-height: 0; width: 100% }
+#app > div { min-height: 0 }
+#app main { min-height: 0; overflow: hidden }
+#view {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #4e8c68 transparent;
+  padding-bottom: 48px;
+}
+#view::-webkit-scrollbar { display: block; width: 8px }
+#view::-webkit-scrollbar-thumb { background: #4e8c68; border-radius: 8px }
+
+/* Inicio: más espacio, contraste y una jerarquía editorial clara. */
+.bosqyn-home-executive { gap: 22px; padding-top: 18px }
+.bh-hero {
+  min-height: 290px;
+  padding: 34px;
+  border-radius: 20px;
+  border-color: var(--forest-border);
+  background-image: linear-gradient(90deg, rgba(3, 21, 15, .98), rgba(3, 26, 18, .88) 48%, rgba(3, 25, 17, .35)), url("../img/hero.jpg");
+}
+.bh-hero h1 { max-width: 700px; line-height: 1.1 }
+.bh-hero-body > p { font-size: 13px; line-height: 1.7 }
+.bh-button { min-height: 44px; padding: 11px 17px; font-size: 12px }
+.bh-button-main { background: #238457; border-color: #4bb87d }
+.bh-kpi, .bh-summary-panel, .bh-module {
+  background: linear-gradient(145deg, rgba(16, 43, 32, .98), rgba(7, 26, 19, .98));
+  border-color: var(--forest-border);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .12);
+}
+.bh-kpi { min-height: 106px; padding: 17px }
+.bh-kpi-label, .bh-module p { font-size: 11px }
+.bh-kpi small { font-size: 10px }
+.bh-section-title { margin-bottom: 14px }
+.bh-section-title h2 { font-size: 16px }
+.bh-module-visual { height: 115px }
+.bh-module-content { padding: 15px 40px 17px 15px }
+.bh-module h3 { font-size: 14px }
+.bh-summary-panel { padding: 18px }
+
+/* Monitoreo y estadísticas comparten superficies y tipografía. */
+.bosqyn-exec-hero { border-radius: 18px; border-color: var(--forest-border) }
+.bx-kpi, .bosqyn-executive-monitor #bosqyn-live-panel,
+.bosqyn-executive-monitor .bosqyn-satellite-center,
+.bosqyn-exec-alerts, .bosqyn-exec-lower .bx-widget,
+#view .bsd-kpi, #view .bsd-panel {
+  border-color: var(--forest-border);
+  border-radius: 14px;
+  background: linear-gradient(145deg, #102d21, #091d16);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .1);
+}
+#view .bosqyn-statistics-dashboard { padding-top: 20px }
+#view .bsd-header { gap: 20px; margin-bottom: 16px }
+#view .bsd-header h1 { font-size: clamp(25px, 2.4vw, 34px); letter-spacing: -.035em }
+#view .bsd-header p, #view .bsd-toolbar label { font-size: 12px }
+#view .bsd-kpi, #view .bsd-panel { padding: 20px }
+#view .bsd-panel header h2 { font-size: 15px }
+#view .bsd-panel header p, #view .bsd-help, #view .bsd-muted { font-size: 11px }
+#view .bsd-toolbar button, #view .bsd-toolbar select { min-height: 42px }
+
+/* Historial: conserva los filtros y acciones existentes. */
+#view .bosqyn-inline-records { padding: 20px 0 28px; color: var(--forest-text) }
+.bosqyn-records-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  padding: 26px; margin-bottom: 20px; border: 1px solid var(--forest-border);
+  border-radius: 18px; background: linear-gradient(110deg, #103527, #0a2119 70%, #102b20);
+}
+.bosqyn-records-eyebrow { color: var(--forest-gold); font-size: 10px; font-weight: 800; letter-spacing: .15em }
+#view .bosqyn-records-header h1 { margin: 8px 0; font-size: clamp(25px, 2.4vw, 34px); letter-spacing: -.035em }
+#view .bosqyn-records-header p { margin: 0; color: var(--forest-muted); font-size: 12px; line-height: 1.6 }
+.bosqyn-records-note { flex: none; padding: 8px 12px; border: 1px solid rgba(223,195,147,.3); border-radius: 99px; color: var(--forest-gold); font-size: 11px }
+#view .bosqyn-real-actions { align-items: center; flex-wrap: wrap }
+#view .bosqyn-action { min-height: 38px; border-radius: 8px; font-size: 11px }
+#view .bosqyn-filters { padding: 16px; margin: 18px 0; border: 1px solid var(--forest-border); border-radius: 14px; background: rgba(13, 39, 28, .75) }
+#view .bosqyn-filters label { color: var(--forest-muted); font-size: 11px }
+#view .bosqyn-filters select { min-height: 40px; border-radius: 8px }
+#view .bosqyn-real-card { border: 1px solid var(--forest-border); border-radius: 14px; background: var(--forest-panel); padding: 16px; margin-bottom: 12px }
+#view .bosqyn-real-card img { border-radius: 9px }
+#view .bosqyn-real-card p, #view .bosqyn-inline-records > p { color: var(--forest-muted); line-height: 1.6 }
+.bosqyn-demo-gallery { margin: 0 0 20px; padding: 16px; border: 1px solid rgba(223,195,147,.4); border-radius: 14px; background: #17271d }
+.bosqyn-demo-gallery summary { cursor: pointer; color: #f2d59e; font-weight: 800; font-size: 13px }
+#view .bosqyn-demo-gallery > p { margin: 12px 0; color: #e2d2ad; font-size: 12px; line-height: 1.6 }
+.bosqyn-demo-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px }
+.bosqyn-demo-grid figure { margin: 0; overflow: hidden; border: 1px solid var(--forest-border); border-radius: 10px; background: #0b211a }
+.bosqyn-demo-grid img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover }
+.bosqyn-demo-grid figcaption { padding: 12px; color: var(--forest-muted); font-size: 11px; line-height: 1.6 }
+.bosqyn-demo-grid figcaption strong,.bosqyn-demo-grid figcaption span { display: block }
+.bosqyn-demo-grid figcaption strong { color: #f2d59e; font-size: 12px }
+.bosqyn-demo-grid figcaption strong { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #f1fff6; font-size: 14px }
+.bosqyn-demo-grid figcaption small { display: block; margin-top: 4px; color: var(--forest-muted) }
+.bosqyn-demo-credits { margin-top: 14px; color: var(--forest-muted); font-size: 11px; line-height: 1.6 }
+.bosqyn-demo-credits summary { color: var(--forest-muted); font-size: 11px }
+.bosqyn-demo-credits a { color: #a4e9be; text-decoration: underline }
+.bosqyn-demo-grid a { color: #a4e9be; text-decoration: underline }
+
+@media (max-width: 767px) {
+  .bosqyn-demo-grid { grid-template-columns: 1fr }
+  #app aside { flex-shrink: 0 }
+  #view { padding-bottom: 48px }
+  #header { min-height: 54px }
+  .bosqyn-home-executive { gap: 16px; padding-top: 12px }
+  .bh-hero { min-height: 255px; padding: 24px 18px }
+  .bh-kpi { min-height: 88px; padding: 12px }
+  .bh-kpi-label, .bh-module p { font-size: 10px }
+  .bh-kpi small { font-size: 9px }
+  .bh-module-visual { height: 88px }
+  .bh-module-content { padding: 12px 29px 12px 10px }
+  .bh-module h3 { font-size: 12px }
+  .bosqyn-records-header { align-items: flex-start; flex-direction: column; padding: 20px }
+  #view .bsd-kpi, #view .bsd-panel { padding: 14px }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important }
+}

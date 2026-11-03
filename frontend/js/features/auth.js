@@ -6,7 +6,8 @@ Bosqyn.auth = (() => {
     role = null,
     configured = false,
     pending = null,
-    adminOnly = false;
+    adminOnly = false,
+    previousFocus = null;
   const trigger = document.getElementById("bosqyn-auth-button"),
     name = document.getElementById("bosqyn-auth-label");
   const overlay = document.createElement("div");
@@ -43,6 +44,7 @@ Bosqyn.auth = (() => {
     );
   }
   function close(success = false) {
+    if (overlay.hidden) return;
     overlay.hidden = true;
     password.value = "";
     message.textContent = "";
@@ -50,9 +52,12 @@ Bosqyn.auth = (() => {
       pending(success);
       pending = null;
     }
+    if (previousFocus?.isConnected) previousFocus.focus();
+    previousFocus = null;
   }
   function display(reason, requireAdmin = false) {
     if (pending) close(false);
+    previousFocus = document.activeElement;
     adminOnly = requireAdmin;
     guest.hidden = requireAdmin;
     overlay.hidden = false;
@@ -168,7 +173,19 @@ Bosqyn.auth = (() => {
     if (event.target === overlay) close(false);
   };
   document.addEventListener("keydown", (event) => {
+    if (overlay.hidden) return;
     if (event.key === "Escape") close(false);
+    if (event.key === "Tab") {
+      const focusable = [...overlay.querySelectorAll("button, input, a[href], select, textarea, [tabindex]:not([tabindex='-1'])")]
+        .filter((element) => !element.disabled && !element.closest("[hidden]"));
+      if (!focusable.length) return;
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
+    }
   });
   trigger?.addEventListener("click", () => display());
   status().then((ok) => {

@@ -90,19 +90,21 @@ Bosqyn.operations = (function () {
     async function onDetection(event) {
       const d = event.detail || {},
         name = String(d.className || "").toUpperCase(),
-        time = Number(d.timestamp);
+        time = Number(d.timestamp),
+        probability = Number(d.probability),
+        age = Date.now() - time;
       if (
         !prefs.automatic ||
         !["HUMO", "INCENDIO", "TALA"].includes(name) ||
-        d.probability < 0.85 ||
+        !Number.isFinite(probability) || probability < 0.85 || probability > 1 ||
         !Number.isFinite(time) ||
-        Date.now() - time > 3000
+        age < 0 || age > 3000
       ) {
         count = 0;
         label = "";
         return;
       }
-      count = name === label && time - lastTimestamp < 3000 ? count + 1 : 1;
+      count = name === label && time >= lastTimestamp && time - lastTimestamp < 3000 ? count + 1 : 1;
       label = name;
       lastTimestamp = time;
       if (count < 3 || busy || Date.now() - (saved.get(name) || 0) < 60000)
@@ -138,7 +140,7 @@ Bosqyn.operations = (function () {
           body: JSON.stringify({
             source: "VISION_AUTOMATICA",
             category: name,
-            confidence: d.probability,
+            confidence: probability,
             audio_data,
             image_data: canvas.toDataURL("image/jpeg", 0.8),
           }),

@@ -50,7 +50,10 @@ function card(camera){
  titleWrap.append(title,subtitle);
  const tag=mk("span","Sin señal","bosqyn-ip-tag");
  head.append(titleWrap,tag);
- const frame=mk("div",undefined,"bosqyn-ip-screen");
+  const frame=mk("div",undefined,"bosqyn-ip-screen");
+  // La imagen se procesa en segundo plano para las opciones existentes;
+  // el único visor visible es el panel principal de Monitoreo.
+  frame.hidden=true;
  const frameDecor=mk("div",undefined,"bosqyn-ip-screen-label");
  frameDecor.innerHTML='<span class="bosqyn-ip-screen-pulse" aria-hidden="true"></span> BOSQYN AI · VIGILANCIA FORESTAL';
  frame.append(frameDecor);
@@ -106,7 +109,12 @@ function card(camera){
    const button=event.target.closest("[data-action]");
    if(!button)return;
    const action=button.dataset.action;
-   if(action==="fullscreen"){frame.requestFullscreen?.();return;}
+    if(action==="fullscreen"){
+      const main=document.querySelector("#bosqyn-live-panel .bosqyn-unified-camera");
+      if(main) main.requestFullscreen?.();
+      else status("Abre la cámara en el panel principal de Monitoreo.");
+      return;
+    }
    if(action==="ai"){
      if(visionId===id){stopVision();modelStatus.textContent="IA detenida";return;}
      if(!current?.connected||!canvas.captureStream){status("Se necesita video activo y un navegador con canvas.captureStream.");return;}
@@ -294,13 +302,11 @@ function mount(dashboard,stopWebcam){
     '<div class="bosqyn-ip-kpi"><span>◉</span><strong id="ip-count-online">00</strong><small>En línea</small></div>'+
     '<div class="bosqyn-ip-kpi"><span>◎</span><strong id="ip-count-events">00</strong><small>Eventos recientes</small></div>'+
    '</div></header>'+
-  '<section class="bosqyn-ip-onboarding"><div class="bosqyn-ip-onboarding-head"><div><span class="bosqyn-ip-section-number">01 / CONECTIVIDAD</span><h3>Conectar un dispositivo</h3>'+
-   '<p>Elige cómo deseas llevar la señal a BOSQYN AI.</p></div></div>'+
-   '<div class="bosqyn-ip-methods"><button id="ip-show-mobile" type="button" class="bosqyn-ip-method is-active" aria-pressed="true" aria-controls="ip-mobile-stream">'+
-    '<span class="bosqyn-ip-method-icon">▯</span><strong>Celular por Wi-Fi</strong><small>Sin IP · Transmisión HTTPS</small></button>'+
-    '<button id="ip-add-camera" type="button" class="bosqyn-ip-method" aria-controls="ip-form" aria-expanded="false">'+
-    '<span class="bosqyn-ip-method-icon">▣</span><strong>Cámara IP local</strong><small>RTSP · MJPEG · ONVIF</small></button></div></section>'+
-  '<section id="ip-mobile-stream" class="bosqyn-mobile-stream">'+
+   '<section class="bosqyn-ip-onboarding"><div class="bosqyn-ip-onboarding-head"><div><span class="bosqyn-ip-section-number">01 / CONECTIVIDAD</span><h3>Usar cámara del celular</h3>'+
+    '<p>Inicia IP Webcam en Android y conecta el celular y la computadora a la misma red Wi-Fi.</p></div></div></section>'+
+   '<button id="ip-show-mobile" type="button" hidden aria-pressed="true" aria-controls="ip-mobile-stream">Celular</button>'+
+   '<button id="ip-add-camera" type="button" hidden aria-controls="ip-form" aria-expanded="false">Configuración local</button>'+
+  '<section id="ip-mobile-stream" class="bosqyn-mobile-stream" hidden>'+
     '<div class="bosqyn-ip-steps"><span class="is-current">01 · Red Wi-Fi</span><span>02 · Permisos</span><span>03 · Vista previa</span><span>04 · Transmisión</span></div>'+
     '<div class="bosqyn-mobile-stream-top"><div><h3>Conectar celular por Wi-Fi</h3>'+
     '<p>Usa la cámara de este teléfono mediante una red Wi-Fi con Internet. No necesita IP ni computadora intermediaria.</p></div>'+
@@ -309,7 +315,7 @@ function mount(dashboard,stopWebcam){
     '<label class="bosqyn-mobile-wifi-confirm"><input type="checkbox" id="ip-mobile-wifi-confirm"> Confirmo que estoy conectado a Wi-Fi y desactivé los datos móviles</label>'+ 
     '<video id="ip-mobile-preview" autoplay muted playsinline aria-label="Vista previa de cámara móvil"></video>'+
     '<label class="bosqyn-mobile-audio-option"><input type="checkbox" id="ip-mobile-audio"> Transmitir también el micrófono (análisis de sonidos forestales)</label>'+
-    '<p id="ip-mobile-notice" role="status">Usa este botón desde el teléfono emisor. Para ver las imágenes en otro equipo, deja abierta esta página en el celular y entra a Monitoreo desde el segundo dispositivo.</p>'+
+     '<p id="ip-mobile-notice" role="status">Pulsa Transmitir únicamente en el celular. En la computadora, utiliza Monitoreo para ver la señal.</p>'+
     '<div id="ip-mobile-permission-help" class="bosqyn-ip-permission-help" hidden><strong>Acceso a la cámara bloqueado</strong>'+
      '<p>La solicitud de acceso fue rechazada por el navegador o el sistema operativo. Comprueba estos pasos:</p>'+
      '<ol><li>En Chrome toca el icono de permisos junto a la dirección web → Cámara → Permitir.</li>'+
@@ -318,9 +324,9 @@ function mount(dashboard,stopWebcam){
      '<li>Si el problema aparece al activar audio, desmarca el micrófono y prueba solo con imagen.</li></ol></div>'+
     '<p class="bosqyn-ip-muted">Envía aproximadamente una imagen por segundo mediante HTTPS. No necesitas introducir una IP 192.168.x.x para este modo. El audio es opcional y depende del modelo del servidor.</p>'+
    '</section>'+
-  '<form id="ip-form" class="bosqyn-ip-form bosqyn-ip-quick-form" hidden>'+
-   '<p class="bosqyn-ip-intro">Solo para cámaras IP dentro de una red local con pasarela activa. Si usas Wi-Fi con acceso a Internet, utiliza el botón «Transmitir por Wi-Fi» de arriba.</p>'+
-   '<label class="bosqyn-ip-url-field">Enlace de cámara IP<input name="url" required maxlength="1024" inputmode="url" placeholder="http://192.168.1.100:8080/video" autocomplete="off"></label>'+
+  '<form id="ip-form" class="bosqyn-ip-form bosqyn-ip-quick-form">'+
+   '<p class="bosqyn-ip-intro">Introduce la dirección que muestra IP Webcam. La pasarela local debe estar activa para recibir la imagen.</p>'+
+   '<label class="bosqyn-ip-url-field">IP o enlace de la cámara<input name="url" required maxlength="1024" inputmode="url" placeholder="192.168.1.100:8080" autocomplete="off"></label>'+
    '<label class="bosqyn-ip-name-field">Nombre (opcional)<input name="name" maxlength="80" placeholder="Cámara forestal 01"></label>'+
    '<details class="bosqyn-ip-advanced"><summary>Configuración avanzada (opcional)</summary><div class="bosqyn-ip-advanced-grid">'+
      '<label>Dispositivo<select name="kind"><option value="telefono">Teléfono Android</option><option value="camara_ip">Cámara IP</option><option value="seguridad">Seguridad</option></select></label>'+
@@ -330,7 +336,7 @@ function mount(dashboard,stopWebcam){
      '<label>Umbral acústico<input name="threshold" type="number" min=".5" max=".99" step=".01" value=".85"></label>'+
      '<label class="bosqyn-ip-check"><input type="checkbox" name="audio_enabled"> Analizar audio (si la cámara lo transmite)</label>'+
    '</div></details>'+
-   '<div class="bosqyn-ip-form-actions"><button type="submit">Guardar y conectar</button><button type="button" id="ip-cancel-camera" class="bosqyn-ip-cancel">Cancelar</button></div>'+
+   '<div class="bosqyn-ip-form-actions"><button type="submit">Guardar y conectar</button><button type="button" id="ip-cancel-camera" class="bosqyn-ip-cancel">Limpiar</button></div>'+
    '<p class="bosqyn-ip-form-note">Se necesita acceso administrador y una pasarela local activa en la misma red que la cámara. Nunca compartas contraseñas en el enlace.</p>'+
   '</form>'+
   '<p id="ip-status" class="bosqyn-ip-muted" role="status">Accede como administrador para añadir cámaras.</p>'+
@@ -368,11 +374,16 @@ function mount(dashboard,stopWebcam){
  };
  addButton.addEventListener("click",()=>toggleForm(true));
  $("ip-show-mobile").addEventListener("click",()=>toggleForm(false));
- $("ip-cancel-camera").addEventListener("click",()=>toggleForm(false));
+  $("ip-cancel-camera").addEventListener("click",()=>form.reset());
  form.addEventListener("submit",async event=>{
    event.preventDefault();if(!await admin())return;
    const data=new FormData(form);
-   const url=String(data.get("url")||"").trim();
+    let url=String(data.get("url")||"").trim();
+    if (/^\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?\/?$/.test(url)) {
+      url = "http://" + url.replace(/\/$/, "") + (url.includes(":") ? "" : ":8080") + "/video";
+    } else if (/^https?:\/\/\d{1,3}(?:\.\d{1,3}){3}:8080\/?$/i.test(url)) {
+      url = url.replace(/\/$/, "") + "/video";
+    }
    let scheme="";
    try{scheme=new URL(url).protocol.toLowerCase();}
    catch{status("Introduce una URL completa, por ejemplo http://192.168.1.100:8080/video");return;}
@@ -401,7 +412,7 @@ function mount(dashboard,stopWebcam){
        connectMessage+="No se pudo solicitar conexión: "+connectError.message;
      }
      form.reset();
-     toggleForm(false);
+      toggleForm(true);
      status(connectMessage);
      await refresh();
    }catch(err){status(err.message);}

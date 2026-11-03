@@ -199,6 +199,12 @@ Bosqyn.mobileStream=(()=>{
     }
     async function begin(){
       if(running||busy)return;
+      // La transmisión se inicia únicamente desde el teléfono emisor, nunca
+      // desde la computadora que supervisa. No solicitar permisos en escritorio.
+      if(!/Android|iPhone|iPod/i.test(navigator.userAgent)){
+        status("Abre esta página en tu celular para transmitir. La cámara de esta computadora no se utilizará.","error");
+        return;
+      }
       if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia){
         status("Necesitas HTTPS y un navegador que permita acceso a la cámara.");
         return;

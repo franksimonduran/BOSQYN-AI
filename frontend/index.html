@@ -34,6 +34,7 @@
     <link rel="stylesheet" href="css/pages/ip-cameras.css?v=20261103-premium-cameras" />
     <link rel="stylesheet" href="css/pages/monitor-executive.css?v=20261103-no-empty-panels" />
     <link rel="stylesheet" href="css/pages/home-executive.css?v=20261101" />
+    <link rel="stylesheet" href="css/design-system.css?v=20261103-demo-layout" />
   </head>
   <body>
     <div id="app" class="bg-[#020c09] p-[4px] box-border"
@@ -61,7 +62,7 @@
             class="mt-[20px] flex flex-col gap-[4px]"
             ><button
               type="button"
-              data-nav="inicio"
+              data-nav="inicio" aria-label="Inicio"
               class="flex h-[34px] items-center gap-[11px] rounded-[8px] px-[11px] text-left text-[11.5px] font-medium max-md:justify-center max-md:px-0 border border-[#1fb457]/60 bg-gradient-to-r from-[#0b7f3f] to-[#12a653] text-white shadow-[0_0_14px_rgba(34,197,94,0.25)]"
               ><svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -82,7 +83,7 @@
               ><span class="max-md:hidden">Inicio</span></button
             ><button
               type="button"
-              data-nav="monitoreo"
+              data-nav="monitoreo" aria-label="Monitoreo"
               class="flex h-[34px] items-center gap-[11px] rounded-[8px] px-[11px] text-left text-[11.5px] font-medium max-md:justify-center max-md:px-0 border border-transparent text-[#c5d3cc] hover:bg-white/5"
               ><svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -103,7 +104,7 @@
               ><span class="max-md:hidden">Monitoreo</span></button
             ><button
               type="button"
-              data-nav="alertas"
+              data-nav="alertas" aria-label="Alertas"
               class="flex h-[34px] items-center gap-[11px] rounded-[8px] px-[11px] text-left text-[11.5px] font-medium max-md:justify-center max-md:px-0 border border-transparent text-[#c5d3cc] hover:bg-white/5"
               ><svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -124,7 +125,7 @@
               ><span class="max-md:hidden">Alertas</span></button
             ><button
               type="button"
-              data-nav="estadisticas"
+              data-nav="estadisticas" aria-label="Estadísticas"
               class="flex h-[34px] items-center gap-[11px] rounded-[8px] px-[11px] text-left text-[11.5px] font-medium max-md:justify-center max-md:px-0 border border-transparent text-[#c5d3cc] hover:bg-white/5"
               ><svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -259,12 +260,12 @@
     <script src="js/features/operations.js?v=20261103-hide-operations"></script>
     <script src="js/features/notifications.js"></script>
     <script src="js/pages/audio.js"></script>
-    <script src="js/features/mobile-stream.js?v=20261103-premium-cameras"></script>
-    <script src="js/pages/ip-cameras.js?v=20261103-premium-cameras"></script>
+    <script src="js/features/mobile-stream.js?v=20261103-phone-only"></script>
+    <script src="js/pages/ip-cameras.js?v=20261103-single-view"></script>
     <script src="js/features/monitor-executive.js?v=20261103-no-empty-panels"></script>
-    <script src="js/pages/monitor.js?v=20261103-no-empty-panels"></script>
+    <script src="js/pages/monitor.js?v=20261103-dark-frames"></script>
     <script src="js/pages/alerts.js"></script>
     <script src="js/pages/statistics.js?v=20261102-dashboard"></script>
-    <script src="js/app.js?v=20261102-auditfix"></script>
+    <script src="js/app.js?v=20261103-single-view"></script>
   </body>
 </html>
